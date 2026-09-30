@@ -72,9 +72,12 @@ class Simulateur:
         )
 
     def nouvelle_partie(self, graine: str | None = None, especes: list[int] | None = None,
-                        style_combat: str = "fixe") -> Etat | Fin:
-        """style_combat : « fixe » ou « changer » (le jeu propose alors de changer après chaque K.O.)."""
+                        style_combat: str = "fixe", vague_max: int | None = None) -> Etat | Fin:
+        """style_combat : « fixe » ou « changer » (le jeu propose alors de changer après chaque K.O.).
+        vague_max : la partie s'arrête au-delà (info « tronquee »), pour le programme progressif."""
         demande: dict = {"type": "nouvelle-partie", "styleCombat": style_combat}
+        if vague_max:
+            demande["vagueMax"] = vague_max
         if graine:
             demande["graine"] = graine
         if especes:

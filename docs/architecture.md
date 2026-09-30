@@ -22,7 +22,7 @@ décrite exactement de la même façon à l'entraînement et sur le site.
 | Brique | Choix | Pourquoi |
 |---|---|---|
 | Simulateur | Le gestionnaire de partie sans écran du jeu (`jeu/test/framework/game-manager.ts`) | Les vraies règles du jeu ; vitesse validée à l'[étape 0](etape-0-vitesse.md) |
-| Entraîneur | Python (PyTorch + Stable-Baselines3) | L'écosystème de référence pour le renforcement |
+| Entraîneur | Python + PyTorch, PPO écrit à la main (style CleanRL) | Nos copies du jeu en TCP et nos masques d'actions s'y branchent directement, et chaque chiffre reste visible (voir [étape 3](etape-3-entrainement.md)) |
 | Cerveau | Un tronc commun + une « tête » par type de décision | Ce qu'il comprend en combat sert aux bonus ; un seul fichier à importer |
 | Graphiques | Tableau de bord maison | Parle le langage du jeu : vague atteinte, captures, bonus préférés, replays |
 | Format du cerveau | Maison (`.cerveau`) + calcul en TypeScript | ONNX pour navigateur pèse ~10 Mo et exige du WebAssembly ; notre petit réseau se calcule en 50 lignes, et on voit son intérieur (voir [étape 2](etape-2-cerveau-v0.md)) |
@@ -99,7 +99,7 @@ de 256 Ko. On n'y écrit donc que de gros fichiers, jamais des milliers de petit
 1. ✅ Extension minimale : lit la partie en direct et affiche ce que le cerveau « voit »
    (validée dans Brave le 30/09)
 2. ✅ Cerveau v0 (non entraîné) importable, modes Conseil et Auto — [résultats](etape-2-cerveau-v0.md)
-3. Combat seul sur les premières vagues + premières courbes
+3. 🔄 Premier entraînement PPO + tableau de bord maison + note de synergie des attaques — [détails](etape-3-entrainement.md)
 4. Capture, bonus, bons d'œuf, attaque à oublier, biomes
 5. Team build
 6. Phrases d'explication (Ollama) + mode auto complet

@@ -111,6 +111,12 @@ export type TypeDecision =
 export interface OptionDecision {
   nom: string;
   cout?: number;
+  /** Note de synergie (attaque à oublier) : plus haut = meilleur jeu d'attaques. */
+  note?: number;
+  pour?: string[];
+  contre?: string[];
+  /** L'option que le pilote choisirait. */
+  recommandee?: boolean;
 }
 
 /** Ce que le jeu attend en ce moment. */

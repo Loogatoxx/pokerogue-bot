@@ -78,6 +78,7 @@ Après une mise à jour du jeu : `python3 observateur/generer-noms.py` régénè
 - ✅ Étape 1 : l'extension lit la partie en direct dans Brave et affiche ce que voit le cerveau.
 - ✅ Étape 2 : chaîne complète jeu → cerveau → jeu ; cerveau v0 (non entraîné) importable, modes
   Conseil et Auto ([détails](docs/etape-2-cerveau-v0.md)).
-- ⏭️ Étape 3 : premier entraînement (combat sur les premières vagues) et tableau de bord.
+- 🔄 Étape 3 : premier entraînement PPO, tableau de bord (`.venv/bin/python -m entraineur.tableau_de_bord`,
+  puis http://localhost:8766) et note de synergie des attaques ([détails](docs/etape-3-entrainement.md)).
 
 Journal des échanges : [`historique_prompts.md`](historique_prompts.md).

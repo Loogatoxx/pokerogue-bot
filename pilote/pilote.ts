@@ -10,6 +10,7 @@
  */
 import { decrireAction } from "../observateur/actions";
 import type { ScenePokerogue } from "../observateur/jeu";
+import { meilleureOption, optionsApprentissageAffichees } from "../observateur/synergie";
 import { BOUTON, CIBLE, COMMANDE, ECRAN, USAGE_ATTAQUE_NORMAL } from "../observateur/valeurs";
 
 /** Écran du jeu, vu par le pilote (sous-ensemble prudent des différents écrans). */
@@ -140,9 +141,7 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
   }
 
   if (mode === ECRAN.SUMMARY) {
-    // « Quelle attaque oublier ? » : règle provisoire, on renonce à la nouvelle attaque.
-    e.processInput(BOUTON.CANCEL);
-    return "garde ses attaques";
+    return choisirAttaqueAOublier(scene, e);
   }
 
   if (mode === ECRAN.CONFIRM && phase === "CheckSwitchPhase") {
@@ -180,4 +179,27 @@ function choisirRecompense(scene: ScenePokerogue, e: Ecran, etat: EtatPilote): s
   e.setCursor(choix);
   e.processInput(BOUTON.ACTION);
   return `récompense : ${e.options?.[choix]?.modifierTypeOption?.type?.name ?? "?"}`;
+}
+
+/**
+ * « Quelle attaque oublier pour apprendre la nouvelle ? » (écran de résumé du jeu).
+ * Règle en attendant que le cerveau décide : on note chaque option (refuser, ou oublier l'une
+ * des 4) avec la note de synergie du jeu d'attaques complet (observateur/synergie.ts), et on
+ * garde la mieux notée.
+ */
+function choisirAttaqueAOublier(scene: ScenePokerogue, e: Ecran): string | null {
+  const resume = e as Ecran & { moveSelect?: boolean };
+  const options = optionsApprentissageAffichees(scene);
+  if (!options) {
+    e.processInput(BOUTON.CANCEL);
+    return "garde ses attaques";
+  }
+  if (!resume.moveSelect) {
+    return null; // l'écran n'est pas encore prêt à choisir une attaque
+  }
+  const choix = meilleureOption(options);
+  // Lignes 0 à 3 : les attaques actuelles ; ligne 4 : la nouvelle (la choisir revient à la refuser).
+  e.setCursor(choix.oublier ?? 4);
+  e.processInput(BOUTON.ACTION);
+  return choix.oublier === null ? "garde ses attaques" : `apprend : ${choix.nom.replace("Oublier ", "oublie ")}`;
 }

@@ -17,6 +17,7 @@ import { Button as ButtonJeu } from "#enums/buttons";
 import { Command as CommandJeu } from "#enums/command";
 import { BiomeId as BiomeIdJeu } from "#enums/biome-id";
 import { MoveId } from "#enums/move-id";
+import { Button } from "#enums/buttons";
 import { MoveCategory as MoveCategoryJeu } from "#enums/move-category";
 import { MoveTarget as MoveTargetJeu } from "#enums/move-target";
 import { MoveUseMode as MoveUseModeJeu } from "#enums/move-use-mode";
@@ -25,7 +26,7 @@ import { PokeballType as PokeballTypeJeu } from "#enums/pokeball";
 import { PokemonType as PokemonTypeJeu } from "#enums/pokemon-type";
 import { SpeciesId } from "#enums/species-id";
 import { StatusEffect as StatusEffectJeu } from "#enums/status-effect";
-import { UiMode as UiModeJeu } from "#enums/ui-mode";
+import { UiMode as UiModeJeu, UiMode } from "#enums/ui-mode";
 import { WeatherType as WeatherTypeJeu } from "#enums/weather-type";
 import { GameManager } from "#test/framework/game-manager";
 import fs from "node:fs";
@@ -35,6 +36,7 @@ import { NOMBRE_ACTIONS } from "../../../observateur/actions";
 import { Carnet } from "../../../observateur/carnet";
 import { encoder, TAILLE_OBSERVATION } from "../../../observateur/encodeur";
 import type { ScenePokerogue } from "../../../observateur/jeu";
+import type { Observation } from "../../../observateur/types";
 import * as noms from "../../../observateur/noms";
 import { observer } from "../../../observateur/observateur";
 
@@ -178,6 +180,38 @@ describe("Observateur", () => {
     expect(vecteur).toHaveLength(TAILLE_OBSERVATION);
     expect(vecteur.every(Number.isFinite)).toBe(true);
     expect(Math.max(...vecteur)).toBeLessThanOrEqual(3);
+  });
+
+  it("note le jeu d'attaques complet quand il faut en oublier une", async () => {
+    game.override.startingLevel(5).enemyLevel(5).xpMultiplier(50);
+    await game.classicMode.startBattle(SpeciesId.BULBASAUR);
+    const bulbizarre = game.field.getPlayerPokemon();
+    game.move.changeMoveset(bulbizarre, [MoveId.SPLASH, MoveId.GROWL, MoveId.TACKLE, MoveId.POUND]);
+    game.move.select(MoveId.SPLASH);
+    await game.doKillOpponents();
+
+    let options: Observation["decision"]["options"];
+    // « Oublier une attaque ? » → oui ; écran de résumé → on lit les options, puis on refuse ;
+    // « Arrêter d'apprendre ? » → oui.
+    game.onNextPrompt("LearnMovePhase", UiMode.CONFIRM, () => game.scene.ui.processInput(Button.ACTION));
+    game.onNextPrompt("LearnMovePhase", UiMode.SUMMARY, () => {
+      options = observer(game.scene, new Carnet())!.decision.options;
+      game.scene.ui.setCursor(4);
+      game.scene.ui.processInput(Button.ACTION);
+    });
+    game.onNextPrompt("LearnMovePhase", UiMode.CONFIRM, () => game.scene.ui.processInput(Button.ACTION));
+    await game.phaseInterceptor.to("LearnMovePhase");
+
+    // 5 options notées : refuser, ou oublier l'une des 4 attaques, dont une seule recommandée.
+    expect(options!.map(o => o.nom)).toEqual([
+      expect.stringMatching(/^Ne pas apprendre /),
+      "Oublier Splash",
+      "Oublier Growl",
+      "Oublier Tackle",
+      "Oublier Pound",
+    ]);
+    expect(options!.every(o => typeof o.note === "number")).toBe(true);
+    expect(options!.filter(o => o.recommandee)).toHaveLength(1);
   });
 
   it("a des tables de noms à jour avec le jeu", () => {

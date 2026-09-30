@@ -33,7 +33,7 @@ def exporter_enums() -> dict:
         ["pnpm", "exec", "vitest", "run", "--silent=passed-only", "test/bot/exporter-enums.test.ts"],
         cwd=JEU, env=env, check=True, capture_output=True,
     )
-    return json.loads(sortie.read_text())
+    return json.loads(sortie.read_text())  # {"enums": {...}, "efficaciteTypes": [[...]]}
 
 
 def charger(nom: str) -> dict:
@@ -51,7 +51,8 @@ BALLS = {"POKEBALL": "pokeBall"}  # seule clé qui ne suit pas la règle camelCa
 
 
 def main() -> None:
-    enums = exporter_enums()
+    export = exporter_enums()
+    enums, efficacite = export["enums"], export["efficaciteTypes"]
     biomes, natures = charger("biomes.json"), charger("nature.json")
     types, statuts = charger("pokemon-info.json")["type"], charger("status-effect.json")
     terrains, balls = charger("terrain.json"), charger("pokeball.json")
@@ -95,8 +96,19 @@ def main() -> None:
             lignes.append(f'  {cle_js}: {{ cle: "{cle}", fr: "{fr}" }},')
         lignes.append("};")
         lignes.append("")
+    lignes += [
+        "/**",
+        " * Table des types (connaissance publique) : EFFICACITE_TYPES[attaque][défense] est le",
+        " * multiplicateur de dégâts d'une attaque de ce type contre un Pokémon de ce type (0, ½, 1 ou 2).",
+        " * Indices = valeurs de PokemonType (Normal = 0 … Fée = 17).",
+        " */",
+        "export const EFFICACITE_TYPES: readonly (readonly number[])[] = [",
+        *(f"  [{', '.join(f'{m:g}' for m in ligne)}], // {enums['PokemonType'][i + 1][0]}" for i, ligne in enumerate(efficacite)),
+        "];",
+        "",
+    ]
     (RACINE / "observateur" / "noms.ts").write_text("\n".join(lignes))
-    print(f"observateur/noms.ts régénéré ({sum(len(p) for p in enums.values())} entrées)")
+    print(f"observateur/noms.ts régénéré ({sum(len(p) for p in enums.values())} entrées + table des types)")
 
 
 if __name__ == "__main__":

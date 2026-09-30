@@ -1,0 +1,33 @@
+# Réglages de l'entraînement du cerveau — c'est ici que tu pilotes son apprentissage.
+# Modifie une valeur, relance l'entraînement, et compare les courbes dans le tableau de bord.
+
+[recompenses]
+# Ce que le cerveau cherche à maximiser. Il ne « comprend » que ces points : ce sont eux qui
+# lui disent ce qui est bien ou mal.
+vague_gagnee = 1.0       # chaque vague franchie
+ko_subi = -0.3           # chaque Pokémon de l'équipe mis K.O.
+degats_infliges = 0.2    # pour 100 % des PV d'un adversaire retirés (coup de pouce au début)
+defaite = 0.0            # partie perdue (en plus de ne plus gagner de vagues)
+
+[partie]
+# Programme progressif : au-delà de cette vague, la partie s'arrête (comme un élève à qui on
+# ne donne d'abord que les premiers exercices). À relever quand il y arrive souvent.
+vague_max = 30
+# « fixe » ou « changer » (le jeu propose de changer de Pokémon après chaque K.O. adverse).
+style_combat = "fixe"
+
+[apprentissage]
+simulateurs = 8                 # copies du jeu en parallèle
+decisions_par_collecte = 256    # décisions jouées par chaque copie avant chaque mise à jour
+gamma = 0.99                    # importance du futur (0 = seul l'immédiat compte, 1 = tout)
+lambda_gae = 0.95               # lissage de l'estimation « ce coup a-t-il été bon ? »
+taux_apprentissage = 0.00025    # taille des pas d'ajustement des poids
+epoques = 4                     # passages sur chaque collecte
+mini_lots = 4                   # découpage de chaque collecte pendant l'apprentissage
+clip = 0.2                      # « petits pas » de PPO : écart maximal avec l'ancienne politique
+coef_entropie = 0.01            # encourage à continuer d'explorer au lieu de se figer
+coef_valeur = 0.5               # poids de l'apprentissage de la tête « valeur »
+norme_gradient_max = 0.5        # garde-fou contre les ajustements trop brutaux
+
+[sauvegarde]
+cerveau_toutes_les = 10         # un fichier .cerveau toutes les N mises à jour (sur le Lexar)

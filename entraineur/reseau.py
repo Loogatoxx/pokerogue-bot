@@ -31,7 +31,9 @@ class Cerveau(nn.Module):
         commun = self.tronc(observation)
         scores = self.politique(commun)
         if masque is not None:
-            scores = scores.masked_fill(~masque, float("-inf"))
+            # Un très grand nombre négatif plutôt que -infini : même probabilité nulle, mais
+            # l'entropie (0 × log 0) reste calculable pendant l'apprentissage.
+            scores = scores.masked_fill(~masque, -1e8)
         return scores, self.valeur(commun).squeeze(-1)
 
     @torch.no_grad()

@@ -91,6 +91,8 @@ const STYLE = `
   .action .barre { margin: 0; }
   .action.choisie { font-weight: 700; }
   .pourcent { text-align: right; font-variant-numeric: tabular-nums; }
+  .pour { color: #5fd38d; }
+  .contre { color: #f0a06a; }
 `;
 
 function echapper(texte: string): string {
@@ -175,12 +177,35 @@ function texteDecision(d: Decision, obs: Observation): string {
     "rencontre-mystere": "Rencontre mystère : choisir une option",
     aucune: "Rien à décider pour l'instant (le jeu déroule le tour)",
   };
-  const options = d.options?.length
-    ? `<div class="ligne">${d.options
-        .map(o => `<span class="puce">${echapper(o.nom)}${o.cout ? ` <span class="discret">${o.cout} ₽</span>` : ""}</span>`)
-        .join("")}</div>`
-    : "";
+  const notees = d.options?.some(o => o.note !== undefined);
+  const options = !d.options?.length
+    ? ""
+    : notees
+      ? optionsNotees(d.options)
+      : `<div class="ligne">${d.options
+          .map(o => `<span class="puce">${echapper(o.nom)}${o.cout ? ` <span class="discret">${o.cout} ₽</span>` : ""}</span>`)
+          .join("")}</div>`;
   return `<div class="ligne"><b>${echapper(textes[d.type])}</b> <span class="discret">(${echapper(d.phase)})</span></div>${options}`;
+}
+
+/** Options notées (attaque à oublier) : note de synergie, pour et contre, recommandation. */
+function optionsNotees(options: NonNullable<Decision["options"]>): string {
+  const lignes = [...options]
+    .sort((a, b) => (b.note ?? 0) - (a.note ?? 0))
+    .map(o => {
+      const details = [
+        ...(o.pour ?? []).map(p => `<div class="pour">+ ${echapper(p)}</div>`),
+        ...(o.contre ?? []).map(c => `<div class="contre">− ${echapper(c)}</div>`),
+      ].join("");
+      return `
+        <div class="carte${o.recommandee ? " terrain" : ""}">
+          <div>${o.recommandee ? "▶ " : ""}<b>${echapper(o.nom)}</b> <span class="discret">· note ${o.note}</span></div>
+          ${details}
+        </div>`;
+    })
+    .join("");
+  return `<div class="ligne discret">Note de synergie du jeu d'attaques complet (couverture des types,
+    bonus de type, stats, précision, équipe, variété) :</div>${lignes}`;
 }
 
 function contenu(obs: Observation): string {

@@ -7,6 +7,7 @@
  */
 import { masqueCombat, masqueRemplacement } from "./actions";
 import { attaqueVue, type Carnet } from "./carnet";
+import { meilleureOption, optionsApprentissageAffichees } from "./synergie";
 import type { AttaqueJeu, PokemonJeu, ScenePokerogue } from "./jeu";
 import {
   BattleType,
@@ -141,6 +142,15 @@ function optionsAffichees(scene: ScenePokerogue, type: TypeDecision): Decision["
   }
   if (type === "biome") {
     return (ecran.config?.options ?? []).map(o => ({ nom: o.label ?? "?" }));
+  }
+  if (type === "attaque-a-oublier") {
+    const options = optionsApprentissageAffichees(scene);
+    if (options) {
+      const meilleure = meilleureOption(options);
+      return options.map(o => ({
+        nom: o.nom, note: o.note, pour: o.pour, contre: o.contre, recommandee: o === meilleure,
+      }));
+    }
   }
   return undefined;
 }

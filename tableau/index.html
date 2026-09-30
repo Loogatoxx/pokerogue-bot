@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Évolution du cerveau</title>
+<style>
+  :root {
+    color-scheme: light;
+    --plan: #f9f9f7;
+    --surface: #fcfcfb;
+    --encre: #0b0b0b;
+    --encre-2: #52514e;
+    --discret: #898781;
+    --grille: #e1e0d9;
+    --axe: #c3c2b7;
+    --anneau: rgba(11, 11, 11, 0.10);
+    --serie: #2a78d6;
+    --serie-voile: rgba(42, 120, 214, 0.10);
+    --hausse: #006300;
+    --baisse: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --plan: #0d0d0d;
+      --surface: #1a1a19;
+      --encre: #ffffff;
+      --encre-2: #c3c2b7;
+      --discret: #898781;
+      --grille: #2c2c2a;
+      --axe: #383835;
+      --anneau: rgba(255, 255, 255, 0.10);
+      --serie: #3987e5;
+      --serie-voile: rgba(57, 135, 229, 0.12);
+      --hausse: #0ca30c;
+      --baisse: #e66767;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --plan: #0d0d0d; --surface: #1a1a19; --encre: #ffffff; --encre-2: #c3c2b7; --discret: #898781;
+    --grille: #2c2c2a; --axe: #383835; --anneau: rgba(255, 255, 255, 0.10);
+    --serie: #3987e5; --serie-voile: rgba(57, 135, 229, 0.12); --hausse: #0ca30c; --baisse: #e66767;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--plan); color: var(--encre);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 1120px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { margin: 0; font-size: 22px; font-weight: 650; }
+  h2 { margin: 0 0 2px; font-size: 15px; font-weight: 600; }
+  .sous-titre { margin: 2px 0 0; color: var(--encre-2); }
+  .aide { margin: 0 0 12px; color: var(--encre-2); font-size: 13px; }
+  .filtres { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 20px 0; }
+  .filtres label { display: flex; gap: 8px; align-items: center; color: var(--encre-2); }
+  select {
+    font: inherit; color: var(--encre); background: var(--surface);
+    border: 1px solid var(--axe); border-radius: 8px; padding: 5px 10px;
+  }
+  .direct { color: var(--discret); font-size: 13px; }
+  .direct::before { content: "●"; color: var(--hausse); margin-right: 6px; }
+  .direct.arret::before { color: var(--discret); }
+  .carte {
+    background: var(--surface); border-radius: 12px; padding: 18px 20px;
+    box-shadow: 0 0 0 1px var(--anneau); margin-bottom: 16px;
+  }
+  .haut { display: grid; grid-template-columns: minmax(240px, 1fr) 2fr; gap: 16px; }
+  @media (max-width: 760px) { .haut, .duo { grid-template-columns: 1fr !important; } }
+  .heros-valeur { font-size: 56px; font-weight: 650; line-height: 1.05; margin: 8px 0 4px; }
+  .ecart { font-weight: 600; }
+  .ecart.hausse { color: var(--hausse); }
+  .ecart.baisse { color: var(--baisse); }
+  .tuiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .tuile { padding: 12px 14px; border-radius: 10px; box-shadow: 0 0 0 1px var(--anneau); }
+  .tuile .libelle { color: var(--encre-2); font-size: 13px; }
+  .tuile .valeur { font-size: 22px; font-weight: 600; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .graphique { position: relative; }
+  .graphique svg { display: block; width: 100%; overflow: visible; }
+  .graduation { fill: var(--discret); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .repere-texte { fill: var(--encre-2); font-size: 11px; }
+  .info-bulle {
+    position: absolute; pointer-events: none; z-index: 2; min-width: 150px;
+    background: var(--surface); color: var(--encre); border-radius: 8px; padding: 8px 10px;
+    box-shadow: 0 0 0 1px var(--anneau), 0 6px 18px rgba(0, 0, 0, 0.16); font-size: 12px; display: none;
+  }
+  .info-bulle .fort { font-size: 15px; font-weight: 650; }
+  .info-bulle .cle { display: inline-block; width: 12px; height: 2px; background: var(--serie); vertical-align: middle; margin-right: 6px; }
+  .info-bulle .second { color: var(--encre-2); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--encre-2); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--axe); }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--grille); font-variant-numeric: tabular-nums; }
+  td.texte { font-variant-numeric: normal; color: var(--encre-2); }
+  details summary { cursor: pointer; color: var(--encre-2); margin-top: 8px; }
+  .version { display: flex; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--grille); }
+  .version code { flex: 1; font-size: 12px; color: var(--encre-2); overflow-wrap: anywhere; }
+  button {
+    font: inherit; font-size: 12px; color: var(--encre); background: transparent; cursor: pointer;
+    border: 1px solid var(--axe); border-radius: 6px; padding: 3px 8px;
+  }
+  .vide { color: var(--discret); padding: 12px 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Évolution du cerveau</h1>
+  <p class="sous-titre">Ce que le cerveau apprend en jouant à PokeRogue, entraînement par entraînement.</p>
+
+  <div class="filtres">
+    <label>Entraînement <select id="choix-entrainement"></select></label>
+    <span id="direct" class="direct">mis à jour toutes les 10 s</span>
+  </div>
+
+  <div class="haut">
+    <section class="carte">
+      <h2>Vague moyenne atteinte</h2>
+      <p class="aide">Sur les 200 dernières parties.</p>
+      <div id="heros" class="heros-valeur">–</div>
+      <div id="heros-ecart" class="ecart"></div>
+    </section>
+    <section class="carte">
+      <div id="tuiles" class="tuiles"></div>
+    </section>
+  </div>
+
+  <section class="carte">
+    <h2>Vague moyenne, au fil des parties</h2>
+    <p class="aide">Si la courbe monte, il apprend. Les repères : la v0 (le point zéro, qui joue au hasard)
+      et le bot « glouton » (qui prend toujours l'attaque la plus forte).</p>
+    <div id="graphique-vague" class="graphique"></div>
+    <details>
+      <summary>Voir les données</summary>
+      <table id="table-journal"></table>
+    </details>
+  </section>
+
+  <div class="duo">
+    <section class="carte">
+      <h2>Hésitation (entropie)</h2>
+      <p class="aide">À quel point il hésite entre ses actions. Elle baisse quand il se forge des préférences ;
+        si elle tombe à zéro trop tôt, il arrête d'explorer.</p>
+      <div id="graphique-entropie" class="graphique"></div>
+    </section>
+    <section class="carte">
+      <h2>Récompense moyenne par partie</h2>
+      <p class="aide">Les points qu'il cherche à gagner, selon tes réglages (<code>entraineur/reglages.toml</code>).</p>
+      <div id="graphique-recompense" class="graphique"></div>
+    </section>
+  </div>
+
+  <section class="carte">
+    <h2>Dernières parties</h2>
+    <p class="aide">Les 40 plus récentes. Les règles sont ce que le pilote a fait à sa place (récompenses, cibles…).</p>
+    <table id="table-parties"></table>
+  </section>
+
+  <section class="carte">
+    <h2>Versions du cerveau</h2>
+    <p class="aide">Une sauvegarde toutes les 10 mises à jour. Dans Brave : panneau de l'extension → « Importer un cerveau… ».</p>
+    <div id="versions"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const nombre = (v, decimales = 0) => v.toLocaleString("fr-FR", { maximumFractionDigits: decimales, minimumFractionDigits: decimales });
+const $ = id => document.getElementById(id);
+
+function element(balise, texte, classe) {
+  const e = document.createElement(balise);
+  if (texte !== undefined) e.textContent = texte; // jamais d'innerHTML pour des données
+  if (classe) e.className = classe;
+  return e;
+}
+
+/** Graduations « rondes » entre min et max (0, 2, 4… ou 0, 0,5, 1…). */
+function graduations(min, max, voulu = 4) {
+  const brut = (max - min) / voulu || 1;
+  const puissance = 10 ** Math.floor(Math.log10(brut));
+  const pas = [1, 2, 2.5, 5, 10].map(m => m * puissance).find(p => p >= brut);
+  const debut = Math.floor(min / pas) * pas;
+  const valeurs = [];
+  for (let v = debut; v <= max + pas * 1e-9; v += pas) valeurs.push(Math.round(v * 1e6) / 1e6);
+  return valeurs;
+}
+
+/**
+ * Courbe simple (une série) en SVG : grille discrète, trait de 2 px, point final entouré,
+ * repères horizontaux étiquetés, et un réticule qui suit la souris avec une info-bulle.
+ */
+function tracerCourbe(conteneur, { points, formatY, libelleY, references = [], hauteur = 260, depuisZero = true }) {
+  conteneur.replaceChildren();
+  if (points.length === 0) {
+    conteneur.append(element("div", "Pas encore de données.", "vide"));
+    return;
+  }
+  const largeur = conteneur.clientWidth || 600;
+  const marge = { haut: 12, droite: 96, bas: 28, gauche: 44 };
+  const xs = points.map(p => p.x), ys = points.map(p => p.y);
+  const refs = references.filter(r => Number.isFinite(r.valeur));
+  let yMin = depuisZero ? Math.min(0, ...ys) : Math.min(...ys, ...refs.map(r => r.valeur));
+  let yMax = Math.max(...ys, ...refs.map(r => r.valeur));
+  if (yMax === yMin) yMax = yMin + 1;
+  const ticksY = graduations(yMin, yMax);
+  yMin = Math.min(yMin, ticksY[0]); yMax = Math.max(yMax, ticksY[ticksY.length - 1]);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs) === xMin ? xMin + 1 : Math.max(...xs);
+  const X = x => marge.gauche + (x - xMin) / (xMax - xMin) * (largeur - marge.gauche - marge.droite);
+  const Y = y => marge.haut + (1 - (y - yMin) / (yMax - yMin)) * (hauteur - marge.haut - marge.bas);
+
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", `0 0 ${largeur} ${hauteur}`);
+  svg.setAttribute("height", hauteur);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", libelleY);
+  const ajouter = (balise, attributs, texte) => {
+    const e = document.createElementNS(ns, balise);
+    for (const [k, v] of Object.entries(attributs)) e.setAttribute(k, v);
+    if (texte !== undefined) e.textContent = texte;
+    svg.append(e);
+    return e;
+  };
+
+  for (const t of ticksY) {
+    ajouter("line", { x1: marge.gauche, x2: largeur - marge.droite, y1: Y(t), y2: Y(t),
+      stroke: t === 0 ? "var(--axe)" : "var(--grille)", "stroke-width": 1 });
+    ajouter("text", { x: marge.gauche - 8, y: Y(t) + 4, "text-anchor": "end", class: "graduation" }, formatY(t));
+  }
+  for (const t of graduations(xMin, xMax, 5).filter(t => t >= xMin && t <= xMax)) {
+    ajouter("text", { x: X(t), y: hauteur - 8, "text-anchor": "middle", class: "graduation" }, nombre(t));
+  }
+  ajouter("text", { x: largeur - marge.droite, y: hauteur - 8, "text-anchor": "start", dx: 8, class: "graduation" }, "parties");
+
+  for (const r of refs) {
+    ajouter("line", { x1: marge.gauche, x2: largeur - marge.droite, y1: Y(r.valeur), y2: Y(r.valeur),
+      stroke: "var(--axe)", "stroke-width": 1 });
+    ajouter("text", { x: largeur - marge.droite + 8, y: Y(r.valeur) + 4, class: "repere-texte" },
+      `${r.libelle} ${formatY(r.valeur)}`);
+  }
+
+  const chemin = points.map((p, i) => `${i ? "L" : "M"}${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`).join("");
+  ajouter("path", { d: `${chemin}L${X(xs[xs.length - 1])},${Y(Math.max(yMin, 0))}L${X(xs[0])},${Y(Math.max(yMin, 0))}Z`,
+    fill: "var(--serie-voile)", stroke: "none" });
+  ajouter("path", { d: chemin, fill: "none", stroke: "var(--serie)", "stroke-width": 2,
+    "stroke-linejoin": "round", "stroke-linecap": "round" });
+  const dernier = points[points.length - 1];
+  ajouter("circle", { cx: X(dernier.x), cy: Y(dernier.y), r: 4, fill: "var(--serie)", stroke: "var(--surface)", "stroke-width": 2 });
+  if (!refs.some(r => Math.abs(Y(r.valeur) - Y(dernier.y)) < 14)) {
+    ajouter("text", { x: X(dernier.x) + 10, y: Y(dernier.y) + 4, class: "repere-texte" }, formatY(dernier.y));
+  }
+
+  // Réticule : une ligne verticale qui se cale sur le point le plus proche de la souris.
+  const reticule = ajouter("line", { y1: marge.haut, y2: hauteur - marge.bas, stroke: "var(--axe)", "stroke-width": 1, visibility: "hidden" });
+  const pastille = ajouter("circle", { r: 4, fill: "var(--serie)", stroke: "var(--surface)", "stroke-width": 2, visibility: "hidden" });
+  const zone = ajouter("rect", { x: marge.gauche, y: 0, width: largeur - marge.gauche - marge.droite, height: hauteur, fill: "transparent" });
+  const bulle = element("div", undefined, "info-bulle");
+  conteneur.append(svg, bulle);
+
+  const montrer = evenement => {
+    const boite = svg.getBoundingClientRect();
+    const xSouris = (evenement.clientX - boite.left) * (largeur / boite.width);
+    const p = points.reduce((a, b) => (Math.abs(X(b.x) - xSouris) < Math.abs(X(a.x) - xSouris) ? b : a));
+    for (const [e, attrs] of [[reticule, { x1: X(p.x), x2: X(p.x) }], [pastille, { cx: X(p.x), cy: Y(p.y) }]]) {
+      for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+      e.setAttribute("visibility", "visible");
+    }
+    const ligne = element("div", undefined, "second");
+    ligne.append(element("span", undefined, "cle"), document.createTextNode(libelleY));
+    bulle.replaceChildren(element("div", formatY(p.y), "fort"), ligne);
+    for (const detail of p.details ?? []) bulle.append(element("div", detail, "second"));
+    bulle.style.display = "block";
+    const gauche = X(p.x) * (boite.width / largeur);
+    bulle.style.left = `${Math.min(gauche + 12, boite.width - bulle.offsetWidth)}px`;
+    bulle.style.top = `${Y(p.y) * (boite.height / hauteur) - bulle.offsetHeight - 10}px`;
+  };
+  const cacher = () => {
+    reticule.setAttribute("visibility", "hidden");
+    pastille.setAttribute("visibility", "hidden");
+    bulle.style.display = "none";
+  };
+  zone.addEventListener("pointermove", montrer);
+  zone.addEventListener("pointerleave", cacher);
+}
+
+function tuile(libelle, valeur) {
+  const t = element("div", undefined, "tuile");
+  t.append(element("div", libelle, "libelle"), element("div", valeur, "valeur"));
+  return t;
+}
+
+function remplirTable(table, entetes, lignes) {
+  const tete = element("tr");
+  entetes.forEach(e => tete.append(element("th", e)));
+  table.replaceChildren(tete);
+  for (const ligne of lignes) {
+    const tr = element("tr");
+    ligne.forEach(([texte, classe]) => tr.append(element("td", texte, classe)));
+    table.append(tr);
+  }
+}
+
+function duree(journal) {
+  if (journal.length < 2) return "–";
+  const ms = new Date(journal[journal.length - 1].date) - new Date(journal[0].date);
+  const minutes = Math.round(ms / 60000);
+  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}`;
+}
+
+function afficher(d) {
+  const j = d.journal;
+  const dernier = j[j.length - 1];
+  const ref = d.references;
+
+  $("heros").textContent = dernier ? nombre(dernier.vagueMoyenne, 1) : "–";
+  const ecart = dernier && ref.v0 !== undefined ? dernier.vagueMoyenne - ref.v0 : null;
+  const cible = $("heros-ecart");
+  cible.className = "ecart" + (ecart === null ? "" : ecart >= 0 ? " hausse" : " baisse");
+  cible.textContent = ecart === null ? "" :
+    `${ecart >= 0 ? "▲ +" : "▼ "}${nombre(ecart, 1)} depuis la v0 (${nombre(ref.v0, 1)})`;
+
+  $("tuiles").replaceChildren(
+    tuile("Parties jouées", dernier ? nombre(dernier.parties) : "–"),
+    tuile("Décisions", dernier ? nombre(dernier.decisions) : "–"),
+    tuile("Durée d'entraînement", duree(j)),
+    tuile("Meilleure vague", j.length ? nombre(Math.max(...j.map(l => l.vagueMax))) : "–"),
+    tuile("Rythme", dernier ? `${nombre(dernier.decisionsParSeconde)} déc/s` : "–"),
+  );
+
+  const points = (cle, format) => j.map(l => ({
+    x: l.parties, y: l[cle],
+    details: [`${nombre(l.parties)} parties · mise à jour ${l.miseAJour}`, ...(format ? [format(l)] : [])],
+  }));
+  tracerCourbe($("graphique-vague"), {
+    points: points("vagueMoyenne", l => `meilleure vague récente : ${l.vagueMax}`),
+    libelleY: "vague moyenne", formatY: v => nombre(v, 1),
+    references: [{ valeur: ref.v0, libelle: "v0" }, { valeur: ref.glouton, libelle: "glouton" }],
+  });
+  tracerCourbe($("graphique-entropie"), {
+    points: points("entropie"), libelleY: "entropie", formatY: v => nombre(v, 2), hauteur: 200,
+  });
+  tracerCourbe($("graphique-recompense"), {
+    points: points("recompenseMoyenne"), libelleY: "récompense par partie", formatY: v => nombre(v, 1), hauteur: 200,
+  });
+
+  remplirTable($("table-journal"),
+    ["Mise à jour", "Parties", "Vague moy.", "Vague max", "Récompense", "Entropie", "Déc/s"],
+    j.slice(-30).reverse().map(l => [
+      [String(l.miseAJour)], [nombre(l.parties)], [nombre(l.vagueMoyenne, 2)], [String(l.vagueMax)],
+      [nombre(l.recompenseMoyenne, 2)], [nombre(l.entropie, 3)], [nombre(l.decisionsParSeconde)],
+    ]));
+
+  remplirTable($("table-parties"),
+    ["Mise à jour", "Vague", "Décisions", "Récompense", "Règles du pilote", "Remarque"],
+    d.parties.map(p => [
+      [String(p.miseAJour)], [String(p.vague)], [nombre(p.decisions)], [nombre(p.recompense ?? 0, 1)],
+      [Object.entries(p.regles ?? {}).map(([k, n]) => `${k} ×${n}`).join(", ") || "–", "texte"],
+      [p.erreur ? `erreur : ${p.erreur}` : p.tronquee ? "arrêtée à la vague max" : "", "texte"],
+    ]));
+
+  const versions = $("versions");
+  versions.replaceChildren();
+  if (!d.versions.length) versions.append(element("div", "Première sauvegarde après 10 mises à jour.", "vide"));
+  for (const v of d.versions) {
+    const ligne = element("div", undefined, "version");
+    const bouton = element("button", "Copier le chemin");
+    bouton.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(v.chemin);
+      bouton.textContent = "Copié";
+    });
+    ligne.append(element("strong", v.nom), element("code", v.chemin), bouton);
+    versions.append(ligne);
+  }
+}
+
+let actuel = null;
+async function charger() {
+  try {
+    const liste = await (await fetch("/api/entrainements")).json();
+    const choix = $("choix-entrainement");
+    if (!Array.isArray(liste)) throw new Error(liste.erreur);
+    if (choix.options.length !== liste.length) {
+      const garde = choix.value;
+      choix.replaceChildren(...liste.map(e => Object.assign(element("option", e.nom), { value: e.nom })));
+      if (garde) choix.value = garde;
+    }
+    actuel = choix.value || liste[0]?.nom;
+    if (!actuel) return;
+    afficher(await (await fetch(`/api/entrainement/${encodeURIComponent(actuel)}`)).json());
+    $("direct").className = "direct";
+    $("direct").textContent = `mis à jour à ${new Date().toLocaleTimeString("fr-FR")}, toutes les 10 s`;
+  } catch (erreur) {
+    // On garde le dernier affichage : pas de page blanche si le Lexar se déconnecte un instant.
+    $("direct").className = "direct arret";
+    $("direct").textContent = `données indisponibles (${erreur.message})`;
+  }
+}
+$("choix-entrainement").addEventListener("change", charger);
+window.addEventListener("resize", () => actuel && charger());
+charger();
+setInterval(charger, 10000);
+</script>
+</body>
+</html>

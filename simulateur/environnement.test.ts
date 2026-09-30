@@ -43,7 +43,7 @@ const ATTENTE_MAX_MS = 30 * 60_000;
 const DECISIONS_MAX = 20_000;
 
 type MessagePython =
-  | { type: "nouvelle-partie"; graine?: string; especes?: number[]; styleCombat?: "fixe" | "changer" }
+  | { type: "nouvelle-partie"; graine?: string; especes?: number[]; styleCombat?: "fixe" | "changer"; vagueMax?: number }
   | { type: "action"; action: number }
   | { type: "fin" };
 
@@ -105,7 +105,7 @@ function infoPartie(obs: Observation) {
 async function jouerPartie(
   phaserGame: Phaser.Game,
   canal: Canal,
-  demande: { graine?: string; especes?: number[]; styleCombat?: "fixe" | "changer" },
+  demande: { graine?: string; especes?: number[]; styleCombat?: "fixe" | "changer"; vagueMax?: number },
 ) {
   // Nettoyage entre deux parties d'un même processus (normalement fait par l'outil de test
   // entre deux tests) : sans lui, les « espions » de l'outil s'empileraient partie après partie.
@@ -135,6 +135,8 @@ async function jouerPartie(
   let enAttente = false;
   let erreur: string | undefined;
   let victoire = false;
+  /** Vrai si la partie a été arrêtée à la vague maximale demandée (programme progressif). */
+  let tronquee = false;
   /** Combien de fois chaque règle du pilote a servi (ex. « récompense », « ne change pas »). */
   const regles: Record<string, number> = {};
   // Actions refusées par le jeu pour la décision en cours (ex. changement alors qu'on est piégé).
@@ -215,6 +217,10 @@ async function jouerPartie(
         continue;
       }
       const vague = game.scene.currentBattle?.waveIndex ?? 0;
+      if (demande.vagueMax && vague > demande.vagueMax) {
+        tronquee = true;
+        break;
+      }
       if (vague !== vagueSuivie) {
         vagueSuivie = vague;
         phasesDansLaVague = 0;
@@ -236,6 +242,7 @@ async function jouerPartie(
   return {
     vague: game.scene.currentBattle?.waveIndex ?? 0,
     victoire,
+    tronquee,
     decisions,
     phases,
     secondes: (performance.now() - debut) / 1000,

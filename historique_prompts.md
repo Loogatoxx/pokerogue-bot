@@ -224,3 +224,49 @@ construire le cerveau lui-même.
 **Objectif**
 Avoir un cerveau réel, même nul, qui décide dans le simulateur et dans Brave par exactement le
 même chemin : c'est la base sur laquelle l'entraînement va le faire progresser.
+
+---
+
+## 8. Premier regard sur la v0 en mode auto — 30/09/2026
+
+**Prompt**
+> vraiment nul en effet pour linstant 😂 mais je lai vue et c'est interesant
+
+**Réponse**
+- La v0 joue en mode auto dans Brave, sans blocage signalé : l'étape 2 est validée en direct.
+- Lancement de l'étape 3 (premier entraînement + tableau de bord).
+
+**Modifications**
+Aucune pour ce message.
+
+**Objectif**
+Passer du cerveau qui joue au hasard au cerveau qui apprend.
+
+---
+
+## 9. Étape 3 : premier entraînement et note de synergie — 30/09/2026
+
+**Prompt** (pendant le travail)
+> faut plutot donner une note sur l synergie de l ensembles des attaque avec tout les parametre environementaux pas prendre cas a ças faut qu elle puisse faire le pour et contre et garder celle qui lui donne un avantage
+
+**Réponse**
+- Règle « attaque à oublier » réécrite en **note de synergie du jeu d'attaques complet** :
+  couverture des 18 types (table générée depuis le jeu), bonus de même type, stats physiques ou
+  spéciales, précision, attaque de statut, couverture de l'équipe, variété des types. Chaque
+  option a sa note, ses pour et ses contre, affichés dans le panneau de l'extension.
+- Premier entraînement PPO lancé depuis la v0 (45 min) ; en 13 mises à jour, vague moyenne
+  4,7 → 7,4 : il dépasse déjà le bot glouton (6,8).
+- Tableau de bord maison (http://localhost:8766) ouvert dans Brave, mis à jour en direct.
+
+**Modifications**
+- `observateur/synergie.ts` (note de synergie), table des types dans `observateur/noms.ts`,
+  `pilote/pilote.ts` (règle par note), panneau (options notées), observation (options notées).
+- `entraineur/` : `reglages.toml`, `ensemble.py`, `entrainer.py` (PPO), `evaluer.py`,
+  `tableau_de_bord.py` ; `tableau/index.html`.
+- Simulateur : vague maximale (programme progressif), style de combat, décompte des règles.
+- Tests : `tests/synergie.test.ts`, test sur un vrai écran d'apprentissage d'attaque.
+- `docs/etape-3-entrainement.md`.
+
+**Objectif**
+Voir le cerveau apprendre pour de vrai, avec des règles d'accompagnement qui raisonnent sur
+l'ensemble (synergie) plutôt que cas par cas.
