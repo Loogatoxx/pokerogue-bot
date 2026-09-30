@@ -418,3 +418,43 @@ une logique d'ensemble lisible.
 **Objectif**
 Que le panneau ne vole plus jamais les touches du jeu, et qu'on voie d'un coup d'œil ce que
 le cerveau décide, dans le style de PokeRogue.
+
+---
+
+## 15. Vérifier l'extension du cloud, le cerveau qui « fuit le combat », v3 et productivité — 30/09/2026
+
+**Prompt**
+> l'extension j'ai demandé à une autre session de claude mais dans le cloud pour continuer avec les crédits de github fais le nécessaire pour mettre à jour localement et voir si ça colle avec ce qui a été demandé sinon j'ai testé le cerveau avant celui qu'on vient d'entraîner donc le premier v2 et j'ai remarqué, alors j'ai choisi le pokemon moi-même bah il faisait tout pour éviter le combat j'avais l'impression genre il échangeait à chaque fois les pokemon du banc et choisissait ensuite avec le dernier pokemon en vie une attaque qui fait pas de dégâts final des comptes il est même pas passé à la vague 2 j'espère le comportement a été corrigé depuis sinon on peut continuer les entraînements publier la v3 et augmenter la productivité
+>
+> (en cours de route) montre moi la fenetre aussi je veu voir
+
+**Réponse**
+- Extension 0.5.0 de la session cloud récupérée (avance rapide de main) et conforme : flèches,
+  Espace et Entrée arrivent au jeu, le panneau ne se replie ni ne défile ; style pixel du jeu.
+  Seul défaut : le chemin des ressources de l'aperçu (jeu/public → jeu/assets), corrigé.
+- « Fuite du combat » : non reproduite. Au simulateur, la v2 joue normalement avec six trios de
+  starters (1 à 3 % de changements). Dans la copie locale du vrai jeu, avec la vraie extension en
+  mode auto et Kaiminus + Héricendre + Carapuce : vague 15, aucun refus, même avec le jeu figé.
+  Le code de combat de pokerogue.net est identique au nôtre. Cause la plus probable : une
+  ancienne version de l'extension encore chargée dans Brave (à recharger).
+- La fenêtre : le panneau Navigateur de l'app était masqué de son côté ; captures envoyées.
+- Entraînement 3 : pas de progrès net sur la v2 (24,66 contre 22,44 avec Kanto, mais 22,1 contre
+  25,0 avec les autres starters) : pas de v3 publiée.
+- Productivité : collecte asynchrone, et la fuite principale du simulateur trouvée (écouteurs
+  d'animation), plus trois petites. 86 → 189 décisions/s en moyenne sur un banc de 4 minutes
+  (entrainement-3 : 30). Entraînement 4 lancé (120 min, starters au hasard).
+
+**Modifications**
+- `extension/apercu.html` (chemin des ressources).
+- `entraineur/diagnostic_starters.py` (nouveau), `entraineur/entrainer.py` (collecte asynchrone,
+  `--simulateurs`), `entraineur/ensemble.py` (starters au hasard, `jouer` public),
+  `entraineur/pont.py` (redémarrage toutes les 25 parties, échelonné), `entraineur/reglages.toml`
+  (`starters = "hasard"`, `coef_entropie = 0.015`).
+- `simulateur/environnement.test.ts` (fuites colmatées, compteurs de diagnostic, console coupée,
+  correction de type).
+- `docs/etape-4c-diagnostic-et-vitesse.md`.
+
+**Objectif**
+Vérifier le travail du cloud, comprendre le comportement vu dans Brave avant de toucher au
+cerveau, et entraîner plus vite : chaque heure d'entraînement joue maintenant environ six fois
+plus de décisions.
