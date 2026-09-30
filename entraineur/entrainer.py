@@ -1,8 +1,8 @@
 """Entraîne le cerveau par renforcement (PPO), à partir d'un cerveau existant.
 
 Le cycle, répété sans fin :
-1. **Collecte** : les 8 copies du jeu jouent chacune N décisions avec le cerveau actuel
-   (en tirant au sort selon ses probabilités, pour qu'il continue d'explorer).
+1. **Collecte** : les 8 copies du jeu jouent ensemble 8 × N décisions avec le cerveau actuel,
+   chacune à son rythme (en tirant au sort selon ses probabilités, pour qu'il continue d'explorer).
 2. **Bilan** : pour chaque décision, était-elle meilleure ou pire que prévu ? C'est
    « l'avantage », calculé à partir des récompenses reçues ensuite (méthode GAE).
 3. **Apprentissage (PPO)** : on ajuste les poids pour rendre un peu plus probables les
@@ -24,6 +24,7 @@ import json
 import os
 import shutil
 import signal
+import threading
 import time
 import tomllib
 from datetime import datetime
@@ -76,43 +77,62 @@ class Entrainement:
     # ─── Un cycle collecte → bilan → apprentissage ──────────────────────────────────────────
 
     def collecter(self, ensemble: Ensemble):
-        n, t = ensemble.nombre, self.a["decisions_par_collecte"]
-        taille, nb_actions = self.cerveau.taille_entree, self.cerveau.nombre_actions
-        obs = torch.zeros((t, n, taille))
-        masques = torch.zeros((t, n, nb_actions), dtype=torch.bool)
-        actions = torch.zeros((t, n), dtype=torch.long)
-        logprobs, valeurs, recompenses, fins = (torch.zeros((t, n)) for _ in range(4))
+        """Collecte asynchrone : chaque copie du jeu joue dans son propre fil, à son rythme, jusqu'à
+        ce que l'ensemble ait joué `decisions_par_collecte × simulateurs` décisions.
 
+        Avant, la collecte avançait « au pas » : à chaque décision, les 8 copies attendaient la plus
+        lente. Un redémarrage (toutes les 50 parties) ou un long écran d'une seule copie
+        immobilisait alors les 7 autres (141 → 10 à 45 décisions par seconde dans entrainement-3).
+        Maintenant, une copie lente joue simplement moins de décisions pendant cette collecte.
+        """
+        n = ensemble.nombre
+        restantes = [self.a["decisions_par_collecte"] * n]
+        verrou = threading.Lock()
+        # Une « piste » par copie : la suite de ses décisions, dans l'ordre où elle les a jouées.
+        pistes: list[list[tuple]] = [[] for _ in range(n)]
         self.cerveau.eval()
-        for pas in range(t):
-            o, m = ensemble.observations()
-            obs[pas], masques[pas] = torch.from_numpy(o), torch.from_numpy(m)
-            with torch.no_grad():
-                scores, valeur = self.cerveau(obs[pas], masques[pas])
-            loi = Categorical(logits=scores)
-            action = loi.sample()
-            actions[pas], logprobs[pas], valeurs[pas] = action, loi.log_prob(action), valeur
-            r, f = ensemble.etape(action.numpy())
-            recompenses[pas], fins[pas] = torch.from_numpy(r), torch.from_numpy(f.astype(np.float32))
 
-        # Bilan (GAE) : pour chaque décision, a-t-elle mieux tourné que ce que la tête
-        # « valeur » avait prévu ? Les récompenses futures comptent, de moins en moins.
-        with torch.no_grad():
-            o, m = ensemble.observations()
-            _, valeur_suivante = self.cerveau(torch.from_numpy(o), torch.from_numpy(m))
+        def jouer(i: int) -> None:
+            while True:
+                with verrou:
+                    if restantes[0] <= 0:
+                        return
+                    restantes[0] -= 1
+                etat = ensemble.etats[i]
+                o, m = torch.from_numpy(etat.observation), torch.from_numpy(etat.masque)
+                with torch.no_grad():
+                    scores, valeur = self.cerveau(o[None], m[None])
+                loi = Categorical(logits=scores[0])
+                action = loi.sample()
+                recompense, finie = ensemble.jouer(i, int(action))
+                pistes[i].append((o, m, action, loi.log_prob(action), valeur[0], recompense, finie))
+
+        list(ensemble.fils.map(jouer, range(n)))
+
+        # Bilan (GAE), copie par copie : pour chaque décision, a-t-elle mieux tourné que ce que la
+        # tête « valeur » avait prévu ? Les récompenses futures comptent, de moins en moins.
         gamma, lam = self.a["gamma"], self.a["lambda_gae"]
-        avantages = torch.zeros_like(recompenses)
-        accumule = torch.zeros(n)
-        for pas in reversed(range(t)):
-            suivante = valeur_suivante if pas == t - 1 else valeurs[pas + 1]
-            continue_ = 1.0 - fins[pas]  # une partie finie ne regarde pas la suivante
-            ecart = recompenses[pas] + gamma * suivante * continue_ - valeurs[pas]
-            accumule = ecart + gamma * lam * continue_ * accumule
-            avantages[pas] = accumule
-        retours = avantages + valeurs
-        aplatir = lambda x: x.reshape((t * n,) + x.shape[2:])  # noqa: E731
-        return (aplatir(obs), aplatir(masques), aplatir(actions), aplatir(logprobs),
-                aplatir(avantages), aplatir(retours), float(recompenses.sum()))
+        lignes: list[tuple] = []
+        for i, piste in enumerate(pistes):
+            if not piste:
+                continue
+            etat = ensemble.etats[i]  # la décision suivante, pas encore jouée
+            with torch.no_grad():
+                _, valeur_suivante = self.cerveau(torch.from_numpy(etat.observation)[None],
+                                                  torch.from_numpy(etat.masque)[None])
+            suivante, accumule = valeur_suivante[0], torch.tensor(0.0)
+            bilan = []
+            for o, m, action, logprob, valeur, recompense, finie in reversed(piste):
+                continue_ = 0.0 if finie else 1.0  # une partie finie ne regarde pas la suivante
+                ecart = recompense + gamma * suivante * continue_ - valeur
+                accumule = ecart + gamma * lam * continue_ * accumule
+                bilan.append((o, m, action, logprob, accumule, accumule + valeur, recompense))
+                suivante = valeur
+            lignes.extend(reversed(bilan))
+
+        obs, masques, actions, logprobs, avantages, retours, recompenses = zip(*lignes)
+        return (torch.stack(obs), torch.stack(masques), torch.stack(actions), torch.stack(logprobs),
+                torch.stack(avantages), torch.stack(retours), float(sum(recompenses)))
 
     def apprendre(self, obs, masques, actions, logprobs, avantages, retours) -> dict:
         self.cerveau.train()
@@ -157,10 +177,13 @@ def main() -> None:
     groupe.add_argument("--reprendre", type=Path, help="dossier d'un entraînement à poursuivre")
     parametres.add_argument("--minutes", type=float, default=30)
     parametres.add_argument("--nom", help="nom du dossier d'entraînement (par défaut : date et heure)")
+    parametres.add_argument("--simulateurs", type=int, help="nombre de copies du jeu (par défaut : reglages.toml)")
     args = parametres.parse_args()
     torch.set_num_threads(4)
 
     reglages = charger_reglages()
+    if args.simulateurs:
+        reglages["apprentissage"]["simulateurs"] = args.simulateurs
     if args.reprendre:
         dossier = args.reprendre
         etat = torch.load(dossier / "etat.pt")

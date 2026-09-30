@@ -47,6 +47,14 @@ const ATTENTE_MAX_MS = 30 * 60_000;
 const BLOCAGE_MS = 60_000;
 const DECISIONS_MAX = 20_000;
 
+// Le jeu écrit dans la console à chaque phase, message et attaque (des milliers de lignes par
+// partie). Toute la simulation est un seul long test vitest lancé avec --silent=passed-only : vitest
+// garde donc tout en mémoire jusqu'à la fin, au cas où le test échouerait. On coupe ces écritures ;
+// les avertissements et les erreurs, eux, restent visibles dans le journal de la copie.
+for (const niveau of ["log", "info", "debug"] as const) {
+  console[niveau] = () => {};
+}
+
 type MessagePython =
   | { type: "nouvelle-partie"; graine?: string; especes?: number[]; styleCombat?: "fixe" | "changer"; vagueMax?: number }
   | { type: "action"; action: number }
@@ -231,10 +239,12 @@ async function jouerPartie(
       canal.recevoir().then(message => {
         if (message.type !== "action") {
           erreur = message.type === "fin" ? "arrêt demandé" : `message inattendu : ${message.type}`;
-        } else if (!executerAction(scene, message.action, etat)) {
-          refusees.add(message.action);
+        } else {
+          if (!executerAction(scene, message.action, etat)) {
+            refusees.add(message.action);
+          }
+          derniereAction = message.action;
         }
-        derniereAction = message.action;
         derniereActivite = performance.now();
         enAttente = false;
       });
@@ -296,12 +306,42 @@ async function jouerPartie(
   } finally {
     clearInterval(minuteur);
   }
+  const objetsGraphiques = (game.scene.textures as unknown as { list: unknown[] }).list;
+  type Emetteur = { eventNames(): (string | symbol)[]; listenerCount(nom: string | symbol): number };
+  const ecouteurs = (e: Emetteur | undefined) =>
+    Object.fromEntries((e?.eventNames() ?? []).map(n => [String(n), e!.listenerCount(n)]).filter(([, c]) => (c as number) > 5));
+  const systemes = game.scene.sys as unknown as { events?: Emetteur; displayList?: { length: number }; updateList?: { length: number } };
   const diagnostic = {
     minuteries: (game.scene.time as unknown as Horloge)._active?.length ?? 0,
+    objetsGraphiques: objetsGraphiques.length,
+    affiches: systemes.displayList?.length ?? 0,
+    misAJour: systemes.updateList?.length ?? 0,
+    ecouteursScene: ecouteurs(systemes.events),
+    ecouteursJeu: ecouteurs((game.scene as unknown as { game?: { events?: Emetteur } }).game?.events),
+    ecouteursAnimations: ecouteurs((game.scene.sys as unknown as { anims?: Emetteur }).anims),
     memoireMo: Math.round(process.memoryUsage().heapUsed / 1e6),
   };
   // Partie finie : plus aucune minuterie n'a de raison de continuer (voir retirerMinuteriesVides).
   (game.scene.time as unknown as Horloge).removeAllEvents();
+  // L'outil de test range dans une liste chaque objet graphique simulé qu'il crée (sprites,
+  // textes, conteneurs…), même une fois détruit, et ne la lit jamais : 15 à 25 Mo de plus par
+  // partie, et une copie du jeu 7 fois plus lente au bout de 40 parties (essai-async-8). On la
+  // vide ; les objets encore affichés restent tenus par la scène. Même chose pour l'historique
+  // des appels des fonctions espionnes (vi.fn), sans toucher à ce qu'elles renvoient.
+  objetsGraphiques.length = 0;
+  vi.clearAllMocks();
+  // LA fuite principale : chaque sprite créé s'inscrit auprès du gestionnaire d'animations global
+  // (événement « remove », pour s'arrêter si on supprime l'animation qu'il joue) et ne s'en
+  // désinscrit qu'à sa destruction, que le jeu n'appelle pas toujours. Les sprites de toutes les
+  // parties restaient en mémoire (+500 écouteurs par courte partie), et chaque retrait d'animation
+  // parcourait cette liste sans fin. Sans écran, cet écouteur ne sert à rien : on les retire tous.
+  (game.scene.sys as unknown as { anims: { removeAllListeners(nom: string): void } }).anims.removeAllListeners("remove");
+  // Les journaux de l'outil de test (phases jouées, textes affichés, touches) grossissent aussi.
+  game.phaseInterceptor.clearLogs();
+  game.textInterceptor.clearLogs();
+  // (le gestionnaire de touches n'existe pas toujours : `?.`)
+  game.inputsHandler?.log.splice(0);
+  game.inputsHandler?.logUp.splice(0);
 
   return {
     vague: game.scene.currentBattle?.waveIndex ?? 0,

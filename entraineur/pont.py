@@ -30,11 +30,12 @@ JOURNAUX = RACINE / ".journaux"
 # Fichiers du simulateur copiés dans le jeu : ses raccourcis d'import (#app, #enums…)
 # ne fonctionnent que depuis l'intérieur du jeu.
 FICHIERS_SIMULATEUR = ["environnement.test.ts", "outils-partie.ts"]
-# Chaque copie du jeu perd de la mémoire à chaque partie (fuite dans l'outil de test du jeu, non
-# localisée : ~2,5 Mo par partie, ~4,5 Mo avec des équipes de 6), et ralentit avec elle (50 → 95 ms
-# par décision en 50 parties). On la redémarre au bout de ce nombre de parties (~8 s par
-# redémarrage) : à 50, le temps moyen par décision reste vers 75 ms pour ~6 % de surcoût.
-PARTIES_AVANT_REDEMARRAGE = int(os.environ.get("PONT_REDEMARRAGE", 50))
+# Chaque copie du jeu perd de la mémoire à chaque partie, et ralentit avec elle. Les grosses fuites
+# de l'outil de test sont colmatées à chaque fin de partie (simulateur/environnement.test.ts :
+# écouteurs d'animation, liste d'objets graphiques, journaux) ; il en reste une petite, qui divise
+# encore la vitesse par deux en ~45 parties. On redémarre donc chaque copie au bout de ce nombre de
+# parties (~8 s de démarrage, sans gêner les autres depuis la collecte asynchrone).
+PARTIES_AVANT_REDEMARRAGE = int(os.environ.get("PONT_REDEMARRAGE", 25))
 # Une copie du jeu qui ne répond plus du tout pendant ce délai est considérée comme figée (côté
 # jeu, un écran bloqué est déjà signalé au bout de 60 s : ceci est le dernier filet de sécurité).
 SILENCE_MAX_S = 600
@@ -197,10 +198,10 @@ class Pont:
 
     def entretenir(self, i: int) -> Simulateur:
         """Le simulateur n° i, redémarré s'il a joué trop de parties (fuite de mémoire du jeu).
-        Les seuils sont échelonnés (50, 55, 60…) pour que les copies ne redémarrent pas toutes
-        en même temps."""
+        Les seuils sont échelonnés (50, 55, 60… ou 10, 11, 12…) pour que les copies ne redémarrent
+        pas toutes en même temps."""
         simulateur = self.simulateurs[i]
-        if simulateur.parties < PARTIES_AVANT_REDEMARRAGE + 5 * i:
+        if simulateur.parties < PARTIES_AVANT_REDEMARRAGE + i * max(1, PARTIES_AVANT_REDEMARRAGE // 10):
             return simulateur
         return self.redemarrer(i)
 

@@ -16,6 +16,9 @@ defaite = 0.0            # partie perdue (en plus de ne plus gagner de vagues)
 vague_max = 50
 # « fixe » ou « changer » (le jeu propose de changer de Pokémon après chaque K.O. adverse).
 style_combat = "fixe"
+# « hasard » : trois des 27 starters d'un compte neuf, tirés à chaque partie (comme un humain qui
+# choisit les siens) ; « kanto » : toujours Bulbizarre, Salamèche et Carapuce (entraînements 1 à 3).
+starters = "hasard"
 
 [apprentissage]
 simulateurs = 8                 # copies du jeu en parallèle
@@ -26,7 +29,7 @@ taux_apprentissage = 0.00025    # taille des pas d'ajustement des poids
 epoques = 4                     # passages sur chaque collecte
 mini_lots = 4                   # découpage de chaque collecte pendant l'apprentissage
 clip = 0.2                      # « petits pas » de PPO : écart maximal avec l'ancienne politique
-coef_entropie = 0.02            # encourage à continuer d'explorer au lieu de se figer (0,01 → figé vers 0,3 dans entrainement-1)
+coef_entropie = 0.015           # encourage à explorer ; 0,01 : figé vers 0,3 (entrainement-1) ; 0,02 : monte à 0,84 avec les starters au hasard (essai-async-8-anims)
 coef_valeur = 0.5               # poids de l'apprentissage de la tête « valeur »
 norme_gradient_max = 0.5        # garde-fou contre les ajustements trop brutaux
 
