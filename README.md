@@ -1,0 +1,50 @@
+# pokerogue-bot
+
+Un cerveau qui apprend à jouer à [PokeRogue](https://github.com/pagefaultgames/pokerogue)
+par **apprentissage par renforcement**, puis qui joue et commente ses décisions dans une
+**extension de navigateur** (Brave, compatible Chrome) sur pokerogue.net.
+
+## Objectif
+
+Atteindre la **vague 200 en mode Classique** sur un compte neuf réservé à l'IA, avec des
+décisions qu'un humain peut reproduire et comprendre.
+
+## Principes
+
+- **Il voit comme un humain** : tout sur ses propres Pokémon (IVs, nature…), et de
+  l'adversaire uniquement ce qui s'affiche à l'écran.
+- **Chaque décision est analysable** : ses chiffres bruts (qui font foi) d'un côté, et de
+  l'autre une phrase qui explique pourquoi c'est un bon coup.
+- **Tout est local et gratuit** : entraînement sur le Mac, explications par un modèle local.
+- **Mode auto interdit en Daily Run**, pour ne pas fausser le classement des autres joueurs.
+
+Détails : [`docs/architecture.md`](docs/architecture.md).
+
+## Installer la copie locale du jeu
+
+Il faut Node 24 ou plus récent et pnpm (`brew install pnpm`). On clone **la branche `main`**,
+qui correspond à la version en ligne sur pokerogue.net :
+
+```bash
+git clone --depth 1 --branch main --recurse-submodules --shallow-submodules \
+  https://github.com/pagefaultgames/pokerogue.git jeu
+cd jeu && pnpm install
+```
+
+Jouer à la copie locale dans le navigateur : `pnpm --dir jeu start:dev`, puis
+http://localhost:8000.
+
+## Où vivent les fichiers
+
+| Quoi | Où | Pourquoi |
+|---|---|---|
+| Code, extension, copie du jeu | `~/Projets/pokerogue-bot` (SSD interne) | Le Lexar est en ExFAT : pas de liens symboliques (requis par pnpm) ni de permissions Unix (requises par git) |
+| Cerveaux, courbes, replays, bancs | `/Volumes/Lexar/pokerogue-bot` | Gros fichiers, beaucoup de place |
+
+## Statut
+
+- ✅ Étape 0 : le simulateur tient une partie complète et enchaîne ~250 décisions/s
+  ([résultats](docs/etape-0-vitesse.md)).
+- ⏭️ Étape 1 : extension minimale qui lit la partie en direct.
+
+Journal des échanges : [`historique_prompts.md`](historique_prompts.md).

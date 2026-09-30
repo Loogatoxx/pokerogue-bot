@@ -1,0 +1,31 @@
+# Dépendances et fichiers générés
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.pyc
+
+# Copie locale de PokeRogue (dépôt séparé, cloné à part)
+jeu/
+
+# Cerveaux, courbes et replays : ils vivent sur le Lexar, jamais dans git
+*.pt
+*.onnx
+runs/
+
+# Secrets et fichiers sensibles
+.env
+.env.*
+*.jks
+*.keystore
+local.properties
+
+# Binaires compilés
+*.apk
+*.aab
+*.crx
+*.pem
+
+# macOS
+.DS_Store
+banc-*.json

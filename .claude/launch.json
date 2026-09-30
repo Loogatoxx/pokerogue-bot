@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pokerogue-local",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "jeu", "start:dev"],
+      "port": 8000
+    }
+  ]
+}
