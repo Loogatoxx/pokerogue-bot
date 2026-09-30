@@ -113,6 +113,7 @@ function infoPartie(obs: Observation) {
     tour: obs.partie.tour,
     pvEquipe,
     koEquipe: obs.equipe.filter(p => p.ko).length,
+    tailleEquipe: obs.equipe.length,
     pvAdversaires: obs.adversaires.reduce((s, a) => s + a.pvPourcent / 100, 0) / Math.max(obs.adversaires.length, 1),
   };
 }
@@ -150,6 +151,9 @@ async function jouerPartie(
   const debut = performance.now();
   let decisions = 0;
   let phases = 0;
+  /** Pokémon capturés et gardés pendant la partie (l'équipe s'agrandit). */
+  let captures = 0;
+  let tailleEquipe = 0;
   let enAttente = false;
   let erreur: string | undefined;
   let victoire = false;
@@ -223,6 +227,11 @@ async function jouerPartie(
         await vi.waitUntil(() => !minuteriesEnAttente(game), { interval: 0, timeout: 20_000 });
       }
       carnet.mettreAJour(scene);
+      const taille = game.scene.getPlayerParty().length;
+      if (tailleEquipe > 0 && taille > tailleEquipe) {
+        captures += taille - tailleEquipe;
+      }
+      tailleEquipe = taille;
       const phase = game.scene.phaseManager.getCurrentPhase();
       if (phase.is("GameOverPhase")) {
         victoire = !!(phase as unknown as { isVictory?: boolean }).isVictory;
@@ -268,6 +277,7 @@ async function jouerPartie(
     vague: game.scene.currentBattle?.waveIndex ?? 0,
     victoire,
     tronquee,
+    captures,
     decisions,
     phases,
     secondes: (performance.now() - debut) / 1000,

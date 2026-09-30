@@ -96,7 +96,7 @@ function allie(p: PokemonJeu): PokemonAllie {
   };
 }
 
-function adversaire(p: PokemonJeu, carnet: Carnet): PokemonAdverse {
+function adversaire(p: PokemonJeu, carnet: Carnet, scene: ScenePokerogue): PokemonAdverse {
   // Avec Illusion, le joueur voit le déguisement : espèce, nom, types et chromatisme affichés.
   const illusion = p.summonData?.illusion ?? null;
   const boss = p.isBoss() && p.bossSegments
@@ -117,6 +117,8 @@ function adversaire(p: PokemonJeu, carnet: Carnet): PokemonAdverse {
     objets: objets(p),
     shiny: illusion?.shiny ?? p.shiny,
     ko: p.isFainted(),
+    // Avec Illusion, le jeu affiche l'icône de l'espèce du déguisement.
+    dejaCapture: !!scene.gameData.dexData[illusion?.species ?? p.species.speciesId]?.caughtAttr,
     talentRevele: carnet.talentReveleDe(p.id),
     attaquesVues: carnet.attaquesVuesDe(p.id),
   };
@@ -216,7 +218,7 @@ export function observer(scene: ScenePokerogue, carnet: Carnet): Observation | n
       dresseur,
     },
     equipe: scene.getPlayerParty().map(allie),
-    adversaires: adversairesSurTerrain.map(p => adversaire(p, carnet)),
+    adversaires: adversairesSurTerrain.map(p => adversaire(p, carnet, scene)),
     decision: decision(scene),
     journal: [...carnet.journal],
   };

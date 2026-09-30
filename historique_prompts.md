@@ -298,3 +298,32 @@ l'ensemble (synergie) plutôt que cas par cas.
 **Objectif**
 Comprendre le plafond avec des chiffres, et remettre l'entraînement en état de tourner
 longtemps et vite avant de confier de nouvelles décisions au cerveau.
+
+---
+
+## 11. Étape 4a : la capture — 30/09/2026
+
+**Prompt**
+> etape 4
+
+**Réponse**
+- Capture confiée au cerveau d'abord (le levier le plus direct contre le rival de la vague 8).
+- 19 actions (+ 5 Poké Balls, masquées selon les vraies règles du jeu), observation v3 (« déjà
+  capturé »), encodage v2 (+ 9 nombres ajoutés à la fin), récompense `capture = 0.5`.
+- Greffe de la v1 (nouvelles entrées et actions à zéro) : l'entraînement 2 repart directement
+  au niveau de la v1 (vague 8,35) ; les captures montent (0,7 → 1,1 par partie en 4 mises à jour).
+- Tableau de bord : captures par partie, défaites par vague avec les combats fixes annotés.
+
+**Modifications**
+- `observateur/` : actions (Balls), types (v3), jeu.ts (Pokédex, isActive), observateur,
+  encodeur (v2), valeurs (commande BALL).
+- `pilote/pilote.ts` : lancer de Ball, équipe pleine → le nouveau n'est pas gardé.
+- `entraineur/` : `greffe.py`, `test_greffe.py`, récompense de capture, captures au journal,
+  `tableau_de_bord.py` (défaites par vague, combats fixes).
+- `simulateur/` : taille d'équipe et captures dans l'info ; tests des Balls.
+- Extension 0.3.0 ; `tableau/index.html` (graphiques défaites et captures) ;
+  `docs/etape-4-capture.md`.
+
+**Objectif**
+Lui permettre de s'agrandir une équipe pour franchir le mur du rival, sans lui faire oublier
+ce qu'il sait déjà du combat.

@@ -77,6 +77,10 @@
   .tuile .libelle { color: var(--encre-2); font-size: 13px; }
   .tuile .valeur { font-size: 22px; font-weight: 600; }
   .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .duo.trio { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 1000px) { .duo.trio { grid-template-columns: 1fr; } }
+  .barre-survol { fill: transparent; }
+  .barre-survol:hover + .barre, .barre.active { opacity: 0.8; }
   .graphique { position: relative; }
   .graphique svg { display: block; width: 100%; overflow: visible; }
   .graduation { fill: var(--discret); font-size: 11px; font-variant-numeric: tabular-nums; }
@@ -136,7 +140,19 @@
     </details>
   </section>
 
-  <div class="duo">
+  <section class="carte">
+    <h2>À quelle vague il perd</h2>
+    <p class="aide">Les défaites des 500 dernières parties. Une barre haute sur un combat fixe (rival, Gamin…)
+      montre un mur ; si elle baisse d'un entraînement à l'autre, il a appris à le franchir.</p>
+    <div id="graphique-defaites" class="graphique"></div>
+  </section>
+
+  <div class="duo trio">
+    <section class="carte">
+      <h2>Captures par partie</h2>
+      <p class="aide">Pokémon capturés et gardés, en moyenne. Le rival de la vague 8 se bat mieux à six qu'à trois.</p>
+      <div id="graphique-captures" class="graphique"></div>
+    </section>
     <section class="carte">
       <h2>Hésitation (entropie)</h2>
       <p class="aide">À quel point il hésite entre ses actions. Elle baisse quand il se forge des préférences ;
@@ -231,7 +247,7 @@ function tracerCourbe(conteneur, { points, formatY, libelleY, references = [], h
   for (const t of graduations(xMin, xMax, 5).filter(t => t >= xMin && t <= xMax)) {
     ajouter("text", { x: X(t), y: hauteur - 8, "text-anchor": "middle", class: "graduation" }, nombre(t));
   }
-  ajouter("text", { x: largeur - marge.droite, y: hauteur - 8, "text-anchor": "start", dx: 8, class: "graduation" }, "parties");
+  ajouter("text", { x: largeur - marge.droite + 26, y: hauteur - 8, "text-anchor": "start", class: "graduation" }, "parties");
 
   for (const r of refs) {
     ajouter("line", { x1: marge.gauche, x2: largeur - marge.droite, y1: Y(r.valeur), y2: Y(r.valeur),
@@ -284,6 +300,79 @@ function tracerCourbe(conteneur, { points, formatY, libelleY, references = [], h
   zone.addEventListener("pointerleave", cacher);
 }
 
+/**
+ * Barres verticales (une série) : 24 px maximum, haut arrondi de 4 px, 2 px d'écart entre barres,
+ * repères texte au-dessus des vagues de combats fixes, info-bulle au survol de chaque barre.
+ */
+function tracerBarres(conteneur, { barres, reperes = {}, hauteur = 220, total }) {
+  conteneur.replaceChildren();
+  if (!barres.length) {
+    conteneur.append(element("div", "Pas encore de défaites enregistrées.", "vide"));
+    return;
+  }
+  const largeur = conteneur.clientWidth || 600;
+  const marge = { haut: 22, droite: 12, bas: 28, gauche: 44 };
+  const vMax = Math.max(...barres.map(b => b.x));
+  const nombreCases = vMax;
+  const pasX = (largeur - marge.gauche - marge.droite) / nombreCases;
+  const epaisseur = Math.min(24, Math.max(2, pasX - 2));
+  const yMax = Math.max(...barres.map(b => b.y));
+  const ticks = graduations(0, yMax);
+  const haut = ticks[ticks.length - 1];
+  const X = v => marge.gauche + (v - 0.5) * pasX;
+  const Y = y => marge.haut + (1 - y / haut) * (hauteur - marge.haut - marge.bas);
+
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", `0 0 ${largeur} ${hauteur}`);
+  svg.setAttribute("height", hauteur);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "défaites par vague");
+  const ajouter = (balise, attributs, texte, parent = svg) => {
+    const e = document.createElementNS(ns, balise);
+    for (const [k, v] of Object.entries(attributs)) e.setAttribute(k, v);
+    if (texte !== undefined) e.textContent = texte;
+    parent.append(e);
+    return e;
+  };
+  for (const t of ticks) {
+    ajouter("line", { x1: marge.gauche, x2: largeur - marge.droite, y1: Y(t), y2: Y(t),
+      stroke: t === 0 ? "var(--axe)" : "var(--grille)", "stroke-width": 1 });
+    ajouter("text", { x: marge.gauche - 8, y: Y(t) + 4, "text-anchor": "end", class: "graduation" }, nombre(t));
+  }
+  const pasEtiquettes = Math.max(1, Math.ceil(nombreCases / 20));
+  for (let v = 1; v <= vMax; v++) {
+    if (v % pasEtiquettes === 0 || v === 1) {
+      ajouter("text", { x: X(v), y: hauteur - 8, "text-anchor": "middle", class: "graduation" }, String(v));
+    }
+  }
+  const bulle = element("div", undefined, "info-bulle");
+  for (const b of barres) {
+    const x = X(b.x) - epaisseur / 2, y = Y(b.y), bas = Y(0), r = Math.min(4, (bas - y) / 2, epaisseur / 2);
+    // Haut arrondi, base carrée posée sur l'axe.
+    ajouter("path", { class: "barre", fill: "var(--serie)",
+      d: `M${x},${bas}V${y + r}Q${x},${y} ${x + r},${y}H${x + epaisseur - r}Q${x + epaisseur},${y} ${x + epaisseur},${y + r}V${bas}Z` });
+    if (reperes[b.x] && b.y / total >= 0.02) {
+      ajouter("text", { x: X(b.x), y: y - 6, "text-anchor": "middle", class: "repere-texte" }, reperes[b.x]);
+    }
+    // Zone de survol plus large que la barre, sur toute la hauteur.
+    const zone = ajouter("rect", { x: X(b.x) - pasX / 2, y: marge.haut, width: pasX, height: bas - marge.haut, fill: "transparent" });
+    zone.addEventListener("pointermove", () => {
+      bulle.replaceChildren(
+        element("div", `${nombre(b.y)} défaites`, "fort"),
+        element("div", `vague ${b.x}${reperes[b.x] ? ` · ${reperes[b.x]}` : ""}`, "second"),
+        element("div", `${nombre(100 * b.y / total, 1)} % des défaites`, "second"),
+      );
+      bulle.style.display = "block";
+      const boite = svg.getBoundingClientRect();
+      bulle.style.left = `${Math.min(X(b.x) * boite.width / largeur + 12, boite.width - bulle.offsetWidth)}px`;
+      bulle.style.top = `${Math.max(0, y * boite.height / hauteur - bulle.offsetHeight - 8)}px`;
+    });
+    zone.addEventListener("pointerleave", () => (bulle.style.display = "none"));
+  }
+  conteneur.append(svg, bulle);
+}
+
 function tuile(libelle, valeur) {
   const t = element("div", undefined, "tuile");
   t.append(element("div", libelle, "libelle"), element("div", valeur, "valeur"));
@@ -325,6 +414,7 @@ function afficher(d) {
     tuile("Décisions", dernier ? nombre(dernier.decisions) : "–"),
     tuile("Durée d'entraînement", duree(j)),
     tuile("Meilleure vague", j.length ? nombre(Math.max(...j.map(l => l.vagueMax))) : "–"),
+    tuile("Captures par partie", dernier?.capturesMoyennes !== undefined ? nombre(dernier.capturesMoyennes, 1) : "–"),
     tuile("Rythme", dernier ? `${nombre(dernier.decisionsParSeconde)} déc/s` : "–"),
   );
 
@@ -336,6 +426,15 @@ function afficher(d) {
     points: points("vagueMoyenne", l => `meilleure vague récente : ${l.vagueMax}`),
     libelleY: "vague moyenne", formatY: v => nombre(v, 1),
     references: [{ valeur: ref.v0, libelle: "v0" }, { valeur: ref.glouton, libelle: "glouton" }],
+  });
+  const defaites = d.defaites;
+  tracerBarres($("graphique-defaites"), {
+    barres: defaites.parVague.map(([vague, n]) => ({ x: Number(vague), y: n })),
+    reperes: defaites.combatsFixes, total: defaites.total,
+  });
+  tracerCourbe($("graphique-captures"), {
+    points: points("capturesMoyennes").map(p => ({ ...p, y: p.y ?? 0 })),
+    libelleY: "captures par partie", formatY: v => nombre(v, 1), hauteur: 200,
   });
   tracerCourbe($("graphique-entropie"), {
     points: points("entropie"), libelleY: "entropie", formatY: v => nombre(v, 2), hauteur: 200,
@@ -352,9 +451,9 @@ function afficher(d) {
     ]));
 
   remplirTable($("table-parties"),
-    ["Mise à jour", "Vague", "Décisions", "Récompense", "Règles du pilote", "Remarque"],
+    ["Mise à jour", "Vague", "Captures", "Décisions", "Récompense", "Règles du pilote", "Remarque"],
     d.parties.map(p => [
-      [String(p.miseAJour)], [String(p.vague)], [nombre(p.decisions)], [nombre(p.recompense ?? 0, 1)],
+      [String(p.miseAJour)], [String(p.vague)], [String(p.captures ?? "–")], [nombre(p.decisions)], [nombre(p.recompense ?? 0, 1)],
       [Object.entries(p.regles ?? {}).map(([k, n]) => `${k} ×${n}`).join(", ") || "–", "texte"],
       [p.erreur ? `erreur : ${p.erreur}` : p.tronquee ? "arrêtée à la vague max" : "", "texte"],
     ]));

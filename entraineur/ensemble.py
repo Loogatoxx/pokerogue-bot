@@ -32,6 +32,7 @@ class Ensemble:
         vagues = apres["vague"] - avant["vague"]
         points = vagues * self.points["vague_gagnee"]
         points += max(0, apres["koEquipe"] - avant["koEquipe"]) * self.points["ko_subi"]
+        points += max(0, apres["tailleEquipe"] - avant["tailleEquipe"]) * self.points["capture"]
         if vagues == 0:
             # Coup de pouce : les PV retirés à l'adversaire (seulement s'ils baissent ; un nouvel
             # adversaire qui entre en pleine forme ne compte pas comme une punition).

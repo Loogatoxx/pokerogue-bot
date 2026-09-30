@@ -14,10 +14,14 @@
  * Partagé entre le simulateur (entraînement) et l'extension (jeu en ligne) : le cerveau lit
  * exactement les mêmes nombres dans les deux cas. Toute modification change la taille ou le sens
  * des entrées : incrémenter VERSION_ENCODAGE (un cerveau existant ne saura plus lire).
+ * Règle : on n'ajoute qu'À LA FIN. Les nombres existants gardent leur place et leur sens, ce qui
+ * permet de « greffer » un cerveau existant (entraineur/greffe.py) au lieu de repartir de zéro.
+ *
+ * Historique : v1 = 1 290 nombres ; v2 = + 9 pour la capture (Poké Balls, équipe, déjà capturé).
  */
 import type { AttaqueVue, Libelle, Observation, PokemonAdverse, PokemonAllie } from "./types";
 
-export const VERSION_ENCODAGE = 1;
+export const VERSION_ENCODAGE = 2;
 
 const NB_TYPES = 19; // Normal (0) → Stellaire (18) ; « inconnu » (-1) n'allume aucune case
 const NB_STATUTS = 8;
@@ -34,7 +38,11 @@ const TAILLE_PARTIE = 2 + 1 + NB_TYPES_COMBAT + NB_METEOS + NB_TERRAINS + 1 + 1 
 const TAILLE_ALLIE = 4 + 2 + 2 + NB_STATUTS + NB_TYPES + 6 + 6 + 7 + NB_ATTAQUES * TAILLE_ATTAQUE + 1;
 const TAILLE_ADVERSAIRE = 2 + 2 + 2 + NB_STATUTS + NB_TYPES + 2 + 6 + 7 + 1 + NB_ATTAQUES * TAILLE_ATTAQUE + 1;
 
-export const TAILLE_OBSERVATION = TAILLE_PARTIE + NB_ALLIES * TAILLE_ALLIE + NB_ADVERSAIRES * TAILLE_ADVERSAIRE;
+const NB_BALLS = 5;
+const TAILLE_CAPTURE = NB_BALLS + 2 + NB_ADVERSAIRES; // Balls en stock, taille de l'équipe, déjà capturés
+
+export const TAILLE_OBSERVATION =
+  TAILLE_PARTIE + NB_ALLIES * TAILLE_ALLIE + NB_ADVERSAIRES * TAILLE_ADVERSAIRE + TAILLE_CAPTURE;
 
 /** Écrit dans un tableau en avançant une position, et vérifie qu'on remplit exactement chaque bloc. */
 class Ecrivain {
@@ -169,6 +177,18 @@ export function encoder(obs: Observation): Float32Array {
   for (let place = 0; place < NB_ADVERSAIRES; place++) {
     adversaire(e, obs.adversaires.find(a => a.position === place));
   }
+
+  // v2 — capture : ce qu'un joueur regarde avant de lancer une Ball.
+  e.bloc(TAILLE_CAPTURE, () => {
+    for (let ball = 0; ball < NB_BALLS; ball++) {
+      e.nombre(borne((p.balls.find(b => b.id === ball)?.quantite ?? 0) / 10));
+    }
+    e.nombre(obs.equipe.length / 6);
+    e.booleen(obs.equipe.length >= 6);
+    for (let place = 0; place < NB_ADVERSAIRES; place++) {
+      e.booleen(!!obs.adversaires.find(a => a.position === place)?.dejaCapture);
+    }
+  });
 
   if (e.position !== TAILLE_OBSERVATION) {
     throw new Error(`Encodeur : ${e.position} valeurs écrites au lieu de ${TAILLE_OBSERVATION}`);

@@ -29,6 +29,7 @@ export const BOUTON = {
 
 export const COMMANDE = {
   FIGHT: valeurDe(Command, "FIGHT"),
+  BALL: valeurDe(Command, "BALL"),
   POKEMON: valeurDe(Command, "POKEMON"),
 };
 

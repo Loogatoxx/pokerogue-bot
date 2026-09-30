@@ -17,6 +17,12 @@ RACINE = Path(__file__).resolve().parent.parent
 PAGE = RACINE / "tableau"
 LEXAR = Path("/Volumes/Lexar/pokerogue-bot")
 PORT = 8766
+# Combats fixes du mode Classique (jeu/src/enums/fixed-boss-waves.ts) : repères sur le graphique
+# des défaites. Un joueur humain les connaît aussi.
+COMBATS_FIXES = {5: "Gamin", 8: "rival", 25: "rival", 35: "sbire", 55: "rival", 62: "sbire", 64: "sbire",
+                 66: "admin", 95: "rival", 112: "sbire", 114: "admin", 115: "boss", 145: "rival",
+                 164: "admin", 165: "boss", 182: "Conseil 4", 184: "Conseil 4", 186: "Conseil 4",
+                 188: "Conseil 4", 190: "maître", 195: "rival", 200: "boss final"}
 
 
 def lire_jsonl(chemin: Path, dernieres: int | None = None) -> list[dict]:
@@ -54,7 +60,10 @@ def detail(nom: str) -> dict:
     dossier = LEXAR / "entrainements" / nom
     if not dossier.is_dir() or "/" in nom:
         raise FileNotFoundError(nom)
-    parties = lire_jsonl(dossier / "parties.jsonl", 40)
+    recentes = lire_jsonl(dossier / "parties.jsonl", 500)
+    parties = recentes[-40:]
+    # Défaites par vague sur les 500 dernières parties (hors parties arrêtées à la vague max).
+    defaites = Counter(p["vague"] for p in recentes if not p.get("tronquee") and not p.get("victoire"))
     versions = sorted(
         (f for f in (dossier / "cerveaux").glob("*.cerveau") if not f.name.startswith("._")),
         key=lambda f: f.name,
@@ -65,6 +74,8 @@ def detail(nom: str) -> dict:
         "parties": parties[::-1],
         "regles": Counter(k for p in parties for k, n in p.get("regles", {}).items() for _ in range(n)),
         "versions": [{"nom": f.name, "chemin": str(f), "taille": f.stat().st_size} for f in versions][::-1],
+        "defaites": {"total": sum(defaites.values()), "parVague": sorted(defaites.items()),
+                     "combatsFixes": COMBATS_FIXES},
         "references": references(),
     }
 

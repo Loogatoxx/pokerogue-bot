@@ -47,6 +47,8 @@ export interface PokemonJeu {
   getMaxHp(): number;
   getHpRatio(precise?: boolean): number;
   isOnField(): boolean;
+  /** En jeu et capable d'agir (sur le terrain si onField). */
+  isActive(onField?: boolean): boolean;
   isFainted(): boolean;
   isBoss(): boolean;
   getTypes(options?: { useIllusion?: boolean }): number[];
@@ -93,6 +95,8 @@ export interface ScenePokerogue {
   money: number;
   pokeballCounts: Record<number, number>;
   gameMode: { isDaily: boolean };
+  /** Pokédex du joueur : caughtAttr non nul = espèce déjà capturée. */
+  gameData: { dexData: Record<number, { caughtAttr: bigint } | undefined> };
   getPlayerParty(): PokemonJeu[];
   getPlayerField(): PokemonJeu[];
   getEnemyParty(): PokemonJeu[];

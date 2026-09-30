@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "partie": {
     "vague": 1,
     "tour": 2,
@@ -52,7 +52,7 @@
   },
   "equipe": [
     {
-      "uid": 1647006549,
+      "uid": 2183186297,
       "espece": 1,
       "nom": "Bulbasaur",
       "niveau": 12,
@@ -187,7 +187,7 @@
       "shiny": false
     },
     {
-      "uid": 1086191552,
+      "uid": 579241012,
       "espece": 4,
       "nom": "Charmander",
       "niveau": 12,
@@ -318,7 +318,7 @@
       "shiny": false
     },
     {
-      "uid": 3992241911,
+      "uid": 2436226011,
       "espece": 7,
       "nom": "Squirtle",
       "niveau": 12,
@@ -488,6 +488,7 @@
       "objets": [],
       "shiny": false,
       "ko": false,
+      "dejaCapture": false,
       "talentRevele": {
         "id": 22,
         "nom": "Intimidate"
@@ -547,6 +548,7 @@
       "objets": [],
       "shiny": false,
       "ko": false,
+      "dejaCapture": false,
       "talentRevele": {
         "id": 22,
         "nom": "Intimidate"
@@ -572,7 +574,7 @@
   "decision": {
     "phase": "CommandPhase",
     "type": "combat",
-    "acteur": 1647006549,
+    "acteur": 2183186297,
     "positionActeur": 0,
     "masque": [
       true,
@@ -586,6 +588,11 @@
       false,
       false,
       true,
+      false,
+      false,
+      false,
+      false,
+      false,
       false,
       false,
       false

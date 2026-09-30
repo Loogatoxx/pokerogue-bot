@@ -12,7 +12,7 @@
 import { type Cerveau, lireCerveau, meilleureAction, penser, type Reponse } from "../../cerveau/cerveau";
 import { decrireAction } from "../../observateur/actions";
 import { encoder, TAILLE_OBSERVATION, VERSION_ENCODAGE } from "../../observateur/encodeur";
-import { PokemonType } from "../../observateur/noms";
+import { PokeballType, PokemonType } from "../../observateur/noms";
 import {
   type Decision,
   type Libelle,
@@ -131,7 +131,7 @@ function carteAdversaire(a: PokemonAdverse): string {
     : "";
   return `
     <div class="carte${a.ko ? " ko" : ""}">
-      <div><span class="nom">${echapper(a.nom)}</span> niv. ${a.niveau}${a.shiny ? " ✨" : ""} ${a.types.map(puceType).join("")}</div>
+      <div><span class="nom">${echapper(a.nom)}</span> niv. ${a.niveau}${a.shiny ? " ✨" : ""}${a.dejaCapture ? ` <span class="discret" title="Déjà capturé">◓</span>` : ""} ${a.types.map(puceType).join("")}</div>
       ${barrePv(a.pvPourcent)}
       <div class="ligne">${a.pvPourcent} % des PV${statut(a.statut)}${boss}</div>
       <div class="ligne">Talent : ${talent}</div>
@@ -285,6 +285,9 @@ function libelleAction(index: number, obs: Observation): string {
   const action = decrireAction(index);
   if (action.type === "envoyer") {
     return `Envoyer ${obs.equipe[action.place]?.nom ?? `la place ${action.place + 1}`}`;
+  }
+  if (action.type === "ball") {
+    return `Lancer une ${PokeballType[action.ball]?.fr ?? "Ball"}`;
   }
   const acteur = obs.equipe.find(p => p.uid === obs.decision.acteur);
   const attaque = acteur?.attaques[action.attaque]?.nom ?? `attaque ${action.attaque + 1}`;

@@ -7,6 +7,7 @@
 vague_gagnee = 1.0       # chaque vague franchie
 ko_subi = -0.3           # chaque Pokémon de l'équipe mis K.O.
 degats_infliges = 0.2    # pour 100 % des PV d'un adversaire retirés (coup de pouce au début)
+capture = 0.5            # chaque Pokémon capturé et gardé (l'équipe s'agrandit)
 defaite = 0.0            # partie perdue (en plus de ne plus gagner de vagues)
 
 [partie]

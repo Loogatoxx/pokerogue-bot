@@ -7,7 +7,7 @@
  * Toute modification de cette forme doit incrémenter VERSION_OBSERVATION : un cerveau
  * entraîné sur une version ne sait pas lire une autre.
  */
-export const VERSION_OBSERVATION = 2;
+export const VERSION_OBSERVATION = 3;
 
 /** Un identifiant du jeu et son nom lisible. */
 export interface Libelle {
@@ -91,6 +91,8 @@ export interface PokemonAdverse {
   objets: Objet[];
   shiny: boolean;
   ko: boolean;
+  /** Déjà capturé une fois (le jeu affiche une petite Poké Ball à côté de son nom). */
+  dejaCapture: boolean;
   /** Mémoire du combat : talent affiché par le jeu, sinon inconnu. */
   talentRevele: Libelle | null;
   /** Mémoire du combat : attaques qu'il a déjà utilisées. */

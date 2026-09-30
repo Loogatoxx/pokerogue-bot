@@ -83,6 +83,10 @@ export function executerAction(scene: ScenePokerogue, index: number, etat: EtatP
       etat.cible = action.cible === 0 ? CIBLE.ENNEMI_1 : CIBLE.ENNEMI_2;
       return phase.handleCommand(COMMANDE.FIGHT, utilisable ? action.attaque : -1, USAGE_ATTAQUE_NORMAL);
     }
+    if (action.type === "ball") {
+      // Comme l'écran des Poké Balls du jeu : la commande BALL avec le type de Ball choisi.
+      return phase.handleCommand(COMMANDE.BALL, action.ball);
+    }
     return phase.handleCommand(COMMANDE.POKEMON, action.place, false);
   }
 
@@ -142,6 +146,16 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
 
   if (mode === ECRAN.SUMMARY) {
     return choisirAttaqueAOublier(scene, e);
+  }
+
+  if (mode === ECRAN.CONFIRM && phase === "AttemptCapturePhase") {
+    // Capture réussie mais équipe pleine : le jeu propose (résumé, Pokédex, relâcher un membre,
+    // ne pas le garder). Règle provisoire en attendant le team build : on ne le garde pas
+    // (dernière option).
+    const options = (e as Ecran & { config?: { options?: unknown[] } }).config?.options?.length ?? 1;
+    e.setCursor(options - 1);
+    e.processInput(BOUTON.ACTION);
+    return "équipe pleine, relâché";
   }
 
   if (mode === ECRAN.CONFIRM && phase === "CheckSwitchPhase") {

@@ -32,13 +32,14 @@ import { GameManager } from "#test/framework/game-manager";
 import fs from "node:fs";
 import Phaser from "phaser";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { NOMBRE_ACTIONS } from "../../../observateur/actions";
+import { NOMBRE_ACTIONS, PREMIERE_BALL } from "../../../observateur/actions";
 import { Carnet } from "../../../observateur/carnet";
 import { encoder, TAILLE_OBSERVATION } from "../../../observateur/encodeur";
 import type { ScenePokerogue } from "../../../observateur/jeu";
 import type { Observation } from "../../../observateur/types";
 import * as noms from "../../../observateur/noms";
 import { observer } from "../../../observateur/observateur";
+import { decisionCerveauEnAttente, executerAction, nouvelEtatPilote } from "../../../pilote/pilote";
 
 describe("Observateur", () => {
   let phaserGame: Phaser.Game;
@@ -157,7 +158,24 @@ describe("Observateur", () => {
     // Attaques 0 (Trempette) et 1 (Charge) sur l'unique ennemi (place 0) : actions 0 et 2.
     expect(masque.slice(0, 8)).toEqual([true, false, true, false, false, false, false, false]);
     // Envoyer la place 1 (Salamèche) : action 9. La place 0 est déjà sur le terrain.
-    expect(masque.slice(8)).toEqual([false, true, false, false, false, false]);
+    expect(masque.slice(8, 14)).toEqual([false, true, false, false, false, false]);
+    // Combat sauvage, un seul ennemi, 5 Poké Balls en stock (et aucune autre Ball) : action 14.
+    expect(masque.slice(14)).toEqual([true, false, false, false, false]);
+  });
+
+  it("interdit les Poké Balls contre un dresseur", async () => {
+    game.override.battleType(BattleTypeJeu.TRAINER);
+    await game.classicMode.startBattle(SpeciesId.BULBASAUR);
+    expect(observer(game.scene, new Carnet())!.decision.masque!.slice(14)).toEqual([false, false, false, false, false]);
+  });
+
+  it("exécute un lancer de Poké Ball choisi par le cerveau", async () => {
+    await game.classicMode.startBattle(SpeciesId.BULBASAUR);
+    expect(decisionCerveauEnAttente(game.scene)).toBe("combat");
+    expect(executerAction(game.scene, PREMIERE_BALL, nouvelEtatPilote())).toBe(true);
+    // Le jeu enchaîne sur la tentative de capture (la Ball est décomptée à ce moment-là).
+    await game.phaseInterceptor.to("AttemptCapturePhase", false);
+    expect(game.scene.phaseManager.getCurrentPhase().phaseName).toBe("AttemptCapturePhase");
   });
 
   it("propose les deux cibles en combat double", async () => {
@@ -171,6 +189,8 @@ describe("Observateur", () => {
     expect(obs.decision.masque!.slice(0, 2)).toEqual([true, false]);
     // Charge (attaque 1) vise un seul ennemi : les deux cibles sont des choix distincts.
     expect(obs.decision.masque!.slice(2, 4)).toEqual([true, true]);
+    // Deux ennemis sur le terrain : le jeu interdit les Poké Balls.
+    expect(obs.decision.masque!.slice(14)).toEqual([false, false, false, false, false]);
   });
 
   it("encode l'observation en nombres de taille fixe", async () => {
