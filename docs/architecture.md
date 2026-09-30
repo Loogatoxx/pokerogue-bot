@@ -100,7 +100,8 @@ de 256 Ko. On n'y écrit donc que de gros fichiers, jamais des milliers de petit
    (validée dans Brave le 30/09)
 2. ✅ Cerveau v0 (non entraîné) importable, modes Conseil et Auto — [résultats](etape-2-cerveau-v0.md)
 3. 🔄 Premier entraînement PPO + tableau de bord maison + note de synergie des attaques — [détails](etape-3-entrainement.md)
-4. 🔄 Capture ([étape 4a](etape-4-capture.md)), puis récompenses, bons d'œuf, attaque à oublier, biomes
+4. 🔄 Capture ([étape 4a](etape-4-capture.md)) ; équipe et objets jugés comme un tout par des notes
+   lisibles ([étape 4b](etape-4b-equipe-objets.md)) ; plus tard : le cerveau décide lui-même, bons d'œuf, biomes
 5. Team build
 6. Phrases d'explication (Ollama) + mode auto complet
 7. Programme progressif jusqu'à la vague 200 + machine à œufs

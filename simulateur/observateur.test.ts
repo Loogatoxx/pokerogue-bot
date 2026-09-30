@@ -21,12 +21,14 @@ import { Button } from "#enums/buttons";
 import { MoveCategory as MoveCategoryJeu } from "#enums/move-category";
 import { MoveTarget as MoveTargetJeu } from "#enums/move-target";
 import { MoveUseMode as MoveUseModeJeu } from "#enums/move-use-mode";
+import { PokeballType as PokeballTypeEnum } from "#enums/pokeball";
 import { Nature as NatureJeu } from "#enums/nature";
 import { PokeballType as PokeballTypeJeu } from "#enums/pokeball";
 import { PokemonType as PokemonTypeJeu } from "#enums/pokemon-type";
 import { SpeciesId } from "#enums/species-id";
 import { StatusEffect as StatusEffectJeu } from "#enums/status-effect";
 import { UiMode as UiModeJeu, UiMode } from "#enums/ui-mode";
+import { PartyOption as PartyOptionJeu } from "#ui/party-ui-handler";
 import { WeatherType as WeatherTypeJeu } from "#enums/weather-type";
 import { GameManager } from "#test/framework/game-manager";
 import fs from "node:fs";
@@ -39,7 +41,7 @@ import type { ScenePokerogue } from "../../../observateur/jeu";
 import type { Observation } from "../../../observateur/types";
 import * as noms from "../../../observateur/noms";
 import { observer } from "../../../observateur/observateur";
-import { decisionCerveauEnAttente, executerAction, nouvelEtatPilote } from "../../../pilote/pilote";
+import { decisionCerveauEnAttente, executerAction, nouvelEtatPilote, repondreParRegles } from "../../../pilote/pilote";
 
 describe("Observateur", () => {
   let phaserGame: Phaser.Game;
@@ -234,6 +236,52 @@ describe("Observateur", () => {
     expect(options!.filter(o => o.recommandee)).toHaveLength(1);
   });
 
+  it("note les récompenses d'après l'état de l'équipe", async () => {
+    await game.classicMode.startBattle(SpeciesId.BULBASAUR);
+    game.move.select(MoveId.SPLASH);
+    await game.doKillOpponents();
+    await game.phaseInterceptor.to("SelectModifierPhase");
+
+    const decision = observer(game.scene, new Carnet())!.decision;
+    expect(decision.type).toBe("bonus");
+    expect(decision.options!.length).toBeGreaterThan(0);
+    expect(decision.options!.every(o => typeof o.note === "number")).toBe(true);
+    // Chaque objet du jeu est reconnu par la note (sinon : « effet mal connu du pilote »).
+    const inconnus = decision.options!.filter(o => o.contre?.includes("effet mal connu du pilote"));
+    expect(inconnus.map(o => o.nom)).toEqual([]);
+  });
+
+  it("choisit qui garder quand l'équipe est pleine", async () => {
+    game.override.enemySpecies(SpeciesId.PIKACHU).enemyLevel(5).enemyMoveset(MoveId.SPLASH);
+    await game.classicMode.startBattle(
+      SpeciesId.CHARMANDER, SpeciesId.CHARMELEON, SpeciesId.SQUIRTLE,
+      SpeciesId.PIPLUP, SpeciesId.PIDGEY, SpeciesId.RATTATA,
+    );
+    game.scene.pokeballCounts[PokeballTypeEnum.MASTER_BALL] = 1;
+    const etat = nouvelEtatPilote();
+    expect(executerAction(game.scene, PREMIERE_BALL + PokeballTypeEnum.MASTER_BALL, etat)).toBe(true);
+
+    // Le pilote répond à tout (messages, fenêtre « équipe pleine ») ; on garde les options vues.
+    let options: Observation["decision"]["options"];
+    const minuteur = setInterval(() => {
+      const obs = observer(game.scene, new Carnet());
+      if (obs?.decision.type === "equipe-pleine") {
+        options = obs.decision.options;
+      }
+      repondreParRegles(game.scene, etat);
+    }, 0);
+    await game.phaseInterceptor.to("VictoryPhase", false);
+    clearInterval(minuteur);
+
+    expect(options).toHaveLength(7); // ne pas garder, ou remplacer l'un des 6
+    expect(options!.filter(o => o.recommandee)).toHaveLength(1);
+    expect(game.scene.getPlayerParty()).toHaveLength(6);
+    // Pikachu niveau 5 face à une équipe niveau 50 : le garder coûterait trop cher.
+    const choix = options!.find(o => o.recommandee)!;
+    expect(choix.nom).toMatch(/^Ne pas garder Pikachu/);
+    expect(game.scene.getPlayerParty().some(p => p.species.speciesId === SpeciesId.PIKACHU)).toBe(false);
+  });
+
   it("a des tables de noms à jour avec le jeu", () => {
     const paires = (e: object) =>
       Object.fromEntries(Object.entries(e).filter(([, v]) => typeof v === "number").map(([k, v]) => [v, k]));
@@ -256,5 +304,6 @@ describe("Observateur", () => {
     expect(cles(noms.MoveTarget)).toEqual(paires(MoveTargetJeu));
     expect(cles(noms.MoveUseMode)).toEqual(paires(MoveUseModeJeu));
     expect(cles(noms.UiMode)).toEqual(paires(UiModeJeu));
+    expect(cles(noms.PartyOption)).toEqual(paires(PartyOptionJeu));
   });
 });

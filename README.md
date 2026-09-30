@@ -80,6 +80,8 @@ Après une mise à jour du jeu : `python3 observateur/generer-noms.py` régénè
   Conseil et Auto ([détails](docs/etape-2-cerveau-v0.md)).
 - 🔄 Étape 3 : premier entraînement PPO, tableau de bord (`.venv/bin/python -m entraineur.tableau_de_bord`,
   puis http://localhost:8766) et note de synergie des attaques ([détails](docs/etape-3-entrainement.md)).
-- 🔄 Étape 4a : le cerveau capture (5 actions Poké Ball, greffe de la v1) ([détails](docs/etape-4-capture.md)).
+- ✅ Étape 4a : le cerveau capture (5 actions Poké Ball, greffe de la v1) ([détails](docs/etape-4-capture.md)).
+- ✅ Étape 4b : notes d'équipe et d'objets (juger l'ensemble), pilote fiabilisé dans l'écran
+  d'équipe ([détails](docs/etape-4b-equipe-objets.md)).
 
 Journal des échanges : [`historique_prompts.md`](historique_prompts.md).

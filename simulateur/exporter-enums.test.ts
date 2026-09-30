@@ -20,6 +20,7 @@ import { PokemonType } from "#enums/pokemon-type";
 import { StatusEffect } from "#enums/status-effect";
 import { UiMode } from "#enums/ui-mode";
 import { WeatherType } from "#enums/weather-type";
+import { PartyOption } from "#ui/party-ui-handler";
 import { GameManager } from "#test/framework/game-manager";
 import fs from "node:fs";
 import Phaser from "phaser";
@@ -41,6 +42,7 @@ it("exporte les énumérations", () => {
     MoveUseMode: paires(MoveUseMode),
     Nature: paires(Nature),
     PokeballType: paires(PokeballType),
+    PartyOption: paires(PartyOption),
     PokemonType: paires(PokemonType),
     StatusEffect: paires(StatusEffect),
     TerrainType: paires(TerrainType),

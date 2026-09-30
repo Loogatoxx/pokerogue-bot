@@ -40,6 +40,11 @@ const IVS_COMPTE_NEUF = [15, 15, 15, 15, 15, 15];
 const STARTERS_PAR_DEFAUT = [SpeciesId.BULBASAUR, SpeciesId.CHARMANDER, SpeciesId.SQUIRTLE];
 /** Attente maximale d'une réponse du Python (il peut être occupé à apprendre). */
 const ATTENTE_MAX_MS = 30 * 60_000;
+/**
+ * Sans décision du cerveau en attente, si rien n'avance pendant ce délai, c'est qu'un écran du jeu
+ * attend une touche que le pilote ne sait pas donner : la partie s'arrête en le signalant.
+ */
+const BLOCAGE_MS = 60_000;
 const DECISIONS_MAX = 20_000;
 
 type MessagePython =
@@ -164,6 +169,17 @@ async function jouerPartie(
   // Actions refusées par le jeu pour la décision en cours (ex. changement alors qu'on est piégé).
   let cleDecision = "";
   const refusees = new Set<number>();
+  /** Dernière action jouée pour la décision en cours (pour repérer un refus silencieux). */
+  let derniereAction: number | null = null;
+  /** Dernière fois que quelque chose a avancé (phase lancée, touche pressée, réponse du cerveau). */
+  let derniereActivite = performance.now();
+  const bloque = () => {
+    if (!enAttente && performance.now() - derniereActivite > BLOCAGE_MS) {
+      const ecran = UiMode[game.scene.ui.getMode()];
+      erreur = `bloqué ${BLOCAGE_MS / 1000} s sur ${game.scene.phaseManager.getCurrentPhase()?.phaseName} / ${ecran}`;
+    }
+    return !!erreur;
+  };
 
   const minuteur = setInterval(() => {
     if (enAttente || erreur) {
@@ -172,6 +188,9 @@ async function jouerPartie(
     try {
       if (!decisionCerveauEnAttente(scene)) {
         const fait = repondreParRegles(scene, etat)?.split(" :")[0];
+        if (fait) {
+          derniereActivite = performance.now();
+        }
         if (fait && fait !== "suite") {
           regles[fait] = (regles[fait] ?? 0) + 1;
         }
@@ -186,6 +205,14 @@ async function jouerPartie(
       if (cle !== cleDecision) {
         cleDecision = cle;
         refusees.clear();
+      } else if (derniereAction !== null) {
+        // La même décision revient après qu'on a joué : l'action n'a pas marché (le jeu l'a
+        // refusée sans le dire, ex. un remplaçant qu'il n'accepte pas). On l'interdit ici.
+        refusees.add(derniereAction);
+      }
+      if (decisions > DECISIONS_MAX) {
+        erreur = `plus de ${DECISIONS_MAX} décisions`;
+        return;
       }
       const masque = obs.decision.masque.map((permise, i) => permise && !refusees.has(i));
       if (!masque.some(Boolean)) {
@@ -207,6 +234,8 @@ async function jouerPartie(
         } else if (!executerAction(scene, message.action, etat)) {
           refusees.add(message.action);
         }
+        derniereAction = message.action;
+        derniereActivite = performance.now();
         enAttente = false;
       });
     } catch (e) {
@@ -219,7 +248,7 @@ async function jouerPartie(
     let vagueSuivie = -1;
     let phasesDansLaVague = 0;
     for (;;) {
-      await vi.waitUntil(() => intercepteur.state === "idling" || !!erreur, { interval: 0, timeout: ATTENTE_MAX_MS });
+      await vi.waitUntil(() => intercepteur.state === "idling" || bloque(), { interval: 0, timeout: ATTENTE_MAX_MS });
       if (erreur) {
         break;
       }
@@ -258,6 +287,7 @@ async function jouerPartie(
         break;
       }
       phases++;
+      derniereActivite = performance.now();
       intercepteur.state = "running";
       phase.start();
     }

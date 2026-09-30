@@ -61,7 +61,18 @@ class Ensemble:
 
     def _jouer(self, i: int, action: int) -> tuple[float, bool]:
         avant = self.etats[i]
-        apres: Etat | Fin = self.pont.simulateurs[i].agir(action)
+        try:
+            apres: Etat | Fin = self.pont.simulateurs[i].agir(action)
+        except (OSError, ConnectionError, ValueError) as erreur:
+            # Copie du jeu figée ou tombée : on la remplace et on compte la partie comme perdue,
+            # plutôt que de bloquer tout l'entraînement.
+            self.parties_finies.append({**avant.info, "decisions": 0, "phases": 0, "secondes": 0,
+                                        "recompense": round(self.cumul[i], 3),
+                                        "erreur": f"simulateur n° {i} muet ou tombé ({type(erreur).__name__}), redémarré"})
+            self.cumul[i] = 0.0
+            self.pont.redemarrer(i)
+            self.etats[i] = self._nouvelle_partie(i)
+            return 0.0, True
         if isinstance(apres, Etat):
             points = self.recompense(avant.info, apres.info)
             self.cumul[i] += points

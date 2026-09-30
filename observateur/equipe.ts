@@ -5,12 +5,15 @@
  *
  * Elle sert quand l'équipe est pleine et qu'une capture réussit : garder l'équipe telle quelle,
  * ou remplacer l'un des six par le nouveau. Elle tient compte de :
- *   - la puissance offensive : contre chacun des 18 types, la meilleure attaque de l'équipe,
+ *   - la couverture offensive : contre chacun des 18 types, la meilleure attaque de l'équipe,
  *     pondérée par les vraies statistiques (donc le niveau) de celui qui la lance ;
+ *   - la profondeur : la force moyenne de CHAQUE membre (les membres tombent l'un après l'autre,
+ *     chacun doit pouvoir tenir) ; sans elle, un niveau 5 pourrait remplacer un niveau 50 qui
+ *     « doublonne » un autre membre ;
  *   - la défense : avoir, pour chaque type d'attaque, au moins un membre qui y résiste ;
  *   - les faiblesses empilées : trois membres ou plus qui craignent le même type ;
  *   - les doublons : deux membres qui partagent un type (et pire, la même espèce) ;
- *   - la solidité : PV, Défense et Défense Spé. moyennes.
+ *   - la solidité : PV, Défense et Défense Spé. moyennes (valeurs réelles, donc selon le niveau).
  * Une formule lisible, en attendant que le cerveau décide lui-même (étape 5, team build).
  */
 import { EFFICACITE_TYPES, PokemonType } from "./noms";
@@ -36,7 +39,7 @@ export interface OptionEquipe {
 }
 
 const NB_TYPES = 18;
-const POIDS = { defense: 25, solidite: 10, faiblesses: 6, typesPartages: 5, memeEspece: 25 };
+const POIDS = { couverture: 0.5, profondeur: 3, defense: 25, solidite: 5, faiblesses: 6, typesPartages: 5, memeEspece: 25 };
 
 const moyenne = (valeurs: number[]) => valeurs.reduce((a, b) => a + b, 0) / Math.max(valeurs.length, 1);
 const nomType = (t: number) => PokemonType[t]?.fr ?? `type ${t}`;
@@ -55,6 +58,7 @@ function offensive(membre: Membre): number[] {
 
 interface Detail {
   offensive: number;
+  profondeur: number;
   defense: number;
   solidite: number;
   faiblesses: number;
@@ -82,8 +86,9 @@ function detailler(equipe: Membre[]): Detail {
   );
   return {
     offensive: moyenne(couverture),
+    profondeur: moyenne(parMembre.map(moyenne)),
     defense: moyenne(types().map(a => (resiste[a] ? 1 : neutre[a] ? 0.5 : 0))),
-    solidite: moyenne(equipe.map(m => ((m.stats[0] ?? 0) + (m.stats[2] ?? 0) + (m.stats[4] ?? 0)) / 300)),
+    solidite: moyenne(equipe.map(m => ((m.stats[0] ?? 0) + (m.stats[2] ?? 0) + (m.stats[4] ?? 0)) / 100)),
     faiblesses,
     typesPartages,
     memeEspece,
@@ -95,7 +100,8 @@ function detailler(equipe: Membre[]): Detail {
 export function noterEquipe(equipe: Membre[]): number {
   const d = detailler(equipe);
   return (
-    d.offensive
+    POIDS.couverture * d.offensive
+    + POIDS.profondeur * d.profondeur
     + POIDS.defense * d.defense
     + POIDS.solidite * d.solidite
     - POIDS.faiblesses * d.faiblesses
@@ -121,7 +127,13 @@ function comparer(nouvelle: Membre[], actuelle: Membre[], arrivant: Membre, part
   }
   const ecart = apres.offensive - avant.offensive;
   if (Math.abs(ecart) >= 2) {
-    (ecart > 0 ? pour : contre).push(`puissance offensive ${Math.round(avant.offensive)} → ${Math.round(apres.offensive)}`);
+    (ecart > 0 ? pour : contre).push(`couverture offensive ${Math.round(avant.offensive)} → ${Math.round(apres.offensive)}`);
+  }
+  const profondeur = apres.profondeur - avant.profondeur;
+  if (Math.abs(profondeur) >= 1) {
+    (profondeur > 0 ? pour : contre).push(
+      `force moyenne par membre ${Math.round(avant.profondeur)} → ${Math.round(apres.profondeur)}`,
+    );
   }
   if (apres.typesPartages > avant.typesPartages) {
     contre.push(`plus de types en double dans l'équipe (${avant.typesPartages} → ${apres.typesPartages})`);

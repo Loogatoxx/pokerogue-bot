@@ -173,6 +173,7 @@ function texteDecision(d: Decision, obs: Observation): string {
     bonus: "Choisir une récompense",
     remplacement: "Choisir le Pokémon à envoyer",
     "attaque-a-oublier": "Choisir l'attaque à oublier",
+    "equipe-pleine": "Équipe pleine : qui garder ?",
     biome: "Choisir le prochain biome",
     "rencontre-mystere": "Rencontre mystère : choisir une option",
     aucune: "Rien à décider pour l'instant (le jeu déroule le tour)",
@@ -181,15 +182,21 @@ function texteDecision(d: Decision, obs: Observation): string {
   const options = !d.options?.length
     ? ""
     : notees
-      ? optionsNotees(d.options)
+      ? optionsNotees(d.options, d.type)
       : `<div class="ligne">${d.options
           .map(o => `<span class="puce">${echapper(o.nom)}${o.cout ? ` <span class="discret">${o.cout} ₽</span>` : ""}</span>`)
           .join("")}</div>`;
   return `<div class="ligne"><b>${echapper(textes[d.type])}</b> <span class="discret">(${echapper(d.phase)})</span></div>${options}`;
 }
 
-/** Options notées (attaque à oublier) : note de synergie, pour et contre, recommandation. */
-function optionsNotees(options: NonNullable<Decision["options"]>): string {
+const EXPLICATIONS_NOTES: Partial<Record<Decision["type"], string>> = {
+  "attaque-a-oublier": "Note de synergie du jeu d'attaques complet (couverture des types, bonus de type, stats, précision, équipe, variété) :",
+  "equipe-pleine": "Note de l'équipe entière (puissance par type, résistances, faiblesses partagées, doublons, solidité) :",
+  bonus: "Note de chaque récompense selon l'état de l'équipe, avec son meilleur receveur :",
+};
+
+/** Options notées : note, pour et contre, recommandation du pilote. */
+function optionsNotees(options: NonNullable<Decision["options"]>, type: Decision["type"]): string {
   const lignes = [...options]
     .sort((a, b) => (b.note ?? 0) - (a.note ?? 0))
     .map(o => {
@@ -204,8 +211,7 @@ function optionsNotees(options: NonNullable<Decision["options"]>): string {
         </div>`;
     })
     .join("");
-  return `<div class="ligne discret">Note de synergie du jeu d'attaques complet (couverture des types,
-    bonus de type, stats, précision, équipe, variété) :</div>${lignes}`;
+  return `<div class="ligne discret">${echapper(EXPLICATIONS_NOTES[type] ?? "Options notées :")}</div>${lignes}`;
 }
 
 function contenu(obs: Observation): string {
@@ -411,6 +417,8 @@ function demarrer(): void {
   const reglages = { auto: false, vitesse: "normale" };
   // Mode auto : décision déjà confiée au capteur, et actions refusées par le jeu pour elle.
   let cleEnvoyee = "";
+  let actionEnvoyee = -1;
+  let envoiDate = 0;
   const refusees = new Map<string, Set<number>>();
 
   const envoyer = (message: ContenuPanneau) =>
@@ -457,9 +465,20 @@ function demarrer(): void {
     const choisie = meilleureAction(reponse);
     ui.reflexion.innerHTML = afficherReflexion({ ...obs, decision: { ...obs.decision, masque } }, reponse, choisie);
 
+    const delai = VITESSES[reglages.vitesse] ?? 700;
+    if (reglages.auto && cle === cleEnvoyee && Date.now() - envoiDate > delai + 3000) {
+      // La même décision attend toujours bien après l'envoi : le jeu a refusé l'action sans le
+      // dire. On l'interdit pour cette décision et le cerveau choisit autre chose.
+      interdites.add(actionEnvoyee);
+      refusees.set(cle, interdites);
+      cleEnvoyee = "";
+      mettreAJourReflexion();
+      return;
+    }
     if (reglages.auto && !obs.partie.quotidien && cle !== cleEnvoyee) {
       cleEnvoyee = cle;
-      const delai = VITESSES[reglages.vitesse] ?? 700;
+      actionEnvoyee = choisie;
+      envoiDate = Date.now();
       window.setTimeout(() => envoyer({ type: "action", cle, action: choisie }), delai);
     }
   }
@@ -478,6 +497,14 @@ function demarrer(): void {
     transmettrePilotage();
     mettreAJourReflexion();
   });
+
+  // En mode auto, on revérifie chaque seconde même si l'écran ne change pas : c'est ainsi qu'on
+  // repère une action refusée en silence (la même décision attend toujours).
+  window.setInterval(() => {
+    if (reglages.auto && cerveau && derniereObservation?.decision.masque) {
+      mettreAJourReflexion();
+    }
+  }, 1000);
 
   ui.replier.addEventListener("click", () => {
     ui.panneau.classList.toggle("replie");

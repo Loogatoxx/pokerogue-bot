@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { evaluerArrivee, type Membre, meilleureOptionEquipe } from "../observateur/equipe";
 import type { AttaqueNotee } from "../observateur/synergie";
 
-// Valeurs du jeu : PokemonType (Normal 0, Vol 2, Poison 3, Sol 4, Feu 9, Eau 10, Plante 11,
+// Valeurs du jeu : PokemonType (Normal 0, Vol 2, Poison 3, Sol 4, Insecte 6, Feu 9, Eau 10, Plante 11,
 // Électrik 12, Psy 13, Glace 14) ; MoveCategory (physique 0, spéciale 1).
 const attaque = (nom: string, type: number, categorie: number, puissance: number): AttaqueNotee => ({
   nom, type, categorie, puissance, precision: 100,
@@ -20,10 +20,11 @@ const reptincel = membre("Reptincel", 5, 16, [9], [attaque("Crocs Feu", 9, 0, 65
 const carapuce = membre("Carapuce", 7, 15, [10], [attaque("Pistolet à O", 10, 1, 40)]);
 const tiplouf = membre("Tiplouf", 393, 15, [10], [attaque("Écume", 10, 1, 40)]);
 const roucool = membre("Roucool", 16, 14, [0, 2], [attaque("Tornade", 2, 1, 40)]);
-const rattata = membre("Rattata", 19, 13, [0], [attaque("Charge", 0, 0, 40)]);
+const chenipan = membre("Chenipan", 10, 13, [6], [attaque("Piqûre", 6, 0, 60)]);
 
 describe("Note d'équipe", () => {
-  const equipe = [salameche, reptincel, carapuce, tiplouf, roucool, rattata];
+  // Roucool (Normal/Vol) et Chenipan (Insecte) ne partagent de type avec personne.
+  const equipe = [salameche, reptincel, carapuce, tiplouf, roucool, chenipan];
 
   it("remplace un doublon plutôt qu'un membre unique", () => {
     // Pikachu (Électrik) arrive : il doit prendre la place d'un Feu ou d'un Eau en double,
@@ -31,7 +32,7 @@ describe("Note d'équipe", () => {
     const pikachu = membre("Pikachu", 25, 15, [12], [attaque("Éclair", 12, 1, 40)]);
     const choix = meilleureOptionEquipe(evaluerArrivee(equipe, pikachu));
     expect(choix.remplacer).not.toBeNull();
-    expect([salameche, reptincel, carapuce, tiplouf, rattata].map(m => m.nom)).toContain(
+    expect([salameche, reptincel, carapuce, tiplouf].map(m => m.nom)).toContain(
       equipe[choix.remplacer!]!.nom,
     );
   });

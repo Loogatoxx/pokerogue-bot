@@ -7,6 +7,9 @@
  */
 import { masqueCombat, masqueRemplacement } from "./actions";
 import { attaqueVue, type Carnet } from "./carnet";
+import { optionsEquipePleineAffichees, optionsRecompensesAffichees } from "./decisions-jeu";
+import { meilleureOptionEquipe } from "./equipe";
+import { meilleurObjet } from "./objets";
 import { meilleureOption, optionsApprentissageAffichees } from "./synergie";
 import type { AttaqueJeu, PokemonJeu, ScenePokerogue } from "./jeu";
 import {
@@ -135,6 +138,12 @@ function optionsAffichees(scene: ScenePokerogue, type: TypeDecision): Decision["
     return undefined;
   }
   if (type === "bonus") {
+    // Récompenses notées d'après l'état de l'équipe (observateur/objets.ts).
+    const notees = optionsRecompensesAffichees(scene);
+    if (notees) {
+      const meilleure = meilleurObjet(notees);
+      return notees.map(o => ({ nom: o.nom, note: o.note, pour: o.pour, contre: o.contre, recommandee: o === meilleure }));
+    }
     const gratuites = (ecran.options ?? []).map(o => ({ nom: o.modifierTypeOption?.type?.name ?? "?", cout: 0 }));
     const boutique = (ecran.shopOptionsRows ?? []).flat().map(o => ({
       nom: o.modifierTypeOption?.type?.name ?? "?",
@@ -160,6 +169,16 @@ function optionsAffichees(scene: ScenePokerogue, type: TypeDecision): Decision["
 function decision(scene: ScenePokerogue): Decision {
   const phase = scene.phaseManager.getCurrentPhase();
   const nomPhase = phase?.phaseName ?? "?";
+  // Capture réussie avec l'équipe pleine : garder qui ? (observateur/equipe.ts)
+  const equipePleine = optionsEquipePleineAffichees(scene);
+  if (equipePleine) {
+    const meilleure = meilleureOptionEquipe(equipePleine);
+    return {
+      phase: nomPhase,
+      type: "equipe-pleine",
+      options: equipePleine.map(o => ({ nom: o.nom, note: o.note, pour: o.pour, contre: o.contre, recommandee: o === meilleure })),
+    };
+  }
   const type = DECISIONS[nomPhase] ?? "aucune";
   const resultat: Decision = { phase: nomPhase, type };
   if (type === "combat") {

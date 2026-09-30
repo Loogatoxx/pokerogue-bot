@@ -155,6 +155,33 @@ export const Nature: Readonly<Record<number, Nom>> = {
   24: { cle: "QUIRKY", fr: "Bizarre" },
 };
 
+export const PartyOption: Readonly<Record<number, Nom>> = {
+  "-1": { cle: "CANCEL", fr: "CANCEL" },
+  0: { cle: "SEND_OUT", fr: "SEND_OUT" },
+  1: { cle: "PASS_BATON", fr: "PASS_BATON" },
+  2: { cle: "REVIVE", fr: "REVIVE" },
+  3: { cle: "APPLY", fr: "APPLY" },
+  4: { cle: "TEACH", fr: "TEACH" },
+  5: { cle: "TRANSFER", fr: "TRANSFER" },
+  6: { cle: "SUMMARY", fr: "SUMMARY" },
+  7: { cle: "POKEDEX", fr: "POKEDEX" },
+  8: { cle: "UNPAUSE_EVOLUTION", fr: "UNPAUSE_EVOLUTION" },
+  9: { cle: "SPLICE", fr: "SPLICE" },
+  10: { cle: "UNSPLICE", fr: "UNSPLICE" },
+  11: { cle: "RELEASE", fr: "RELEASE" },
+  12: { cle: "RENAME", fr: "RENAME" },
+  13: { cle: "SELECT", fr: "SELECT" },
+  14: { cle: "DISCARD", fr: "DISCARD" },
+  1000: { cle: "SCROLL_UP", fr: "SCROLL_UP" },
+  1001: { cle: "SCROLL_DOWN", fr: "SCROLL_DOWN" },
+  2000: { cle: "FORM_CHANGE_ITEM", fr: "FORM_CHANGE_ITEM" },
+  3000: { cle: "MOVE_1", fr: "MOVE_1" },
+  3001: { cle: "MOVE_2", fr: "MOVE_2" },
+  3002: { cle: "MOVE_3", fr: "MOVE_3" },
+  3003: { cle: "MOVE_4", fr: "MOVE_4" },
+  4000: { cle: "ALL", fr: "ALL" },
+};
+
 export const PokeballType: Readonly<Record<number, Nom>> = {
   0: { cle: "POKEBALL", fr: "Poké Ball" },
   1: { cle: "GREAT_BALL", fr: "Super Ball" },

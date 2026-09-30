@@ -35,6 +35,9 @@ FICHIERS_SIMULATEUR = ["environnement.test.ts", "outils-partie.ts"]
 # par décision en 50 parties). On la redémarre au bout de ce nombre de parties (~8 s par
 # redémarrage) : à 50, le temps moyen par décision reste vers 75 ms pour ~6 % de surcoût.
 PARTIES_AVANT_REDEMARRAGE = int(os.environ.get("PONT_REDEMARRAGE", 50))
+# Une copie du jeu qui ne répond plus du tout pendant ce délai est considérée comme figée (côté
+# jeu, un écran bloqué est déjà signalé au bout de 60 s : ceci est le dernier filet de sécurité).
+SILENCE_MAX_S = 600
 
 
 @dataclass
@@ -56,6 +59,7 @@ class Simulateur:
 
     def __init__(self, connexion: socket.socket):
         self.connexion = connexion
+        self.connexion.settimeout(SILENCE_MAX_S)  # une lecture muette lève une erreur au lieu d'attendre toujours
         self.fichier = connexion.makefile("rwb")
         # Premier message du simulateur : il se présente (numéro, tailles, versions).
         self.pret: dict = json.loads(self.fichier.readline())
@@ -101,9 +105,12 @@ class Simulateur:
     def fermer(self) -> None:
         try:
             self._envoyer({"type": "fin"})
+        except (OSError, ValueError):
+            pass
+        try:
+            self.connexion.close()
         except OSError:
             pass
-        self.connexion.close()
 
 
 class Pont:
@@ -195,7 +202,11 @@ class Pont:
         simulateur = self.simulateurs[i]
         if simulateur.parties < PARTIES_AVANT_REDEMARRAGE + 5 * i:
             return simulateur
-        simulateur.fermer()
+        return self.redemarrer(i)
+
+    def redemarrer(self, i: int) -> Simulateur:
+        """Remplace la copie du jeu n° i par une neuve (fuite de mémoire, ou copie figée)."""
+        self.simulateurs[i].fermer()
         self._arreter(self.processus[i])
         self.processus[i] = self._lancer(i)
         self.simulateurs[i] = self._connexion_de(i)

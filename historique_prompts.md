@@ -357,3 +357,34 @@ ce qu'il sait déjà du combat.
 **Objectif**
 Que les décisions d'accompagnement (qui garder, quel objet prendre) raisonnent sur l'ensemble,
 comme la note des attaques, avant de les confier un jour au cerveau.
+
+---
+
+## 13. « Les 45 min sont passées, on peut continuer » — 30/09/2026
+
+**Prompt**
+> les 45 min sont passer on peut continuer
+
+**Réponse**
+- L'entraînement 2 ne s'arrêtait pas : une copie du jeu figée sur un écran inconnu, et le
+  Python l'attendait sans fin. Diagnostic par échantillonnage des fils du Python (un seul fil en
+  lecture réseau, les autres sur des verrous). Arrêt forcé ; cerveau de la mise à jour 90 sauvegardé.
+- Protections ajoutées : écran bloqué 60 s → partie arrêtée avec l'écran en cause ; copie muette
+  10 min → redémarrée, l'entraînement continue.
+- Notes d'équipe et d'objets branchées (pilote, observation, panneau). La note d'équipe a été
+  corrigée (critère de « profondeur ») après un test sur le vrai jeu.
+- 64 parties de vérification ont révélé des défauts du pilote dans l'écran d'équipe (touches à
+  l'aveugle) : réécrit en « une touche par passage selon l'état de l'écran ». Résultat : 0 blocage,
+  « bonus inutilisables » 780 → 0, un relâcher par remplacement.
+- v2 évaluée avec les nouvelles règles et publiée ; extension 0.4.0.
+
+**Modifications**
+- `simulateur/environnement.test.ts` (détection de blocage), `entraineur/pont.py` et
+  `ensemble.py` (copie muette redémarrée), `pilote/pilote.ts` (écran d'équipe, notes),
+  `observateur/observateur.ts`, `types.ts`, `valeurs.ts`, `noms.ts` (options de l'écran d'équipe),
+  `observateur/equipe.ts` (profondeur), panneau (équipe pleine, récompenses notées), tests,
+  `docs/etape-4b-equipe-objets.md`.
+
+**Objectif**
+Que l'entraînement ne puisse plus rester figé, et que les choix d'équipe et d'objets suivent
+une logique d'ensemble lisible.

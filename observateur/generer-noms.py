@@ -73,6 +73,7 @@ def main() -> None:
         "Command": lambda k: k,
         "MoveTarget": lambda k: k,
         "MoveUseMode": lambda k: k,
+        "PartyOption": lambda k: k,
         "UiMode": lambda k: k,
     }
 

@@ -9,9 +9,12 @@
  * le jeu exactement de la même façon dans les deux cas.
  */
 import { decrireAction } from "../observateur/actions";
+import { optionsEquipePleineAffichees, optionsRecompensesAffichees } from "../observateur/decisions-jeu";
+import { meilleureOptionEquipe } from "../observateur/equipe";
 import type { ScenePokerogue } from "../observateur/jeu";
+import { meilleurObjet } from "../observateur/objets";
 import { meilleureOption, optionsApprentissageAffichees } from "../observateur/synergie";
-import { BOUTON, CIBLE, COMMANDE, ECRAN, USAGE_ATTAQUE_NORMAL } from "../observateur/valeurs";
+import { BOUTON, CIBLE, COMMANDE, ECRAN, OPTION_EQUIPE, USAGE_ATTAQUE_NORMAL } from "../observateur/valeurs";
 
 /** Écran du jeu, vu par le pilote (sous-ensemble prudent des différents écrans). */
 interface Ecran {
@@ -33,10 +36,17 @@ export interface EtatPilote {
   /** Récompenses déjà essayées dans la vague (une CT refusée reviendrait sinon à l'infini). */
   recompensesEssayees: Set<number>;
   vagueRecompenses: number;
+  /** Receveur choisi pour la récompense en cours (note des objets), ou null. */
+  receveur: number | null;
+  /** Membre à relâcher pour faire de la place au Pokémon capturé (note d'équipe), ou null. */
+  placeARelacher: number | null;
 }
 
 export function nouvelEtatPilote(): EtatPilote {
-  return { cible: CIBLE.ENNEMI_1, essaisCible: 0, recompensesEssayees: new Set(), vagueRecompenses: -1 };
+  return {
+    cible: CIBLE.ENNEMI_1, essaisCible: 0, recompensesEssayees: new Set(), vagueRecompenses: -1,
+    receveur: null, placeARelacher: null,
+  };
 }
 
 function ecran(scene: ScenePokerogue): Ecran | null {
@@ -59,10 +69,53 @@ export function decisionCerveauEnAttente(scene: ScenePokerogue): DecisionCerveau
   if (mode === ECRAN.COMMAND && phase === "CommandPhase") {
     return "combat";
   }
-  if (mode === ECRAN.PARTY && phase === "SwitchPhase" && !e.awaitingActionInput) {
+  if (mode === ECRAN.PARTY && phase === "SwitchPhase" && etatEquipe(e) === "liste") {
     return "remplacement";
   }
   return null;
+}
+
+// ─── Écran d'équipe : une touche par passage, selon son état ────────────────────────────────
+
+/** Ce que montre l'écran d'équipe : un message, le menu d'options d'un Pokémon, ou la liste. */
+type EtatEquipe = "message" | "options" | "liste";
+
+interface EcranEquipe {
+  awaitingActionInput?: boolean;
+  optionsMode?: boolean;
+  /** Codes des options affichées (PartyOption du jeu : Envoyer, Relâcher, Appliquer…). */
+  options?: number[];
+}
+
+function etatEquipe(e: Ecran): EtatEquipe {
+  const equipe = e as unknown as EcranEquipe;
+  return equipe.awaitingActionInput ? "message" : equipe.optionsMode ? "options" : "liste";
+}
+
+/**
+ * Un pas dans l'écran d'équipe, jamais deux touches d'affilée à l'aveugle : un message → le
+ * valider ; le menu d'options ouvert → viser l'option voulue par son code (pas par sa position,
+ * qui change selon le contexte) ; la liste → choisir la place, ce qui ouvre le menu d'options.
+ * Si aucune option voulue n'est proposée, on referme le menu.
+ */
+function pasDansEquipe(e: Ecran, place: number, optionsVoulues: number[]): EtatEquipe {
+  const etat = etatEquipe(e);
+  if (etat === "message") {
+    e.processInput(BOUTON.ACTION);
+  } else if (etat === "options") {
+    const proposees = (e as unknown as EcranEquipe).options ?? [];
+    const voulue = optionsVoulues.find(o => proposees.includes(o));
+    if (voulue === undefined) {
+      e.processInput(BOUTON.CANCEL);
+    } else {
+      e.setCursor(proposees.indexOf(voulue));
+      e.processInput(BOUTON.ACTION);
+    }
+  } else {
+    e.setCursor(place);
+    e.processInput(BOUTON.ACTION);
+  }
+  return etat;
 }
 
 /**
@@ -91,10 +144,8 @@ export function executerAction(scene: ScenePokerogue, index: number, etat: EtatP
   }
 
   if (decision === "remplacement" && action.type === "envoyer") {
-    const e = ecran(scene)!;
-    e.setCursor(action.place);
-    e.processInput(BOUTON.ACTION); // choisir le Pokémon
-    e.processInput(BOUTON.ACTION); // « Envoyer »
+    // On choisit le Pokémon (son menu d'options s'ouvre) ; le pas suivant validera « Envoyer ».
+    pasDansEquipe(ecran(scene)!, action.place, [OPTION_EQUIPE.ENVOYER]);
     return true;
   }
   return false;
@@ -122,19 +173,51 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
     return e.awaitingActionInput ? choisirRecompense(scene, e, etat) : null;
   }
 
+  if (mode === ECRAN.PARTY && phase === "SwitchPhase") {
+    // Après le choix du cerveau : valider « Envoyer » dans le menu d'options (ou un message).
+    pasDansEquipe(e, 0, [OPTION_EQUIPE.ENVOYER]);
+    return "envoie";
+  }
+
   if (mode === ECRAN.PARTY && phase === "SelectModifierPhase") {
-    // Un bonus à donner : au Pokémon le plus blessé encore debout. Refusé trois fois
-    // (ex. Champignon Mémoire sans attaque à réapprendre) : on recule jusqu'à la boutique.
-    if (++etat.essaisCible > 3) {
+    // Un bonus à donner au receveur désigné par la note des objets (à défaut, le plus blessé).
+    // Si le jeu refuse trois fois de suite (message à la place du menu), on revient à la boutique.
+    const vivants = scene.getPlayerParty().map((p, place) => ({ p, place })).filter(({ p }) => !p.isFainted());
+    vivants.sort((a, b) => a.p.getHpRatio() - b.p.getHpRatio());
+    const place = etat.receveur ?? vivants[0]?.place ?? 0;
+    if (etatEquipe(e) === "liste" && ++etat.essaisCible > 3) {
       e.processInput(BOUTON.CANCEL);
       return "bonus inutilisable";
     }
-    const vivants = scene.getPlayerParty().map((p, place) => ({ p, place })).filter(({ p }) => !p.isFainted());
-    vivants.sort((a, b) => a.p.getHpRatio() - b.p.getHpRatio());
-    e.setCursor(vivants[0]?.place ?? 0);
-    e.processInput(BOUTON.ACTION);
-    e.processInput(BOUTON.ACTION);
-    return "bonus donné";
+    // Objets sur une attaque (Huile…) : l'attaque la plus à court de PP d'abord.
+    const attaques = scene.getPlayerParty()[place]?.getMoveset() ?? [];
+    const parPp = attaques
+      .map((a, i) => ({ i, ratio: a.getMovePp() > 0 ? (a.getMovePp() - a.ppUsed) / a.getMovePp() : 1 }))
+      .sort((a, b) => a.ratio - b.ratio)
+      .map(({ i }) => OPTION_EQUIPE.ATTAQUE_1 + i);
+    const fait = pasDansEquipe(e, place, [OPTION_EQUIPE.APPLIQUER, OPTION_EQUIPE.ENSEIGNER, ...parPp]);
+    return fait === "options" ? "bonus donné" : "suite";
+  }
+
+  if (mode === ECRAN.PARTY && phase === "AttemptCapturePhase") {
+    // Équipe pleine : relâcher le membre désigné par la note d'équipe (option « Relâcher »).
+    if (etat.placeARelacher === null) {
+      // Déjà relâché (ou rien à relâcher) : on valide le message éventuel, sinon on ressort.
+      e.processInput(etatEquipe(e) === "message" ? BOUTON.ACTION : BOUTON.CANCEL);
+      return "suite";
+    }
+    const fait = pasDansEquipe(e, etat.placeARelacher, [OPTION_EQUIPE.RELACHER]);
+    if (fait === "options") {
+      etat.placeARelacher = null; // relâché : ne jamais recommencer
+      return "relâche un membre";
+    }
+    return "suite";
+  }
+
+  if (mode === ECRAN.POKEDEX_PAGE || mode === ECRAN.RENAME_POKEMON) {
+    // Écrans ouverts par erreur (Pokédex, renommer) : on revient en arrière.
+    e.processInput(BOUTON.CANCEL);
+    return "referme un écran";
   }
 
   if (mode === ECRAN.OPTION_SELECT) {
@@ -150,12 +233,16 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
 
   if (mode === ECRAN.CONFIRM && phase === "AttemptCapturePhase") {
     // Capture réussie mais équipe pleine : le jeu propose (résumé, Pokédex, relâcher un membre,
-    // ne pas le garder). Règle provisoire en attendant le team build : on ne le garde pas
-    // (dernière option).
-    const options = (e as Ecran & { config?: { options?: unknown[] } }).config?.options?.length ?? 1;
-    e.setCursor(options - 1);
-    e.processInput(BOUTON.ACTION);
-    return "équipe pleine, relâché";
+    // ne pas le garder). On suit la note d'équipe (observateur/equipe.ts).
+    const options = optionsEquipePleineAffichees(scene);
+    if (options) {
+      const choix = meilleureOptionEquipe(options);
+      etat.placeARelacher = choix.remplacer;
+      const nbOptions = (e as Ecran & { config?: { options?: unknown[] } }).config?.options?.length ?? 4;
+      e.setCursor(choix.remplacer === null ? nbOptions - 1 : 2); // « ne pas le garder » ou « relâcher un membre »
+      e.processInput(BOUTON.ACTION);
+      return choix.remplacer === null ? "équipe pleine, ne garde pas" : "équipe pleine, remplace";
+    }
   }
 
   if (mode === ECRAN.CONFIRM && phase === "CheckSwitchPhase") {
@@ -180,19 +267,21 @@ function choisirRecompense(scene: ScenePokerogue, e: Ecran, etat: EtatPilote): s
     etat.vagueRecompenses = vague;
     etat.recompensesEssayees.clear();
   }
-  // Rangée 1 = les récompenses gratuites : la première pas encore essayée ; sinon on passe.
-  const nombre = Math.max(e.options?.length ?? 1, 1);
-  const choix = Array.from({ length: nombre }, (_, i) => i).find(i => !etat.recompensesEssayees.has(i));
-  if (choix === undefined) {
+  // Rangée 1 = les récompenses gratuites, notées d'après l'état de l'équipe (observateur/objets.ts).
+  // On prend la mieux notée pas encore essayée dans cette vague ; si aucune ne sert, on passe.
+  const notees = (optionsRecompensesAffichees(scene) ?? []).filter(o => !etat.recompensesEssayees.has(o.index));
+  const choix = meilleurObjet(notees);
+  if (!choix) {
     e.processInput(BOUTON.CANCEL);
     return "passe les récompenses";
   }
-  etat.recompensesEssayees.add(choix);
+  etat.recompensesEssayees.add(choix.index);
   etat.essaisCible = 0;
+  etat.receveur = choix.cible;
   e.setRowCursor?.(1);
-  e.setCursor(choix);
+  e.setCursor(choix.index);
   e.processInput(BOUTON.ACTION);
-  return `récompense : ${e.options?.[choix]?.modifierTypeOption?.type?.name ?? "?"}`;
+  return `récompense : ${choix.nom}`;
 }
 
 /**

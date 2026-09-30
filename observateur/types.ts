@@ -106,6 +106,7 @@ export type TypeDecision =
   | "bonus"
   | "remplacement"
   | "attaque-a-oublier"
+  | "equipe-pleine"
   | "biome"
   | "rencontre-mystere"
   | "aucune";
