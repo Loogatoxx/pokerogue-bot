@@ -66,6 +66,42 @@ Plus tard, le cerveau décidera lui-même, en recevant cette note comme un avis.
 .venv/bin/python -m entraineur.evaluer <fichier.cerveau> --publier v1
 ```
 
+## Résultats du premier entraînement (entrainement-1)
+
+| Cerveau | Vague moyenne (64 parties, meilleur coup) | Record |
+|---|---|---|
+| v0 (non entraîné) | 4,6 | 8 |
+| Bot glouton (règles) | 6,8 | 13 |
+| **v1** (entrainement-1, 40 mises à jour, 2 467 parties) | **8,4** (8,6 en tirage) | 19 |
+
+La courbe monte vite (dépasse le glouton en 700 parties), puis **plafonne vers 8,4** à partir
+de ~1 400 parties. Diagnostic :
+
+1. **Le rival de la vague 8.** 45 % des défaites ont lieu exactement à la vague 8 : c'est le
+   premier combat contre le rival (`RIVAL_1 = 8` dans le jeu), avec des Pokémon mieux armés. Le
+   cerveau ne décide que des combats : son équipe reste à **3 starters** (il ne capture pas), la
+   première récompense est prise même inutile. Même en combattant bien, il ne peut pas passer.
+   **C'est un plafond structurel** : pour le franchir, il faut lui confier la capture et le choix
+   des récompenses (étape 4).
+2. **Il n'explore presque plus.** L'hésitation (entropie) est passée de 1,43 à 0,28 ; ses mises à
+   jour sont devenues minuscules. Pour la suite : `coef_entropie` 0,01 → 0,02.
+
+`/Volumes/Lexar/pokerogue-bot/cerveaux/v1-2026-09-30.cerveau` (évaluation dans
+`evaluations/v1-2026-09-30.json`).
+
+## Problèmes techniques trouvés et corrigés
+
+- **Ralentissement (174 → 14 décisions/s)** : à chaque partie, des minuteries du jeu (sans action,
+  ou effets de particules) s'accumulaient ; l'horloge simulée les parcourait toutes chaque
+  milliseconde (mesuré : 22 → 118 ms par décision en 120 parties). Correction : ménage à chaque
+  vague et entre deux parties → stable vers 15 ms.
+- **Fuite de mémoire (~2,5 Mo par partie)** dans l'outil de test du jeu, non localisée : chaque
+  copie du jeu est redémarrée toutes les 150 parties (seuils échelonnés, redémarrages en
+  parallèle, ~8 s chacun).
+- **Arrêt par Ctrl+C** : il interrompait n'importe où et laissait des copies du jeu orphelines.
+  Désormais : la mise à jour en cours se termine, le cerveau est sauvegardé, et chaque copie du
+  jeu (lancée dans sa propre session) est arrêtée avec tout son groupe de processus.
+
 ## Pistes d'amélioration repérées
 
 - **Collecte asynchrone** : aujourd'hui le Python attend que les 8 copies aient joué avant le coup

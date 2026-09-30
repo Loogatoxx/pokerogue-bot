@@ -270,3 +270,31 @@ Passer du cerveau qui joue au hasard au cerveau qui apprend.
 **Objectif**
 Voir le cerveau apprendre pour de vrai, avec des règles d'accompagnement qui raisonnent sur
 l'ensemble (synergie) plutôt que cas par cas.
+
+---
+
+## 10. « J'ai l'impression ça plafonne » — 30/09/2026
+
+**Prompt**
+> j ai l impression ça plafone
+
+**Réponse**
+- Oui : vague moyenne ~8,4 depuis ~1 400 parties. Deux causes : **le rival de la vague 8**
+  (45 % des défaites, premier combat fixe du jeu) contre une équipe restée à 3 starters, car le
+  cerveau ne capture pas et ne choisit pas ses récompenses (plafond structurel) ; et une
+  exploration éteinte (entropie 1,43 → 0,28).
+- Le ralentissement observé (174 → 14 décisions/s) venait de minuteries du jeu accumulées
+  partie après partie : corrigé. Fuite de mémoire contournée (redémarrage des copies toutes les
+  150 parties). Arrêt par Ctrl+C rendu propre.
+- Cerveau v1 publié : vague 8,4 (meilleur coup), record 19.
+
+**Modifications**
+- `simulateur/environnement.test.ts` : ménage des minuteries, diagnostic mémoire/minuteries.
+- `entraineur/pont.py` : redémarrage échelonné et parallèle des copies, arrêt par groupe de
+  processus, sessions séparées ; `entraineur/entrainer.py` : arrêt propre par signal.
+- `entraineur/reglages.toml` : `coef_entropie` 0,01 → 0,02.
+- `docs/etape-3-entrainement.md` : résultats et diagnostic.
+
+**Objectif**
+Comprendre le plafond avec des chiffres, et remettre l'entraînement en état de tourner
+longtemps et vite avant de confier de nouvelles décisions au cerveau.

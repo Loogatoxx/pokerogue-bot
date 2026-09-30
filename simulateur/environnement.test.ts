@@ -90,6 +90,21 @@ class Canal {
   }
 }
 
+type Horloge = { _active?: { callback?: unknown; remove(declencher?: boolean): void }[]; removeAllEvents(): void };
+
+/**
+ * Sans écran, certaines minuteries du jeu ne s'arrêtent jamais (minuteries sans action, effets de
+ * particules) : elles s'accumulent partie après partie et l'horloge simulée les parcourt toutes,
+ * chaque milliseconde. Mesuré : 22 → 118 ms par décision en 120 parties. On fait donc le ménage.
+ */
+function retirerMinuteriesVides(horloge: Horloge): void {
+  for (const minuterie of horloge._active ?? []) {
+    if (!minuterie.callback) {
+      minuterie.remove(false);
+    }
+  }
+}
+
 /** Ce que le Python reçoit à chaque décision pour calculer la récompense. */
 function infoPartie(obs: Observation) {
   const pvEquipe = obs.equipe.reduce((s, p) => s + p.pv, 0) / Math.max(obs.equipe.reduce((s, p) => s + p.pvMax, 0), 1);
@@ -109,6 +124,9 @@ async function jouerPartie(
 ) {
   // Nettoyage entre deux parties d'un même processus (normalement fait par l'outil de test
   // entre deux tests) : sans lui, les « espions » de l'outil s'empileraient partie après partie.
+  // clearAllMocks vide l'historique d'appels que chaque espion garde (sinon la mémoire grossit
+  // à chaque partie) ; restoreAllMocks remet les fonctions d'origine.
+  vi.clearAllMocks();
   vi.restoreAllMocks();
   if (PromptHandler.runInterval) {
     clearInterval(PromptHandler.runInterval);
@@ -224,6 +242,7 @@ async function jouerPartie(
       if (vague !== vagueSuivie) {
         vagueSuivie = vague;
         phasesDansLaVague = 0;
+        retirerMinuteriesVides(game.scene.time as unknown as Horloge);
       }
       if (++phasesDansLaVague > 5000 || decisions > DECISIONS_MAX) {
         erreur = `boucle à la vague ${vague}`;
@@ -238,6 +257,12 @@ async function jouerPartie(
   } finally {
     clearInterval(minuteur);
   }
+  const diagnostic = {
+    minuteries: (game.scene.time as unknown as Horloge)._active?.length ?? 0,
+    memoireMo: Math.round(process.memoryUsage().heapUsed / 1e6),
+  };
+  // Partie finie : plus aucune minuterie n'a de raison de continuer (voir retirerMinuteriesVides).
+  (game.scene.time as unknown as Horloge).removeAllEvents();
 
   return {
     vague: game.scene.currentBattle?.waveIndex ?? 0,
@@ -248,6 +273,8 @@ async function jouerPartie(
     secondes: (performance.now() - debut) / 1000,
     graine,
     regles,
+    // Ce qui pourrait s'accumuler d'une partie à l'autre dans ce processus (à surveiller).
+    diagnostic,
     ...(erreur ? { erreur, phase: game.scene.phaseManager.getCurrentPhase()?.phaseName, ecran: UiMode[game.scene.ui.getMode()] } : {}),
   };
 }

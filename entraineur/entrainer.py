@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import signal
 import time
 import tomllib
 from datetime import datetime
@@ -191,40 +192,48 @@ def main() -> None:
         debut = time.time()
         fin = debut + args.minutes * 60
         parties_recentes: list[dict] = []
-        try:
-            while time.time() < fin:
-                t0 = time.time()
-                *lot, recompense_totale = entrainement.collecter(ensemble)
-                t_collecte = time.time() - t0
-                mesures = entrainement.apprendre(*lot)
-                entrainement.mises_a_jour += 1
-                entrainement.decisions += lot[0].shape[0]
+        # Ctrl+C (ou arrêt du système) : on termine la mise à jour en cours, puis on sauvegarde
+        # et on ferme les copies du jeu proprement, au lieu de s'interrompre n'importe où.
+        arret = {"demande": False}
 
-                finies = ensemble.vider_parties_finies()
-                entrainement.parties += len(finies)
-                for partie in finies:
-                    entrainement.noter("parties.jsonl", {"miseAJour": entrainement.mises_a_jour, **partie})
-                parties_recentes = (parties_recentes + finies)[-200:]
-                vagues = [p["vague"] for p in parties_recentes] or [0]
-                ligne = {
-                    "miseAJour": entrainement.mises_a_jour, "date": datetime.now().isoformat(timespec="seconds"),
-                    "decisions": entrainement.decisions, "parties": entrainement.parties,
-                    "partiesCollecte": len(finies),
-                    "vagueMoyenne": round(float(np.mean(vagues)), 3), "vagueMax": int(max(vagues)),
-                    "recompenseMoyenne": round(float(np.mean([p["recompense"] for p in parties_recentes] or [0])), 3),
-                    "decisionsParSeconde": round(lot[0].shape[0] / t_collecte, 1),
-                    **mesures,
-                }
-                entrainement.noter("journal.jsonl", ligne)
-                print(f"maj {ligne['miseAJour']:4d} · {ligne['parties']:6d} parties · vague moy. {ligne['vagueMoyenne']:5.2f} "
-                      f"(max {ligne['vagueMax']:3d}) · récompense {ligne['recompenseMoyenne']:6.2f} · "
-                      f"entropie {mesures['entropie']:.3f} · {ligne['decisionsParSeconde']:.0f} déc/s", flush=True)
-                if entrainement.mises_a_jour % reglages["sauvegarde"]["cerveau_toutes_les"] == 0:
-                    entrainement.sauvegarder(pont.versions)
-        except KeyboardInterrupt:
-            print("\nArrêt demandé : sauvegarde du cerveau actuel.")
+        def demander_arret(*_):
+            if not arret["demande"]:
+                print("\nArrêt demandé : fin de la mise à jour en cours, puis sauvegarde.", flush=True)
+            arret["demande"] = True
+
+        signal.signal(signal.SIGINT, demander_arret)
+        signal.signal(signal.SIGTERM, demander_arret)
+        while time.time() < fin and not arret["demande"]:
+            t0 = time.time()
+            *lot, recompense_totale = entrainement.collecter(ensemble)
+            t_collecte = time.time() - t0
+            mesures = entrainement.apprendre(*lot)
+            entrainement.mises_a_jour += 1
+            entrainement.decisions += lot[0].shape[0]
+
+            finies = ensemble.vider_parties_finies()
+            entrainement.parties += len(finies)
+            for partie in finies:
+                entrainement.noter("parties.jsonl", {"miseAJour": entrainement.mises_a_jour, **partie})
+            parties_recentes = (parties_recentes + finies)[-200:]
+            vagues = [p["vague"] for p in parties_recentes] or [0]
+            ligne = {
+                "miseAJour": entrainement.mises_a_jour, "date": datetime.now().isoformat(timespec="seconds"),
+                "decisions": entrainement.decisions, "parties": entrainement.parties,
+                "partiesCollecte": len(finies),
+                "vagueMoyenne": round(float(np.mean(vagues)), 3), "vagueMax": int(max(vagues)),
+                "recompenseMoyenne": round(float(np.mean([p["recompense"] for p in parties_recentes] or [0])), 3),
+                "decisionsParSeconde": round(lot[0].shape[0] / t_collecte, 1),
+                **mesures,
+            }
+            entrainement.noter("journal.jsonl", ligne)
+            print(f"maj {ligne['miseAJour']:4d} · {ligne['parties']:6d} parties · vague moy. {ligne['vagueMoyenne']:5.2f} "
+                  f"(max {ligne['vagueMax']:3d}) · récompense {ligne['recompenseMoyenne']:6.2f} · "
+                  f"entropie {mesures['entropie']:.3f} · {ligne['decisionsParSeconde']:.0f} déc/s", flush=True)
+            if entrainement.mises_a_jour % reglages["sauvegarde"]["cerveau_toutes_les"] == 0:
+                entrainement.sauvegarder(pont.versions)
         chemin = entrainement.sauvegarder(pont.versions)
-        print(f"Dernier cerveau : {chemin}")
+        print(f"Dernier cerveau : {chemin}", flush=True)
 
 
 if __name__ == "__main__":

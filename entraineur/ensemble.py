@@ -49,7 +49,7 @@ class Ensemble:
     # ─── Déroulement ─────────────────────────────────────────────────────────────────────────
 
     def _nouvelle_partie(self, i: int) -> Etat:
-        simulateur: Simulateur = self.pont.simulateurs[i]
+        simulateur: Simulateur = self.pont.entretenir(i)
         while True:
             etat = simulateur.nouvelle_partie(style_combat=self.partie["style_combat"],
                                               vague_max=self.partie["vague_max"])

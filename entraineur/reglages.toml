@@ -25,7 +25,7 @@ taux_apprentissage = 0.00025    # taille des pas d'ajustement des poids
 epoques = 4                     # passages sur chaque collecte
 mini_lots = 4                   # découpage de chaque collecte pendant l'apprentissage
 clip = 0.2                      # « petits pas » de PPO : écart maximal avec l'ancienne politique
-coef_entropie = 0.01            # encourage à continuer d'explorer au lieu de se figer
+coef_entropie = 0.02            # encourage à continuer d'explorer au lieu de se figer (0,01 → figé vers 0,3 dans entrainement-1)
 coef_valeur = 0.5               # poids de l'apprentissage de la tête « valeur »
 norme_gradient_max = 0.5        # garde-fou contre les ajustements trop brutaux
 
