@@ -1,0 +1,279 @@
+/**
+ * Note des objets : quelle récompense prendre après une vague, et à qui la donner (idée de
+ * Carlos : « faire pareil pour les objets »).
+ *
+ * Chaque objet proposé est jugé d'après l'état de l'équipe, pas dans l'absolu :
+ *   - une Potion vaut selon les PV qui manquent (0 si tout le monde est en pleine forme) ;
+ *   - un Rappel vaut beaucoup si quelqu'un est K.O., rien sinon ;
+ *   - une CT vaut ce qu'elle améliore la note de synergie des attaques du meilleur receveur ;
+ *   - un objet de type (Charbon…) vaut selon qui porte des attaques de ce type ;
+ *   - une Poké Ball vaut plus quand l'équipe n'est pas pleine et que le stock est bas ;
+ *   - un objet refusé par le jeu (aucun Pokémon compatible) est écarté : fini les « bonus
+ *     inutilisables » essayés en boucle.
+ * Le meilleur receveur est désigné parmi ceux que le jeu accepte (filtre du jeu), en privilégiant
+ * les membres les plus avancés. Les valeurs de base (VALEURS) sont un point de départ réglable.
+ * Une formule lisible, en attendant que le cerveau apprenne lui-même à choisir ses récompenses.
+ */
+import type { Membre } from "./equipe";
+import { PokeballType, PokemonType } from "./noms";
+import { type AttaqueNotee, evaluerApprentissage, meilleureOption, noterJeu } from "./synergie";
+
+export interface ObjetPropose {
+  /** Identifiant du jeu (POTION, TM_ULTRA, ATTACK_TYPE_BOOSTER…), stable même sur le site en ligne. */
+  id: string;
+  nom: string;
+  /** 0 pour une récompense gratuite, le prix en boutique sinon. */
+  cout: number;
+  soin?: { points: number; pourcent: number; statut: boolean };
+  ranime?: { pourcent: number };
+  pp?: number;
+  ball?: { type: number; nombre: number };
+  ct?: AttaqueNotee;
+  boosterType?: { type: number };
+  /** Statistique renforcée par une vitamine (0 PV … 5 Vitesse). */
+  vitamine?: number;
+  /** Places de l'équipe que le jeu accepte pour cet objet ; absent = objet sans receveur. */
+  ciblesPossibles?: number[];
+}
+
+export interface MembreObjets extends Membre {
+  pv: number;
+  pvMax: number;
+  ko: boolean;
+  /** Empoisonné, paralysé… */
+  statut: boolean;
+  /** PP restants / PP max, par attaque. */
+  ppRatios: number[];
+}
+
+export interface ContexteObjets {
+  equipe: MembreObjets[];
+  /** Balls en stock, par type (Poké, Super, Hyper, Rogue, Master). */
+  balls: number[];
+}
+
+export interface OptionObjet {
+  /** Position de l'objet parmi ceux proposés. */
+  index: number;
+  nom: string;
+  note: number;
+  /** Place du receveur dans l'équipe, ou null (objet pour toute l'équipe). */
+  cible: number | null;
+  pour: string[];
+  contre: string[];
+}
+
+/** Valeurs de base, en points comparables d'un objet à l'autre. Réglables. */
+export const VALEURS: Readonly<Record<string, number>> = {
+  // Expérience (profite à toute la partie)
+  EXP_SHARE: 30, EXP_BALANCE: 15, EXP_CHARM: 25, SUPER_EXP_CHARM: 30, GOLDEN_EXP_CHARM: 35,
+  LUCKY_EGG: 22, GOLDEN_EGG: 30,
+  // Objets tenus
+  LEFTOVERS: 28, SHELL_BELL: 22, REVIVER_SEED: 20, FOCUS_BAND: 15, MULTI_LENS: 15, EVIOLITE: 15,
+  QUICK_CLAW: 12, KINGS_ROCK: 12, SCOPE_LENS: 12, WIDE_LENS: 10, WHITE_HERB: 8, SOUL_DEW: 8,
+  SPECIES_STAT_BOOSTER: 10, RARE_SPECIES_STAT_BOOSTER: 14, MYSTICAL_ROCK: 6, GRIP_CLAW: 5,
+  SOOTHE_BELL: 3, LEEK: 3, BATON: 3, TOXIC_ORB: 2, FLAME_ORB: 2, BERRY: 10,
+  // Toute l'équipe
+  CATCHING_CHARM: 18, HEALING_CHARM: 15, OVAL_CHARM: 10, BERRY_POUCH: 8, CANDY_JAR: 6,
+  // Argent
+  RELIC_GOLD: 15, AMULET_COIN: 15, BIG_NUGGET: 12, NUGGET: 8, COIN_CASE: 8, GOLDEN_PUNCH: 5,
+  // Combat en cours
+  TEMP_STAT_STAGE_BOOSTER: 6, DIRE_HIT: 6,
+  // Divers
+  MAP: 5, IV_SCANNER: 4, MEMORY_MUSHROOM: 5, MINT: 4, TERA_SHARD: 4, ABILITY_CHARM: 3,
+  LOCK_CAPSULE: 3, SHINY_CHARM: 2, LURE: 2, SUPER_LURE: 2, MAX_LURE: 2,
+};
+const VALEUR_INCONNUE = 5;
+
+const SOINS = new Set(["POTION", "SUPER_POTION", "HYPER_POTION", "MAX_POTION", "FULL_RESTORE"]);
+const RAPPELS = new Set(["REVIVE", "MAX_REVIVE"]);
+const PP = new Set(["ETHER", "MAX_ETHER", "ELIXIR", "MAX_ELIXIR"]);
+const BALLS = new Set(["POKEBALL", "GREAT_BALL", "ULTRA_BALL", "ROGUE_BALL", "MASTER_BALL"]);
+const CT = new Set(["TM_COMMON", "TM_GREAT", "TM_ULTRA"]);
+const EVOLUTION = new Set(["EVOLUTION_ITEM", "RARE_EVOLUTION_ITEM"]);
+
+/** Importance d'un membre : les plus avancés comptent plus (ils portent la partie). */
+function importance(m: MembreObjets, equipe: MembreObjets[]): number {
+  return m.niveau / Math.max(...equipe.map(e => e.niveau), 1);
+}
+
+interface Jugement {
+  note: number;
+  cible: number | null;
+  pour: string[];
+  contre: string[];
+}
+
+const rien = (raison: string): Jugement => ({ note: 0, cible: null, pour: [], contre: [raison] });
+
+/** Le receveur qui maximise `valeur` parmi les places permises. */
+function meilleurReceveur(
+  objet: ObjetPropose,
+  ctx: ContexteObjets,
+  valeur: (m: MembreObjets, place: number) => number,
+): { place: number; valeur: number } | null {
+  const places = objet.ciblesPossibles ?? ctx.equipe.map((_, i) => i);
+  let meilleur: { place: number; valeur: number } | null = null;
+  for (const place of places) {
+    const m = ctx.equipe[place];
+    if (!m) {
+      continue;
+    }
+    const v = valeur(m, place);
+    if (!meilleur || v > meilleur.valeur) {
+      meilleur = { place, valeur: v };
+    }
+  }
+  return meilleur;
+}
+
+function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
+  const equipe = ctx.equipe;
+  // Le jeu refuse cet objet à tout le monde : le prendre ne mènerait qu'à un refus.
+  if (objet.ciblesPossibles && objet.ciblesPossibles.length === 0) {
+    return { note: -1, cible: null, pour: [], contre: ["aucun Pokémon de l'équipe ne peut le recevoir"] };
+  }
+
+  if (SOINS.has(objet.id) && objet.soin) {
+    const soin = objet.soin;
+    const r = meilleurReceveur(objet, ctx, m => {
+      if (m.ko) {
+        return 0;
+      }
+      const rendus = Math.min(m.pvMax - m.pv, soin.points + (soin.pourcent / 100) * m.pvMax) / m.pvMax;
+      return (45 * rendus + (soin.statut && m.statut ? 10 : 0)) * importance(m, equipe);
+    });
+    if (!r || r.valeur <= 0) {
+      return rien("tout le monde est en pleine forme");
+    }
+    const m = equipe[r.place]!;
+    return { note: r.valeur, cible: r.place, pour: [`soigne ${m.nom} (${m.pv}/${m.pvMax} PV)`], contre: [] };
+  }
+
+  if (RAPPELS.has(objet.id) || objet.id === "SACRED_ASH") {
+    const ko = equipe.filter(m => m.ko);
+    if (!ko.length) {
+      return rien("personne n'est K.O.");
+    }
+    if (objet.id === "SACRED_ASH") {
+      return { note: ko.reduce((n, m) => n + 60 * importance(m, equipe), 0), cible: null, pour: [`ranime ${ko.map(m => m.nom).join(", ")}`], contre: [] };
+    }
+    const r = meilleurReceveur(objet, ctx, m => (m.ko ? 60 * importance(m, equipe) : 0))!;
+    return { note: r.valeur, cible: r.place, pour: [`ranime ${equipe[r.place]!.nom}`], contre: [] };
+  }
+
+  if (PP.has(objet.id)) {
+    const r = meilleurReceveur(objet, ctx, m => (1 - Math.min(...m.ppRatios, 1)) * 25 * importance(m, equipe));
+    if (!r || r.valeur < 5) {
+      return rien("les attaques ont encore assez de PP");
+    }
+    return { note: r.valeur, cible: r.place, pour: [`recharge les PP de ${equipe[r.place]!.nom}`], contre: [] };
+  }
+
+  if (BALLS.has(objet.id) && objet.ball) {
+    if (objet.ball.type === 4) {
+      return { note: 25, cible: null, pour: ["Master Ball : capture assurée d'un boss ou d'un rare"], contre: [] };
+    }
+    const stock = ctx.balls.reduce((a, b) => a + b, 0);
+    const pleine = equipe.length >= 6;
+    const note = 4 * objet.ball.nombre * (pleine ? 0.5 : 1.5) * (stock < 5 ? 1.5 : 1) * (objet.ball.type >= 1 ? 1.3 : 1);
+    return {
+      note,
+      cible: null,
+      pour: [
+        `${objet.ball.nombre} ${PokeballType[objet.ball.type]?.fr ?? "Ball"}${stock < 5 ? " (stock bas)" : ""}`,
+        ...(pleine ? [] : ["l'équipe n'est pas encore complète"]),
+      ],
+      contre: pleine ? ["l'équipe est déjà pleine"] : [],
+    };
+  }
+
+  if (objet.id === "RARE_CANDY" || objet.id === "RARER_CANDY") {
+    if (objet.id === "RARER_CANDY") {
+      return { note: 14 * equipe.filter(m => !m.ko).length * 0.6, cible: null, pour: ["+1 niveau pour toute l'équipe"], contre: [] };
+    }
+    // Un niveau compte plus pour un membre en retard.
+    const r = meilleurReceveur(objet, ctx, m => (m.ko ? 0 : 14 * (1.5 - importance(m, equipe))))!;
+    return { note: r.valeur, cible: r.place, pour: [`+1 niveau pour ${equipe[r.place]!.nom}`], contre: [] };
+  }
+
+  if (CT.has(objet.id) && objet.ct) {
+    const ct = objet.ct;
+    const r = meilleurReceveur(objet, ctx, m => {
+      const porteur = { types: m.types, stats: m.stats };
+      if (m.attaques.some(a => a.nom === ct.nom)) {
+        return 0;
+      }
+      const actuelle = noterJeu(m.attaques, porteur);
+      const apres = m.attaques.length < 4
+        ? noterJeu([...m.attaques, ct], porteur)
+        : meilleureOption(evaluerApprentissage(porteur, m.attaques, ct)).note;
+      return Math.max(0, apres - actuelle) * 0.8 * importance(m, equipe);
+    });
+    if (!r || r.valeur <= 0) {
+      return rien(`${ct.nom} n'améliore les attaques de personne`);
+    }
+    return { note: r.valeur, cible: r.place, pour: [`${ct.nom} renforce le jeu d'attaques de ${equipe[r.place]!.nom}`], contre: [] };
+  }
+
+  if (objet.id === "ATTACK_TYPE_BOOSTER" && objet.boosterType) {
+    const type = objet.boosterType.type;
+    const r = meilleurReceveur(objet, ctx, m => {
+      const concernees = m.attaques.filter(a => a.type === type && a.puissance > 0).length;
+      return concernees ? 20 * (m.types.includes(type) ? 1.3 : 1) * importance(m, equipe) : 0;
+    });
+    if (!r || r.valeur <= 0) {
+      return rien(`personne n'a d'attaque de type ${PokemonType[type]?.fr ?? type}`);
+    }
+    return { note: r.valeur, cible: r.place, pour: [`renforce les attaques ${PokemonType[type]?.fr} de ${equipe[r.place]!.nom}`], contre: [] };
+  }
+
+  if (objet.id === "BASE_STAT_BOOSTER" && objet.vitamine !== undefined) {
+    const stat = objet.vitamine;
+    const r = meilleurReceveur(objet, ctx, m => {
+      // Attaque : pour un attaquant physique ; Attaque Spé. : pour un spécial ; le reste : pour tous.
+      const physique = (m.stats[1] ?? 0) >= (m.stats[3] ?? 0);
+      const utile = stat === 1 ? physique : stat === 3 ? !physique : true;
+      return utile ? 12 * importance(m, equipe) : 3;
+    })!;
+    return { note: r.valeur, cible: r.place, pour: [`renforce ${equipe[r.place]!.nom}`], contre: [] };
+  }
+
+  if (EVOLUTION.has(objet.id)) {
+    // Le jeu ne l'accepte que pour un Pokémon qui peut évoluer avec : ciblesPossibles l'a vérifié.
+    if (!objet.ciblesPossibles) {
+      return rien("aucun Pokémon ne peut évoluer avec");
+    }
+    const r = meilleurReceveur(objet, ctx, m => 50 * importance(m, equipe))!;
+    return { note: r.valeur, cible: r.place, pour: [`fait évoluer ${equipe[r.place]!.nom}`], contre: [] };
+  }
+
+  if (objet.id === "FULL_HEAL") {
+    const malades = equipe.filter(m => m.statut && !m.ko);
+    return malades.length
+      ? { note: 20, cible: equipe.indexOf(malades[0]!), pour: [`guérit ${malades[0]!.nom}`], contre: [] }
+      : rien("personne n'a de problème de statut");
+  }
+
+  const base = VALEURS[objet.id];
+  if (base === undefined) {
+    return { note: VALEUR_INCONNUE, cible: null, pour: [], contre: ["effet mal connu du pilote"] };
+  }
+  // Objet tenu ou utile à un seul : au membre le plus avancé que le jeu accepte.
+  const r = objet.ciblesPossibles ? meilleurReceveur(objet, ctx, m => importance(m, equipe)) : null;
+  return { note: base, cible: r?.place ?? null, pour: [], contre: [] };
+}
+
+/** Toutes les récompenses proposées, notées, avec leur receveur et leurs pour et contre. */
+export function evaluerObjets(objets: ObjetPropose[], ctx: ContexteObjets): OptionObjet[] {
+  return objets.map((objet, index) => {
+    const j = juger(objet, ctx);
+    return { index, nom: objet.nom, note: Math.round(j.note * 10) / 10, cible: j.cible, pour: j.pour, contre: j.contre };
+  });
+}
+
+/** La meilleure récompense, ou null s'il vaut mieux passer (rien d'utile, ou tout refusé). */
+export function meilleurObjet(options: OptionObjet[]): OptionObjet | null {
+  const meilleure = options.reduce<OptionObjet | null>((m, o) => (!m || o.note > m.note ? o : m), null);
+  return meilleure && meilleure.note > 0 ? meilleure : null;
+}

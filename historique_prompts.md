@@ -327,3 +327,33 @@ longtemps et vite avant de confier de nouvelles décisions au cerveau.
 **Objectif**
 Lui permettre de s'agrandir une équipe pour franchir le mur du rival, sans lui faire oublier
 ce qu'il sait déjà du combat.
+
+---
+
+## 12. Gérer l'équipe et les objets comme un tout — 30/09/2026
+
+**Prompt**
+> okay c'est nice je vois que ça plafonne les pokemon a 6 maintenant mais maintenant faut essayer de justement pouvoir a gerer aussi l equipe et donc comme les attaque evaluer pas seulement le pokemon seul je sais meme pas s il fait ça mais aussi le tout en meme temps pas faire des doublon par exemple, sinon laisse continuer l entrainement il est pas encore fini juste pour preciser pour que tu fais les modif apres ou maintenant tout depend de si c'est vraiment necessaire, et fait aussi pour les objet
+
+**Réponse**
+- Réponse franche : aujourd'hui, équipe pleine = le nouveau Pokémon est toujours relâché, sans
+  rien évaluer.
+- L'entraînement 2 continue : les copies du jeu relisent le code partagé à chaque redémarrage
+  (toutes les 50 parties), modifier le pilote maintenant changerait les règles en plein
+  entraînement. Travail en deux temps : nouveaux fichiers et tests maintenant, branchement après.
+- **Note d'équipe** (`observateur/equipe.ts`) : puissance offensive par type pondérée par les
+  vraies stats, défense (quelqu'un résiste à chaque type), faiblesses empilées, doublons de type
+  et d'espèce, solidité ; options « ne pas garder » / « remplacer X », avec pour et contre.
+- **Note des objets** (`observateur/objets.ts`) : chaque récompense jugée selon l'état de
+  l'équipe (Potion inutile en pleine forme, Rappel si K.O., CT par synergie d'attaques, objet de
+  type pour qui a ces attaques…), meilleur receveur parmi ceux que le jeu accepte (son filtre),
+  objet refusé à tous écarté.
+- Adaptateurs du jeu (`observateur/decisions-jeu.ts`) prêts à brancher.
+
+**Modifications**
+- Nouveaux : `observateur/equipe.ts`, `observateur/objets.ts`, `observateur/decisions-jeu.ts`,
+  `tests/equipe.test.ts`, `tests/objets.test.ts` (14 tests au total, tous verts).
+
+**Objectif**
+Que les décisions d'accompagnement (qui garder, quel objet prendre) raisonnent sur l'ensemble,
+comme la note des attaques, avant de les confier un jour au cerveau.
