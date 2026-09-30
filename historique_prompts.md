@@ -388,3 +388,33 @@ comme la note des attaques, avant de les confier un jour au cerveau.
 **Objectif**
 Que l'entraînement ne puisse plus rester figé, et que les choix d'équipe et d'objets suivent
 une logique d'ensemble lisible.
+
+---
+
+## 14. Extension : clavier et design pixel — 30/09/2026
+
+**Prompt**
+> en attendant tes credit sur la version claude abonement je vais utiliser tes credit claude de github […] tu va juste faire le point 2 et 3 ne t'es occupe pas du cerveau occupe toi de l extension : fait gaffe pour l extension quand je fais fleche ça descend la barre de lextenision ou monte et quand je fais espace ou entre ça met en grand ou ça raptissie et essaye de de ameliorer le design deje fait un truc plus moderne plus dans le theme peut etre a la pixel art […] et va a l essentiel aussil la y a trop d info on sais pas ou regarder sinon top
+
+**Réponse**
+- Seulement l'extension (le cerveau v3 attend) : le correctif clavier et le nouveau design.
+- Clavier : plus aucun élément du panneau ne prend le focus (clic sans focus, focus rendu
+  aussitôt à la page). Espace et Entrée ne replient plus le panneau. Chrome faisait aussi
+  défiler aux flèches la dernière zone cliquée, même sans focus : le panneau ne défile plus
+  qu'à la molette. Vérifié dans Chromium : 7 touches tapées après des clics dans le panneau,
+  toutes reçues par la page, panneau ni replié ni défilé.
+- Design repris du jeu, sans autre IA : sa police pixel `emerald` et son cadre `window_1.png`,
+  lus sur la page elle-même (pokerogue.net ou la copie locale).
+- L'essentiel d'abord : en haut ce que le jeu attend et le choix du cerveau en gros (avec sa
+  probabilité et les 3 autres options), puis adversaires et équipe en une ligne chacun ; le
+  reste (partie, fiches IVs/attaques, carnet, cerveau) replié et retenu d'une fois sur l'autre.
+- Boutons pixel à la place des cases et de la liste : CONSEIL / AUTO, et la vitesse
+  (LENT / NORMAL / RAPIDE) qui n'apparaît qu'en auto. Replié, le panneau ne garde que le choix.
+
+**Modifications**
+- `extension/src/panneau.ts` (réécrit), `extension/apercu.html` (ressources du jeu, touches
+  reçues affichées), `extension/manifest.json` (0.5.0).
+
+**Objectif**
+Que le panneau ne vole plus jamais les touches du jeu, et qu'on voie d'un coup d'œil ce que
+le cerveau décide, dans le style de PokeRogue.

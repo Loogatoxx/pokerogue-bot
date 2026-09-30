@@ -1,26 +1,35 @@
 <!doctype html>
 <!--
   Aperçu du panneau sans jouer : affiche une vraie observation produite par le simulateur.
-  Outil de développement, hors de l'extension. Pour l'ouvrir :
-    python3 -m http.server 8765 --directory extension   puis   http://127.0.0.1:8765/apercu.html
+  Outil de développement, hors de l'extension. Pour l'ouvrir, depuis la racine du projet :
+    pnpm extension && python3 -m http.server 8765   puis   http://127.0.0.1:8765/extension/apercu.html
+  La police et le cadre de fenêtre viennent de la copie locale du jeu (jeu/public).
   Pour régénérer l'observation :
     EXPORT_OBSERVATION=$PWD/extension/apercu-observation.json ./simulateur/lancer-tests.sh
 -->
-<html lang="fr">
+<html lang="fr" data-ressources-jeu="/jeu/public">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Aperçu du panneau</title>
   <style>
+    @font-face { font-family: "emerald"; src: url("/jeu/public/fonts/pokemon-emerald-pro.ttf") format("truetype"); }
     body { margin: 0; min-height: 100vh; background: #2d2b45; color: #cfcce6; font: 14px system-ui, sans-serif; }
     p { padding: 24px; max-width: 380px; }
+    #touches { font-family: monospace; }
   </style>
 </head>
 <body>
   <p>Aperçu du panneau de l'extension, alimenté par une observation réelle du simulateur
      (<code>apercu-observation.json</code>).</p>
+  <p>Touches reçues par la page (comme le jeu les recevrait) : <span id="touches">aucune</span></p>
   <script src="dist/panneau.js"></script>
   <script>
+    const touches = [];
+    window.addEventListener("keydown", e => {
+      touches.push(e.key === " " ? "Espace" : e.key);
+      document.getElementById("touches").textContent = touches.slice(-8).join(" · ");
+    });
     fetch("apercu-observation.json")
       .then(r => r.json())
       .then(observation => {
