@@ -66,6 +66,13 @@ def main() -> None:
         "BattleType": lambda k: COMBAT[k],
         "MoveCategory": lambda k: CATEGORIE[k],
         "PokeballType": lambda k: balls[BALLS.get(k, camel(k))],
+        # Valeurs techniques utilisées par le pilote (pas de nom français à afficher).
+        "BattlerIndex": lambda k: k,
+        "Button": lambda k: k,
+        "Command": lambda k: k,
+        "MoveTarget": lambda k: k,
+        "MoveUseMode": lambda k: k,
+        "UiMode": lambda k: k,
     }
 
     lignes = [

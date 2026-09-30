@@ -191,3 +191,36 @@ qu'il joue.
 **Objectif**
 Confirmer en conditions réelles que le cerveau voit la partie comme un joueur, avant de
 construire le cerveau lui-même.
+
+---
+
+## 7. Étape 2 : le cerveau v0 — 30/09/2026
+
+**Prompt**
+> oui fait toujours les commit, donc je comprend mieu pourquoi il avais rien choisi pour les pokemon de depart il y a avait pas de cerveau pour les choisir, oui tu peu faire la v0 fait tou prend controle
+
+**Réponse**
+- Commits désormais faits sans redemander (consigne de Carlos, pour ce projet).
+- Précision : le panneau n'affichait rien aux starters pour deux raisons, pas de cerveau ET
+  l'observateur ne regarde pas encore cet écran (team build = étape 5).
+- Étape 2 réalisée : chaîne complète jeu → observateur → encodeur → cerveau → pilote → jeu,
+  partagée entre simulateur et extension.
+- Cerveau v0 (796 175 poids, non entraîné) : vague 4,64 en moyenne sur 64 parties, contre 4,8
+  pour le hasard pur ; 0 erreur sur 128 parties. Enregistré sur le Lexar.
+- Extension 0.2.0 : import d'un .cerveau, réflexion affichée (probabilités, valeur), modes
+  Conseil / Auto avec vitesse, verrou Daily Run, panneau déplaçable.
+- Choix technique changé : format maison .cerveau + calcul TypeScript au lieu d'ONNX (poids du
+  moteur, WebAssembly) ; un test prouve l'égalité avec PyTorch.
+
+**Modifications**
+- Nouveaux : `observateur/actions.ts`, `observateur/encodeur.ts`, `observateur/valeurs.ts`,
+  `pilote/pilote.ts`, `cerveau/cerveau.ts`, `entraineur/` (reseau, format_cerveau, pont, jouer,
+  creer_v0, fixture_equivalence), `simulateur/environnement.test.ts`, `simulateur/outils-partie.ts`,
+  `tests/` (équivalence PyTorch ↔ TypeScript), `docs/etape-2-cerveau-v0.md`.
+- Modifiés : observation v2 (`types.ts`, `jeu.ts`, `observateur.ts`, `carnet.ts`), noms générés
+  (+ valeurs d'interface du jeu), extension (capteur, panneau, messages, manifeste), tests.
+- Environnement Python `.venv` (PyTorch 2.14, MPS disponible).
+
+**Objectif**
+Avoir un cerveau réel, même nul, qui décide dans le simulateur et dans Brave par exactement le
+même chemin : c'est la base sur laquelle l'entraînement va le faire progresser.

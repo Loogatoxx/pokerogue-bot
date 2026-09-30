@@ -9,7 +9,8 @@
     "exactOptionalPropertyTypes": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
+    "types": [],
     "noEmit": true
   },
-  "include": ["observateur", "extension/src"]
+  "include": ["observateur", "pilote", "cerveau", "extension/src"]
 }

@@ -1,19 +1,33 @@
 {
   "manifest_version": 3,
   "name": "PokeRogue Cerveau",
-  "version": "0.1.0",
-  "description": "Affiche ce que le cerveau voit de ta partie PokeRogue, comme un joueur humain.",
+  "version": "0.2.0",
+  "description": "Affiche ce que le cerveau voit et pense de ta partie PokeRogue, et peut jouer à ta place.",
   "content_scripts": [
     {
-      "matches": ["https://pokerogue.net/*", "http://localhost:8000/*"],
-      "js": ["capteur.js"],
+      "matches": [
+        "https://pokerogue.net/*",
+        "http://localhost:8000/*"
+      ],
+      "js": [
+        "capteur.js"
+      ],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": ["https://pokerogue.net/*", "http://localhost:8000/*"],
-      "js": ["panneau.js"],
+      "matches": [
+        "https://pokerogue.net/*",
+        "http://localhost:8000/*"
+      ],
+      "js": [
+        "panneau.js"
+      ],
       "run_at": "document_idle"
     }
+  ],
+  "permissions": [
+    "storage",
+    "unlimitedStorage"
   ]
 }

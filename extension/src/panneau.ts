@@ -1,13 +1,27 @@
 /**
  * Le panneau : tourne dans le monde isolé de l'extension et affiche, par-dessus le jeu,
- * ce que le cerveau voit (observation envoyée par le capteur).
+ * ce que le cerveau voit (observation envoyée par le capteur) et ce qu'il en pense.
+ *
+ * - Bloc « Cerveau » (permanent) : import d'un fichier .cerveau, mode Conseil / Auto, vitesse,
+ *   et sa réflexion en chiffres bruts (probabilité de chaque action permise).
+ * - Bloc « observation » (redessiné quand la partie change) : partie, adversaires, équipe, carnet.
  *
  * Il vit dans un « Shadow DOM » : une bulle de page à part, pour que les styles du jeu
  * et ceux du panneau ne se mélangent pas.
  */
+import { type Cerveau, lireCerveau, meilleureAction, penser, type Reponse } from "../../cerveau/cerveau";
+import { decrireAction } from "../../observateur/actions";
+import { encoder, TAILLE_OBSERVATION, VERSION_ENCODAGE } from "../../observateur/encodeur";
 import { PokemonType } from "../../observateur/noms";
-import type { Decision, Libelle, Observation, PokemonAdverse, PokemonAllie } from "../../observateur/types";
-import { estMessageCapteur, type MessageCapteur } from "./messages";
+import {
+  type Decision,
+  type Libelle,
+  type Observation,
+  type PokemonAdverse,
+  type PokemonAllie,
+  VERSION_OBSERVATION,
+} from "../../observateur/types";
+import { type ContenuPanneau, cleDecision, estMessageCapteur, type MessageCapteur, SOURCE } from "./messages";
 
 const LIBELLES_IVS = ["PV", "Att", "Déf", "AtS", "DéS", "Vit"];
 const LIBELLES_MODIFS = ["Att", "Déf", "Att. Spé.", "Déf. Spé.", "Vit", "Préc.", "Esq."];
@@ -36,11 +50,11 @@ const STYLE = `
   .etat.direct::before { content: "●"; color: #5fd38d; margin-right: 4px; }
   .etat.attente::before { content: "●"; color: #e3b341; margin-right: 4px; }
   .etat.erreur::before { content: "●"; color: #f06a6a; margin-right: 4px; }
-  button {
+  button.replier {
     all: unset; cursor: pointer; width: 22px; height: 22px; text-align: center;
     border-radius: 5px; background: #3a3757; color: #eceaf6; font-weight: 700;
   }
-  button:hover { background: #4d4973; }
+  button.replier:hover { background: #4d4973; }
   .replie .corps { display: none; }
   .corps { padding: 4px 10px 10px; }
   h2 {
@@ -64,6 +78,19 @@ const STYLE = `
   .journal { margin: 0; padding-left: 16px; }
   .journal li { margin: 1px 0; }
   .erreur-texte { color: #f06a6a; }
+  .entete { cursor: move; user-select: none; }
+  .bloc-cerveau { padding: 8px; margin: 8px 0 4px; background: #1c1a30; border: 1px solid #4a4766; border-radius: 8px; }
+  .reglages { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+  .reglages label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+  select, .bouton-texte {
+    font: inherit; color: #eceaf6; background: #3a3757; border: 1px solid #4a4766;
+    border-radius: 5px; padding: 1px 6px; cursor: pointer;
+  }
+  .bouton-texte:hover { background: #4d4973; }
+  .action { display: grid; grid-template-columns: 1fr 70px 38px; gap: 6px; align-items: center; margin: 2px 0; }
+  .action .barre { margin: 0; }
+  .action.choisie { font-weight: 700; }
+  .pourcent { text-align: right; font-variant-numeric: tabular-nums; }
 `;
 
 function echapper(texte: string): string {
@@ -178,10 +205,91 @@ function contenu(obs: Observation): string {
     <h2>Mon équipe</h2>
     ${obs.equipe.map(carteAllie).join("")}
     <h2>Carnet (mémoire de la partie)</h2>
-    <ol class="journal" reversed>${journal}</ol>
-    <h2>Cerveau</h2>
-    <div class="discret">Aucun cerveau chargé : l'import arrive à l'étape 2.</div>`;
+    <ol class="journal" reversed>${journal}</ol>`;
 }
+
+// ─── Mémoire de l'extension (cerveau importé, réglages, position du panneau) ───────────────
+
+type StockageChrome = { get(cle: string): Promise<Record<string, unknown>>; set(v: Record<string, unknown>): Promise<void> };
+const stockageChrome = (globalThis as { chrome?: { storage?: { local?: StockageChrome } } }).chrome?.storage?.local;
+const memoire: Record<string, unknown> = {};
+
+/** chrome.storage dans l'extension ; simple mémoire vive ailleurs (page d'aperçu). */
+const stockage = {
+  async lire<T>(cle: string): Promise<T | undefined> {
+    return (stockageChrome ? (await stockageChrome.get(cle))[cle] : memoire[cle]) as T | undefined;
+  },
+  async ecrire(cle: string, valeur: unknown): Promise<void> {
+    stockageChrome ? await stockageChrome.set({ [cle]: valeur }) : (memoire[cle] = valeur);
+  },
+};
+
+function versBase64(tampon: ArrayBuffer): string {
+  const octets = new Uint8Array(tampon);
+  let texte = "";
+  for (let i = 0; i < octets.length; i += 0x8000) {
+    texte += String.fromCharCode(...octets.subarray(i, i + 0x8000));
+  }
+  return btoa(texte);
+}
+
+function depuisBase64(base64: string): ArrayBuffer {
+  const texte = atob(base64);
+  const octets = new Uint8Array(texte.length);
+  for (let i = 0; i < texte.length; i++) {
+    octets[i] = texte.charCodeAt(i);
+  }
+  return octets.buffer;
+}
+
+// ─── Réflexion du cerveau ────────────────────────────────────────────────────────────────────
+
+const VITESSES: Record<string, number> = { lente: 1500, normale: 700, rapide: 250 };
+
+/** Pourquoi ce cerveau ne peut pas lire les observations de cette version de l'extension. */
+function incompatibilite(cerveau: Cerveau): string | null {
+  const e = cerveau.entete;
+  if (e.versionObservation !== VERSION_OBSERVATION || e.versionEncodage !== VERSION_ENCODAGE || e.tailleEntree !== TAILLE_OBSERVATION) {
+    return `Ce cerveau a appris avec une autre version des observations (obs. v${e.versionObservation}, `
+      + `encodage v${e.versionEncodage}) que l'extension (obs. v${VERSION_OBSERVATION}, encodage v${VERSION_ENCODAGE}).`;
+  }
+  return null;
+}
+
+function libelleAction(index: number, obs: Observation): string {
+  const action = decrireAction(index);
+  if (action.type === "envoyer") {
+    return `Envoyer ${obs.equipe[action.place]?.nom ?? `la place ${action.place + 1}`}`;
+  }
+  const acteur = obs.equipe.find(p => p.uid === obs.decision.acteur);
+  const attaque = acteur?.attaques[action.attaque]?.nom ?? `attaque ${action.attaque + 1}`;
+  // En double, deux adversaires peuvent porter le même nom : on précise leur place.
+  const cible = obs.partie.double ? obs.adversaires.find(a => a.position === action.cible) : undefined;
+  return cible ? `${attaque} → ${cible.nom} (${cible.position + 1})` : attaque;
+}
+
+function afficherReflexion(obs: Observation, reponse: Reponse, choisie: number): string {
+  const lignes = reponse.probabilites
+    .map((p, i) => ({ p, i }))
+    .filter(({ i }) => obs.decision.masque?.[i])
+    .sort((a, b) => b.p - a.p)
+    .map(({ p, i }) => `
+      <div class="action${i === choisie ? " choisie" : ""}">
+        <span>${i === choisie ? "▶ " : ""}${echapper(libelleAction(i, obs))}</span>
+        <div class="barre"><div style="width:${(p * 100).toFixed(1)}%;background:#8b7cf6"></div></div>
+        <span class="pourcent">${Math.round(p * 100)} %</span>
+      </div>`)
+    .join("");
+  const valeur = reponse.valeur.toLocaleString("fr-FR", { maximumFractionDigits: 2, signDisplay: "always" });
+  return `
+    <div class="ligne discret">Ce qu'il pense (chiffres bruts) :</div>
+    ${lignes}
+    <div class="ligne discret">Valeur estimée de la situation : ${valeur}
+      <span title="Plus c'est haut, plus il juge la situation favorable. Un cerveau non entraîné donne des valeurs sans signification.">ⓘ</span></div>
+    <div class="ligne discret">Explication en phrases : à venir (étape 6).</div>`;
+}
+
+// ─── Construction du panneau ──────────────────────────────────────────────────────────────────
 
 function creerPanneau() {
   const hote = document.createElement("div");
@@ -190,38 +298,198 @@ function creerPanneau() {
   ombre.innerHTML = `
     <style>${STYLE}</style>
     <div class="panneau">
-      <div class="entete">
+      <div class="entete" title="Glisser pour déplacer">
         <h1>🧠 Ce que le cerveau voit</h1>
         <span class="etat attente">en attente du jeu</span>
-        <button title="Replier / déplier">–</button>
+        <button class="replier" title="Replier / déplier">–</button>
       </div>
-      <div class="corps"><div class="discret">Lance une partie pour voir apparaître l'observation.</div></div>
+      <div class="corps">
+        <div class="bloc-cerveau">
+          <div class="ligne"><b>Cerveau :</b> <span class="nom-cerveau discret">aucun chargé</span></div>
+          <div class="reglages">
+            <button class="bouton-texte importer">Importer un cerveau…</button>
+            <input class="fichier" type="file" accept=".cerveau" hidden>
+            <label><input type="radio" name="mode" value="conseil" checked> Conseil</label>
+            <label><input type="radio" name="mode" value="auto"> Auto</label>
+            <select class="vitesse" title="Rythme du mode auto">
+              <option value="lente">Lente</option>
+              <option value="normale" selected>Normale</option>
+              <option value="rapide">Rapide</option>
+            </select>
+          </div>
+          <div class="message-cerveau ligne discret"></div>
+          <div class="reflexion"></div>
+          <div class="pilote ligne discret"></div>
+        </div>
+        <div class="observation"><div class="discret">Lance une partie pour voir apparaître l'observation.</div></div>
+      </div>
     </div>`;
   document.documentElement.appendChild(hote);
-
-  const panneau = ombre.querySelector<HTMLDivElement>(".panneau")!;
-  const etat = ombre.querySelector<HTMLSpanElement>(".etat")!;
-  const corps = ombre.querySelector<HTMLDivElement>(".corps")!;
-  const bouton = ombre.querySelector<HTMLButtonElement>("button")!;
-  bouton.addEventListener("click", () => {
-    panneau.classList.toggle("replie");
-    bouton.textContent = panneau.classList.contains("replie") ? "+" : "–";
-  });
-
+  const $ = <T extends Element>(selecteur: string) => ombre.querySelector<T>(selecteur)!;
   return {
-    etat(classe: "direct" | "attente" | "erreur", texte: string) {
-      etat.className = `etat ${classe}`;
-      etat.textContent = texte;
-    },
-    corps(html: string) {
-      corps.innerHTML = html;
-    },
+    ombre,
+    panneau: $<HTMLDivElement>(".panneau"),
+    entete: $<HTMLDivElement>(".entete"),
+    etat: $<HTMLSpanElement>(".etat"),
+    replier: $<HTMLButtonElement>(".replier"),
+    observation: $<HTMLDivElement>(".observation"),
+    nomCerveau: $<HTMLSpanElement>(".nom-cerveau"),
+    importer: $<HTMLButtonElement>(".importer"),
+    fichier: $<HTMLInputElement>(".fichier"),
+    modes: [...ombre.querySelectorAll<HTMLInputElement>('input[name="mode"]')],
+    vitesse: $<HTMLSelectElement>(".vitesse"),
+    messageCerveau: $<HTMLDivElement>(".message-cerveau"),
+    reflexion: $<HTMLDivElement>(".reflexion"),
+    pilote: $<HTMLDivElement>(".pilote"),
   };
 }
 
+/** Le panneau se déplace en glissant son en-tête ; sa position est retenue. */
+function rendreDeplacable(ui: ReturnType<typeof creerPanneau>): void {
+  const placer = (x: number, y: number) => {
+    const largeur = ui.panneau.offsetWidth;
+    ui.panneau.style.left = `${Math.max(0, Math.min(window.innerWidth - largeur, x))}px`;
+    ui.panneau.style.top = `${Math.max(0, Math.min(window.innerHeight - 40, y))}px`;
+    ui.panneau.style.right = "auto";
+  };
+  stockage.lire<{ x: number; y: number }>("position").then(p => p && placer(p.x, p.y));
+
+  ui.entete.addEventListener("mousedown", (debut: MouseEvent) => {
+    if ((debut.target as Element).closest("button")) {
+      return;
+    }
+    const cadre = ui.panneau.getBoundingClientRect();
+    const decalage = { x: debut.clientX - cadre.left, y: debut.clientY - cadre.top };
+    const bouger = (e: MouseEvent) => placer(e.clientX - decalage.x, e.clientY - decalage.y);
+    const lacher = () => {
+      window.removeEventListener("mousemove", bouger);
+      window.removeEventListener("mouseup", lacher);
+      const fin = ui.panneau.getBoundingClientRect();
+      stockage.ecrire("position", { x: fin.left, y: fin.top });
+    };
+    window.addEventListener("mousemove", bouger);
+    window.addEventListener("mouseup", lacher);
+    debut.preventDefault();
+  });
+}
+
 function demarrer(): void {
-  const panneau = creerPanneau();
-  let dernier = "";
+  const ui = creerPanneau();
+  rendreDeplacable(ui);
+
+  let cerveau: Cerveau | null = null;
+  let derniereObservation: Observation | null = null;
+  let dernierHtml = "";
+  const reglages = { auto: false, vitesse: "normale" };
+  // Mode auto : décision déjà confiée au capteur, et actions refusées par le jeu pour elle.
+  let cleEnvoyee = "";
+  const refusees = new Map<string, Set<number>>();
+
+  const envoyer = (message: ContenuPanneau) =>
+    window.postMessage({ source: SOURCE, origine: "panneau", ...message }, window.location.origin);
+  const transmettrePilotage = () =>
+    envoyer({ type: "pilotage", auto: reglages.auto && !!cerveau, delaiMs: VITESSES[reglages.vitesse] ?? 700 });
+
+  function chargerCerveau(tampon: ArrayBuffer): string | null {
+    try {
+      const nouveau = lireCerveau(tampon);
+      const probleme = incompatibilite(nouveau);
+      if (probleme) {
+        return probleme;
+      }
+      cerveau = nouveau;
+      const e = nouveau.entete;
+      const date = new Date(e.creeLe).toLocaleDateString("fr-FR");
+      const eval_ = e.evaluation ? ` · vague ${e.evaluation.vagueMoyenne} en moyenne au simulateur` : "";
+      ui.nomCerveau.textContent = `${e.nom} (${date}, ${e.entrainement.parties} parties d'entraînement${eval_})`;
+      ui.nomCerveau.classList.remove("discret");
+      ui.nomCerveau.title = e.description;
+      return null;
+    } catch (erreur) {
+      return erreur instanceof Error ? erreur.message : String(erreur);
+    }
+  }
+
+  function mettreAJourReflexion(): void {
+    const obs = derniereObservation;
+    if (!cerveau) {
+      ui.reflexion.innerHTML = `<div class="ligne discret">Importe un fichier .cerveau (dans /Volumes/Lexar/pokerogue-bot/cerveaux) pour voir ce qu'il pense.</div>`;
+      return;
+    }
+    if (!obs?.decision.masque) {
+      ui.reflexion.innerHTML = `<div class="ligne discret">Rien à décider pour lui en ce moment : ${
+        reglages.auto ? "le pilote gère le reste (messages, récompenses…) par des règles simples." : "il attend un combat."
+      }</div>`;
+      return;
+    }
+    const cle = cleDecision(obs);
+    const interdites = refusees.get(cle) ?? new Set<number>();
+    const masque = obs.decision.masque.map((permise, i) => permise && !interdites.has(i));
+    const reponse = penser(cerveau, encoder(obs), masque);
+    const choisie = meilleureAction(reponse);
+    ui.reflexion.innerHTML = afficherReflexion({ ...obs, decision: { ...obs.decision, masque } }, reponse, choisie);
+
+    if (reglages.auto && !obs.partie.quotidien && cle !== cleEnvoyee) {
+      cleEnvoyee = cle;
+      const delai = VITESSES[reglages.vitesse] ?? 700;
+      window.setTimeout(() => envoyer({ type: "action", cle, action: choisie }), delai);
+    }
+  }
+
+  // Réglages retenus d'une fois sur l'autre.
+  Promise.all([stockage.lire<string>("cerveau"), stockage.lire<typeof reglages>("reglages")]).then(([enregistre, r]) => {
+    if (r) {
+      Object.assign(reglages, r);
+      ui.modes.forEach(m => (m.checked = m.value === (reglages.auto ? "auto" : "conseil")));
+      ui.vitesse.value = reglages.vitesse;
+    }
+    if (enregistre) {
+      const probleme = chargerCerveau(depuisBase64(enregistre));
+      ui.messageCerveau.textContent = probleme ?? "";
+    }
+    transmettrePilotage();
+    mettreAJourReflexion();
+  });
+
+  ui.replier.addEventListener("click", () => {
+    ui.panneau.classList.toggle("replie");
+    ui.replier.textContent = ui.panneau.classList.contains("replie") ? "+" : "–";
+  });
+  ui.importer.addEventListener("click", () => ui.fichier.click());
+  ui.fichier.addEventListener("change", async () => {
+    const fichier = ui.fichier.files?.[0];
+    if (!fichier) {
+      return;
+    }
+    const tampon = await fichier.arrayBuffer();
+    const probleme = chargerCerveau(tampon);
+    ui.messageCerveau.textContent = probleme ?? `« ${fichier.name} » importé.`;
+    if (!probleme) {
+      await stockage.ecrire("cerveau", versBase64(tampon));
+    }
+    ui.fichier.value = "";
+    transmettrePilotage();
+    mettreAJourReflexion();
+  });
+  const enregistrerReglages = () => {
+    stockage.ecrire("reglages", reglages);
+    transmettrePilotage();
+    mettreAJourReflexion();
+  };
+  ui.modes.forEach(m =>
+    m.addEventListener("change", () => {
+      reglages.auto = m.value === "auto" && m.checked;
+      if (reglages.auto && !cerveau) {
+        ui.messageCerveau.textContent = "Importe d'abord un cerveau : c'est lui qui joue les combats en mode auto.";
+      }
+      cleEnvoyee = "";
+      enregistrerReglages();
+    }),
+  );
+  ui.vitesse.addEventListener("change", () => {
+    reglages.vitesse = ui.vitesse.value;
+    enregistrerReglages();
+  });
 
   window.addEventListener("message", (evenement: MessageEvent) => {
     if (evenement.source !== window || !estMessageCapteur(evenement.data)) {
@@ -230,19 +498,41 @@ function demarrer(): void {
     const message: MessageCapteur = evenement.data;
     switch (message.type) {
       case "etat":
-        panneau.etat("attente", message.etat === "attente-jeu" ? "en attente du jeu" : "hors partie");
+        ui.etat.className = "etat attente";
+        ui.etat.textContent = message.etat === "attente-jeu" ? "en attente du jeu" : "hors partie";
         return;
       case "erreur":
-        panneau.etat("erreur", "erreur de lecture");
-        panneau.corps(`<div class="erreur-texte">Le capteur n'arrive plus à lire le jeu (mise à jour ?) :<br>${echapper(message.message)}</div>`);
+        ui.etat.className = "etat erreur";
+        ui.etat.textContent = "erreur de lecture";
+        ui.observation.innerHTML = `<div class="erreur-texte">Le capteur n'arrive plus à lire le jeu (mise à jour ?) :<br>${echapper(message.message)}</div>`;
+        return;
+      case "pilote":
+        ui.pilote.textContent = `Pilote : ${message.texte}`;
+        if (message.texte === "Action refusée par le jeu" && derniereObservation) {
+          // On retient le refus et on laisse le cerveau choisir autre chose.
+          const cle = cleDecision(derniereObservation);
+          const choisie = cleEnvoyee === cle ? derniereObservation : null;
+          if (choisie) {
+            const interdites = refusees.get(cle) ?? new Set<number>();
+            const reponse = cerveau ? penser(cerveau, encoder(choisie), choisie.decision.masque!.map((p, i) => p && !interdites.has(i))) : null;
+            if (reponse) {
+              interdites.add(meilleureAction(reponse));
+              refusees.set(cle, interdites);
+            }
+            cleEnvoyee = "";
+          }
+        }
         return;
       case "observation": {
-        panneau.etat("direct", "en direct");
+        ui.etat.className = "etat direct";
+        ui.etat.textContent = reglages.auto && cerveau ? (message.observation.partie.quotidien ? "Daily Run : auto coupé" : "en direct · auto") : "en direct";
+        derniereObservation = message.observation;
         // On ne redessine que si quelque chose a changé (4 observations par seconde).
         const html = contenu(message.observation);
-        if (html !== dernier) {
-          dernier = html;
-          panneau.corps(html);
+        if (html !== dernierHtml) {
+          dernierHtml = html;
+          ui.observation.innerHTML = html;
+          mettreAJourReflexion();
         }
       }
     }

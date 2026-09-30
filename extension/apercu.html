@@ -24,7 +24,7 @@
     fetch("apercu-observation.json")
       .then(r => r.json())
       .then(observation => {
-        const envoyer = () => window.postMessage({ source: "pokerogue-cerveau", type: "observation", observation }, location.origin);
+        const envoyer = () => window.postMessage({ source: "pokerogue-cerveau", origine: "capteur", type: "observation", observation }, location.origin);
         envoyer();
         setInterval(envoyer, 1000);
       });

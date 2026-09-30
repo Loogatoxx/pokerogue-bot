@@ -25,7 +25,7 @@ décrite exactement de la même façon à l'entraînement et sur le site.
 | Entraîneur | Python (PyTorch + Stable-Baselines3) | L'écosystème de référence pour le renforcement |
 | Cerveau | Un tronc commun + une « tête » par type de décision | Ce qu'il comprend en combat sert aux bonus ; un seul fichier à importer |
 | Graphiques | Tableau de bord maison | Parle le langage du jeu : vague atteinte, captures, bonus préférés, replays |
-| Format du cerveau | ONNX (format standard lisible par l'extension) | Tourne dans Chrome sans serveur |
+| Format du cerveau | Maison (`.cerveau`) + calcul en TypeScript | ONNX pour navigateur pèse ~10 Mo et exige du WebAssembly ; notre petit réseau se calcule en 50 lignes, et on voit son intérieur (voir [étape 2](etape-2-cerveau-v0.md)) |
 | Explications | IA de langage locale (Ollama) | Gratuite et illimitée |
 | Navigateur de l'extension | **Brave** (Chromium) | Chrome n'est pas installé ; Brave charge les extensions Chrome telles quelles |
 | Mémoire | Carnet de partie + relecture des derniers événements (A + C) | Rien ne s'oublie, et on voit ce qu'il a relu pour décider |
@@ -98,7 +98,7 @@ de 256 Ko. On n'y écrit donc que de gros fichiers, jamais des milliers de petit
 0. ✅ Vitesse du simulateur — [résultats](etape-0-vitesse.md)
 1. ✅ Extension minimale : lit la partie en direct et affiche ce que le cerveau « voit »
    (validée dans Brave le 30/09)
-2. Cerveau v0 (hasard) importable → on le regarde jouer sur le compte IA
+2. ✅ Cerveau v0 (non entraîné) importable, modes Conseil et Auto — [résultats](etape-2-cerveau-v0.md)
 3. Combat seul sur les premières vagues + premières courbes
 4. Capture, bonus, bons d'œuf, attaque à oublier, biomes
 5. Team build

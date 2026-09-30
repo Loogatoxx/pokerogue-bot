@@ -1,0 +1,6 @@
+{
+  "//": "Les tests tournent dans Node : ils ont droit aux types de Node, pas le code de l'extension.",
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "types": ["node"] },
+  "include": [".", "../cerveau", "../observateur"]
+}

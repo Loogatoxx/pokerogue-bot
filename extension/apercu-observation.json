@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "partie": {
     "vague": 1,
     "tour": 2,
@@ -52,7 +52,7 @@
   },
   "equipe": [
     {
-      "uid": 532608583,
+      "uid": 1647006549,
       "espece": 1,
       "nom": "Bulbasaur",
       "niveau": 12,
@@ -97,6 +97,14 @@
         24,
         19
       ],
+      "statsDeBase": [
+        45,
+        49,
+        49,
+        65,
+        65,
+        45
+      ],
       "modifStats": [
         -2,
         0,
@@ -174,11 +182,12 @@
       ],
       "objets": [],
       "surTerrain": true,
+      "position": 0,
       "ko": false,
       "shiny": false
     },
     {
-      "uid": 4012632445,
+      "uid": 1086191552,
       "espece": 4,
       "nom": "Charmander",
       "niveau": 12,
@@ -219,6 +228,14 @@
         20,
         24
       ],
+      "statsDeBase": [
+        39,
+        52,
+        43,
+        60,
+        50,
+        65
+      ],
       "modifStats": [
         -2,
         0,
@@ -296,11 +313,12 @@
       ],
       "objets": [],
       "surTerrain": true,
+      "position": 1,
       "ko": false,
       "shiny": false
     },
     {
-      "uid": 2961498039,
+      "uid": 3992241911,
       "espece": 7,
       "nom": "Squirtle",
       "niveau": 12,
@@ -340,6 +358,14 @@
         20,
         24,
         19
+      ],
+      "statsDeBase": [
+        44,
+        48,
+        65,
+        50,
+        64,
+        43
       ],
       "modifStats": [
         0,
@@ -418,6 +444,7 @@
       ],
       "objets": [],
       "surTerrain": false,
+      "position": null,
       "ko": false,
       "shiny": false
     }
@@ -428,6 +455,15 @@
       "espece": 19,
       "nom": "Rattata",
       "niveau": 11,
+      "position": 0,
+      "statsDeBase": [
+        30,
+        56,
+        35,
+        25,
+        35,
+        72
+      ],
       "pvPourcent": 100,
       "statut": {
         "id": 0,
@@ -459,7 +495,17 @@
       "attaquesVues": [
         {
           "id": 44,
-          "nom": "Bite"
+          "nom": "Bite",
+          "type": {
+            "id": 16,
+            "nom": "Ténèbres"
+          },
+          "categorie": {
+            "id": 0,
+            "nom": "Physique"
+          },
+          "puissance": 60,
+          "precision": 100
         }
       ]
     },
@@ -468,6 +514,15 @@
       "espece": 19,
       "nom": "Rattata",
       "niveau": 11,
+      "position": 1,
+      "statsDeBase": [
+        30,
+        56,
+        35,
+        25,
+        35,
+        72
+      ],
       "pvPourcent": 100,
       "statut": {
         "id": 0,
@@ -499,7 +554,17 @@
       "attaquesVues": [
         {
           "id": 44,
-          "nom": "Bite"
+          "nom": "Bite",
+          "type": {
+            "id": 16,
+            "nom": "Ténèbres"
+          },
+          "categorie": {
+            "id": 0,
+            "nom": "Physique"
+          },
+          "puissance": 60,
+          "precision": 100
         }
       ]
     }
@@ -507,7 +572,24 @@
   "decision": {
     "phase": "CommandPhase",
     "type": "combat",
-    "acteur": 532608583
+    "acteur": 1647006549,
+    "positionActeur": 0,
+    "masque": [
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
   },
   "journal": [
     {

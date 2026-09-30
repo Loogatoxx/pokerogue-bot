@@ -7,11 +7,24 @@
  * une de ces propriétés, c'est ici qu'il faudra corriger (le test du simulateur le signalera).
  */
 
+export interface MoveJeu {
+  id: number;
+  name: string;
+  type: number;
+  category: number;
+  power: number;
+  accuracy: number;
+  /** Ce que vise l'attaque (valeur MoveTarget du jeu : lanceur, un ennemi, tous…). */
+  moveTarget: number;
+}
+
 export interface AttaqueJeu {
   moveId: number;
   ppUsed: number;
   getMovePp(): number;
-  getMove(): { id: number; name: string; type: number; category: number; power: number; accuracy: number };
+  getMove(): MoveJeu;
+  /** [utilisable, raison] ; forSelection = vérifier aussi Entrave, Provoc… comme l'écran du jeu. */
+  isUsable(pokemon: PokemonJeu, ignorePp?: boolean, forSelection?: boolean): [boolean, string];
 }
 
 export interface PokemonJeu {
@@ -45,11 +58,23 @@ export interface PokemonJeu {
   getMoveset(): AttaqueJeu[];
   getHeldItems(): { type: { name: string }; getStackCount(): number }[];
   getNameToRender(options?: { useIllusion?: boolean }): string;
+  /** Place sur le terrain de son camp (0 ou 1). */
+  getFieldIndex(): number;
+  /** Forme de l'espèce ; avec useIllusion, celle du déguisement. */
+  getSpeciesForm(ignoreOverride?: boolean, useIllusion?: boolean): { baseStats: readonly number[] };
 }
 
 export interface PhaseJeu {
   phaseName: string;
   getPokemon?(): PokemonJeu | undefined;
+  /** CommandPhase : place du Pokémon qui choisit son action. */
+  getFieldIndex?(): number;
+  /** SwitchPhase : place du terrain à remplir (propriété protégée du jeu, lue telle quelle). */
+  fieldIndex?: number;
+  /** CommandPhase : applique une commande (attaque, changement…) ; faux si refusée. */
+  handleCommand?(commande: number, curseur: number, option?: boolean | number): boolean;
+  start(): void;
+  end(): void;
 }
 
 export interface ScenePokerogue {
@@ -67,10 +92,12 @@ export interface ScenePokerogue {
   } | null;
   money: number;
   pokeballCounts: Record<number, number>;
+  gameMode: { isDaily: boolean };
   getPlayerParty(): PokemonJeu[];
+  getPlayerField(): PokemonJeu[];
   getEnemyParty(): PokemonJeu[];
   getEnemyField(): PokemonJeu[];
   phaseManager: { getCurrentPhase(): PhaseJeu | null | undefined };
   // L'interface du jeu est très variable d'un écran à l'autre : on la lit prudemment.
-  ui: { getHandler(): unknown };
+  ui: { getHandler(): unknown; getMode(): number };
 }

@@ -7,7 +7,7 @@
  * Toute modification de cette forme doit incrémenter VERSION_OBSERVATION : un cerveau
  * entraîné sur une version ne sait pas lire une autre.
  */
-export const VERSION_OBSERVATION = 1;
+export const VERSION_OBSERVATION = 2;
 
 /** Un identifiant du jeu et son nom lisible. */
 export interface Libelle {
@@ -15,13 +15,19 @@ export interface Libelle {
   nom: string;
 }
 
-export interface Attaque {
+/** Une attaque vue chez l'adversaire : ce qu'elle fait est une connaissance publique. */
+export interface AttaqueVue {
   id: number;
   nom: string;
   type: Libelle;
   categorie: Libelle;
   puissance: number;
+  /** En pourcentage ; -1 pour une attaque qui touche toujours. */
   precision: number;
+}
+
+/** Une attaque de son équipe : on connaît aussi ses PP. */
+export interface Attaque extends AttaqueVue {
   pp: number;
   ppMax: number;
 }
@@ -48,11 +54,15 @@ export interface PokemonAllie {
   ivs: number[];
   /** Statistiques réelles, même ordre que les IVs. */
   stats: number[];
+  /** Statistiques de base de l'espèce, même ordre. */
+  statsDeBase: number[];
   /** Modificateurs de combat (-6 à +6) : Att, Déf, Att. Spé., Déf. Spé., Vit, Précision, Esquive. */
   modifStats: number[];
   attaques: Attaque[];
   objets: Objet[];
   surTerrain: boolean;
+  /** Place sur le terrain (0 ou 1 en combat double), null s'il est sur le banc. */
+  position: number | null;
   ko: boolean;
   shiny: boolean;
 }
@@ -64,6 +74,14 @@ export interface PokemonAdverse {
   espece: number;
   nom: string;
   niveau: number;
+  /** Place sur le terrain (0 ou 1 en combat double). */
+  position: number;
+  /**
+   * Statistiques de base de l'espèce affichée : connaissance publique (un joueur sait qu'une
+   * Chenipotte est faible). Avec Illusion, ce sont celles du déguisement : un humain s'y
+   * tromperait aussi.
+   */
+  statsDeBase: number[];
   /** La barre de PV, en pourcentage : le joueur ne voit pas les PV exacts de l'adversaire. */
   pvPourcent: number;
   statut: Libelle;
@@ -76,7 +94,7 @@ export interface PokemonAdverse {
   /** Mémoire du combat : talent affiché par le jeu, sinon inconnu. */
   talentRevele: Libelle | null;
   /** Mémoire du combat : attaques qu'il a déjà utilisées. */
-  attaquesVues: Libelle[];
+  attaquesVues: AttaqueVue[];
 }
 
 export type TypeDecision =
@@ -100,8 +118,15 @@ export interface Decision {
   /** Nom technique de la phase du jeu (ex. CommandPhase). */
   phase: string;
   type: TypeDecision;
-  /** Pokémon qui doit agir, pour un choix de combat. */
+  /** Pokémon qui doit agir (uid), pour un choix de combat. */
   acteur?: number;
+  /** Sa place sur le terrain (0 ou 1), pour un choix de combat ou un remplacement. */
+  positionActeur?: number;
+  /**
+   * Actions permises par le jeu à cet instant, pour les décisions confiées au cerveau
+   * (combat, remplacement). Voir observateur/actions.ts pour la numérotation.
+   */
+  masque?: boolean[];
   /** Choix proposés (récompenses, biomes…). */
   options?: OptionDecision[];
 }
@@ -122,6 +147,8 @@ export interface Observation {
     meteo: Libelle;
     terrain: Libelle;
     argent: number;
+    /** Défi du jour : classement partagé avec d'autres joueurs, le mode auto y est interdit. */
+    quotidien: boolean;
     balls: (Libelle & { quantite: number })[];
     /** Le joueur voit le nombre de Poké Balls restantes du dresseur, pas ses Pokémon. */
     dresseur: { nom: string; pokemonRestants: number } | null;

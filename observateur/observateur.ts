@@ -5,12 +5,12 @@
  * l'extension pour le faire jouer sur pokerogue.net. Le cerveau voit donc la partie décrite
  * exactement de la même façon dans les deux cas.
  */
-import type { Carnet } from "./carnet";
+import { masqueCombat, masqueRemplacement } from "./actions";
+import { attaqueVue, type Carnet } from "./carnet";
 import type { AttaqueJeu, PokemonJeu, ScenePokerogue } from "./jeu";
 import {
   BattleType,
   BiomeId,
-  MoveCategory,
   Nature,
   type Nom,
   PokeballType,
@@ -52,14 +52,8 @@ function libelle(table: Readonly<Record<number, Nom>>, id: number): Libelle {
 }
 
 function attaque(a: AttaqueJeu): Attaque {
-  const move = a.getMove();
   return {
-    id: a.moveId,
-    nom: move.name,
-    type: libelle(PokemonType, move.type),
-    categorie: libelle(MoveCategory, move.category),
-    puissance: move.power,
-    precision: move.accuracy,
+    ...attaqueVue(a.getMove()),
     pp: Math.max(a.getMovePp() - a.ppUsed, 0),
     ppMax: a.getMovePp(),
   };
@@ -90,10 +84,12 @@ function allie(p: PokemonJeu): PokemonAllie {
     nature: libelle(Nature, p.nature),
     ivs: [...p.ivs],
     stats: STATS_PERMANENTES.map(s => p.getStat(s)),
+    statsDeBase: [...p.getSpeciesForm().baseStats],
     modifStats: modifStats(p),
     attaques: p.getMoveset().map(attaque),
     objets: objets(p),
     surTerrain: p.isOnField(),
+    position: p.isOnField() ? p.getFieldIndex() : null,
     ko: p.isFainted(),
     shiny: p.shiny,
   };
@@ -110,6 +106,8 @@ function adversaire(p: PokemonJeu, carnet: Carnet): PokemonAdverse {
     espece: illusion?.species ?? p.species.speciesId,
     nom: p.getNameToRender({ useIllusion: true }),
     niveau: p.level,
+    position: p.getFieldIndex(),
+    statsDeBase: [...p.getSpeciesForm(false, true).baseStats],
     pvPourcent: Math.round(p.getHpRatio(true) * 100),
     statut: libelle(StatusEffect, p.status?.effect ?? 0),
     types: p.getTypes({ useIllusion: true }).map(t => libelle(PokemonType, t)),
@@ -152,9 +150,16 @@ function decision(scene: ScenePokerogue): Decision {
   const nomPhase = phase?.phaseName ?? "?";
   const type = DECISIONS[nomPhase] ?? "aucune";
   const resultat: Decision = { phase: nomPhase, type };
-  const acteur = type === "combat" ? phase?.getPokemon?.()?.id : undefined;
-  if (acteur !== undefined) {
-    resultat.acteur = acteur;
+  if (type === "combat") {
+    const pokemon = phase?.getPokemon?.();
+    if (pokemon) {
+      resultat.acteur = pokemon.id;
+      resultat.positionActeur = phase?.getFieldIndex?.() ?? 0;
+      resultat.masque = masqueCombat(scene, pokemon, !!scene.currentBattle?.double);
+    }
+  } else if (type === "remplacement") {
+    resultat.positionActeur = phase?.fieldIndex ?? 0;
+    resultat.masque = masqueRemplacement(scene);
   }
   const options = optionsAffichees(scene, type);
   if (options) {
@@ -193,6 +198,7 @@ export function observer(scene: ScenePokerogue, carnet: Carnet): Observation | n
       meteo: libelle(WeatherType, arene.weather?.weatherType ?? 0),
       terrain: libelle(TerrainType, arene.terrain?.terrainType ?? 0),
       argent: scene.money,
+      quotidien: scene.gameMode.isDaily,
       balls: Object.entries(scene.pokeballCounts).map(([id, quantite]) => ({
         ...libelle(PokeballType, Number(id)),
         quantite,

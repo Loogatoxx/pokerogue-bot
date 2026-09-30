@@ -14,6 +14,14 @@ export const BattleType: Readonly<Record<number, Nom>> = {
   3: { cle: "MYSTERY_ENCOUNTER", fr: "rencontre mystère" },
 };
 
+export const BattlerIndex: Readonly<Record<number, Nom>> = {
+  "-1": { cle: "ATTACKER", fr: "ATTACKER" },
+  0: { cle: "PLAYER", fr: "PLAYER" },
+  1: { cle: "PLAYER_2", fr: "PLAYER_2" },
+  2: { cle: "ENEMY", fr: "ENEMY" },
+  3: { cle: "ENEMY_2", fr: "ENEMY_2" },
+};
+
 export const BiomeId: Readonly<Record<number, Nom>> = {
   0: { cle: "TOWN", fr: "Ville" },
   1: { cle: "PLAINS", fr: "Plaines" },
@@ -52,10 +60,71 @@ export const BiomeId: Readonly<Record<number, Nom>> = {
   50: { cle: "END", fr: "???" },
 };
 
+export const Button: Readonly<Record<number, Nom>> = {
+  0: { cle: "UP", fr: "UP" },
+  1: { cle: "DOWN", fr: "DOWN" },
+  2: { cle: "LEFT", fr: "LEFT" },
+  3: { cle: "RIGHT", fr: "RIGHT" },
+  4: { cle: "SUBMIT", fr: "SUBMIT" },
+  5: { cle: "ACTION", fr: "ACTION" },
+  6: { cle: "CANCEL", fr: "CANCEL" },
+  7: { cle: "MENU", fr: "MENU" },
+  8: { cle: "STATS", fr: "STATS" },
+  9: { cle: "CYCLE_SHINY", fr: "CYCLE_SHINY" },
+  10: { cle: "CYCLE_FORM", fr: "CYCLE_FORM" },
+  11: { cle: "CYCLE_GENDER", fr: "CYCLE_GENDER" },
+  12: { cle: "CYCLE_ABILITY", fr: "CYCLE_ABILITY" },
+  13: { cle: "CYCLE_NATURE", fr: "CYCLE_NATURE" },
+  14: { cle: "CYCLE_TERA", fr: "CYCLE_TERA" },
+  15: { cle: "SPEED_UP", fr: "SPEED_UP" },
+  16: { cle: "SLOW_DOWN", fr: "SLOW_DOWN" },
+  17: { cle: "DEV_CUSTOM", fr: "DEV_CUSTOM" },
+};
+
+export const Command: Readonly<Record<number, Nom>> = {
+  0: { cle: "FIGHT", fr: "FIGHT" },
+  1: { cle: "BALL", fr: "BALL" },
+  2: { cle: "POKEMON", fr: "POKEMON" },
+  3: { cle: "RUN", fr: "RUN" },
+  4: { cle: "TERA", fr: "TERA" },
+};
+
 export const MoveCategory: Readonly<Record<number, Nom>> = {
   0: { cle: "PHYSICAL", fr: "Physique" },
   1: { cle: "SPECIAL", fr: "Spéciale" },
   2: { cle: "STATUS", fr: "Statut" },
+};
+
+export const MoveTarget: Readonly<Record<number, Nom>> = {
+  0: { cle: "USER", fr: "USER" },
+  1: { cle: "OTHER", fr: "OTHER" },
+  2: { cle: "ALL_OTHERS", fr: "ALL_OTHERS" },
+  3: { cle: "NEAR_OTHER", fr: "NEAR_OTHER" },
+  4: { cle: "ALL_NEAR_OTHERS", fr: "ALL_NEAR_OTHERS" },
+  5: { cle: "NEAR_ENEMY", fr: "NEAR_ENEMY" },
+  6: { cle: "ALL_NEAR_ENEMIES", fr: "ALL_NEAR_ENEMIES" },
+  7: { cle: "RANDOM_NEAR_ENEMY", fr: "RANDOM_NEAR_ENEMY" },
+  8: { cle: "ALL_ENEMIES", fr: "ALL_ENEMIES" },
+  9: { cle: "ATTACKER", fr: "ATTACKER" },
+  10: { cle: "NEAR_ALLY", fr: "NEAR_ALLY" },
+  11: { cle: "ALLY", fr: "ALLY" },
+  12: { cle: "USER_OR_NEAR_ALLY", fr: "USER_OR_NEAR_ALLY" },
+  13: { cle: "USER_AND_ALLIES", fr: "USER_AND_ALLIES" },
+  14: { cle: "ALL", fr: "ALL" },
+  15: { cle: "USER_SIDE", fr: "USER_SIDE" },
+  16: { cle: "ENEMY_SIDE", fr: "ENEMY_SIDE" },
+  17: { cle: "BOTH_SIDES", fr: "BOTH_SIDES" },
+  18: { cle: "PARTY", fr: "PARTY" },
+  19: { cle: "CURSE", fr: "CURSE" },
+};
+
+export const MoveUseMode: Readonly<Record<number, Nom>> = {
+  1: { cle: "NORMAL", fr: "NORMAL" },
+  2: { cle: "IGNORE_PP", fr: "IGNORE_PP" },
+  3: { cle: "INDIRECT", fr: "INDIRECT" },
+  4: { cle: "FOLLOW_UP", fr: "FOLLOW_UP" },
+  5: { cle: "REFLECTED", fr: "REFLECTED" },
+  6: { cle: "DELAYED_ATTACK", fr: "DELAYED_ATTACK" },
 };
 
 export const Nature: Readonly<Record<number, Nom>> = {
@@ -135,6 +204,57 @@ export const TerrainType: Readonly<Record<number, Nom>> = {
   2: { cle: "ELECTRIC", fr: "Électrifié" },
   3: { cle: "GRASSY", fr: "Herbu" },
   4: { cle: "PSYCHIC", fr: "Psychique" },
+};
+
+export const UiMode: Readonly<Record<number, Nom>> = {
+  0: { cle: "MESSAGE", fr: "MESSAGE" },
+  1: { cle: "TITLE", fr: "TITLE" },
+  2: { cle: "COMMAND", fr: "COMMAND" },
+  3: { cle: "FIGHT", fr: "FIGHT" },
+  4: { cle: "BALL", fr: "BALL" },
+  5: { cle: "TARGET_SELECT", fr: "TARGET_SELECT" },
+  6: { cle: "MODIFIER_SELECT", fr: "MODIFIER_SELECT" },
+  7: { cle: "SAVE_SLOT", fr: "SAVE_SLOT" },
+  8: { cle: "PARTY", fr: "PARTY" },
+  9: { cle: "SUMMARY", fr: "SUMMARY" },
+  10: { cle: "STARTER_SELECT", fr: "STARTER_SELECT" },
+  11: { cle: "EVOLUTION_SCENE", fr: "EVOLUTION_SCENE" },
+  12: { cle: "EGG_HATCH_SCENE", fr: "EGG_HATCH_SCENE" },
+  13: { cle: "EGG_HATCH_SUMMARY", fr: "EGG_HATCH_SUMMARY" },
+  14: { cle: "CONFIRM", fr: "CONFIRM" },
+  15: { cle: "OPTION_SELECT", fr: "OPTION_SELECT" },
+  16: { cle: "MENU", fr: "MENU" },
+  17: { cle: "MENU_OPTION_SELECT", fr: "MENU_OPTION_SELECT" },
+  18: { cle: "SETTINGS", fr: "SETTINGS" },
+  19: { cle: "SETTINGS_DISPLAY", fr: "SETTINGS_DISPLAY" },
+  20: { cle: "SETTINGS_AUDIO", fr: "SETTINGS_AUDIO" },
+  21: { cle: "SETTINGS_GAMEPAD", fr: "SETTINGS_GAMEPAD" },
+  22: { cle: "GAMEPAD_BINDING", fr: "GAMEPAD_BINDING" },
+  23: { cle: "SETTINGS_KEYBOARD", fr: "SETTINGS_KEYBOARD" },
+  24: { cle: "KEYBOARD_BINDING", fr: "KEYBOARD_BINDING" },
+  25: { cle: "ACHIEVEMENTS", fr: "ACHIEVEMENTS" },
+  26: { cle: "GAME_STATS", fr: "GAME_STATS" },
+  27: { cle: "EGG_LIST", fr: "EGG_LIST" },
+  28: { cle: "EGG_GACHA", fr: "EGG_GACHA" },
+  29: { cle: "POKEDEX", fr: "POKEDEX" },
+  30: { cle: "POKEDEX_SCAN", fr: "POKEDEX_SCAN" },
+  31: { cle: "POKEDEX_PAGE", fr: "POKEDEX_PAGE" },
+  32: { cle: "LOGIN_OR_REGISTER", fr: "LOGIN_OR_REGISTER" },
+  33: { cle: "LOGIN_FORM", fr: "LOGIN_FORM" },
+  34: { cle: "REGISTRATION_FORM", fr: "REGISTRATION_FORM" },
+  35: { cle: "LOADING", fr: "LOADING" },
+  36: { cle: "UNAVAILABLE", fr: "UNAVAILABLE" },
+  37: { cle: "CHALLENGE_SELECT", fr: "CHALLENGE_SELECT" },
+  38: { cle: "RENAME_POKEMON", fr: "RENAME_POKEMON" },
+  39: { cle: "RENAME_RUN", fr: "RENAME_RUN" },
+  40: { cle: "RUN_HISTORY", fr: "RUN_HISTORY" },
+  41: { cle: "RUN_INFO", fr: "RUN_INFO" },
+  42: { cle: "TEST_DIALOGUE", fr: "TEST_DIALOGUE" },
+  43: { cle: "AUTO_COMPLETE", fr: "AUTO_COMPLETE" },
+  44: { cle: "ADMIN", fr: "ADMIN" },
+  45: { cle: "MYSTERY_ENCOUNTER", fr: "MYSTERY_ENCOUNTER" },
+  46: { cle: "CHANGE_PASSWORD_FORM", fr: "CHANGE_PASSWORD_FORM" },
+  47: { cle: "ALERT_MODAL", fr: "ALERT_MODAL" },
 };
 
 export const WeatherType: Readonly<Record<number, Nom>> = {

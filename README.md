@@ -47,6 +47,13 @@ Après chaque `pnpm run extension`, cliquer sur la flèche ↻ de l'extension po
 
 Elle s'active sur pokerogue.net et sur la copie locale (http://localhost:8000).
 
+## Environnement Python (entraîneur)
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install torch numpy
+.venv/bin/python -m entraineur.creer_v0      # crée et évalue le cerveau v0 (sur le Lexar)
+```
+
 ## Vérifier l'observateur
 
 ```bash
@@ -69,6 +76,8 @@ Après une mise à jour du jeu : `python3 observateur/generer-noms.py` régénè
 - ✅ Étape 0 : le simulateur tient une partie complète et enchaîne ~250 décisions/s
   ([résultats](docs/etape-0-vitesse.md)).
 - ✅ Étape 1 : l'extension lit la partie en direct dans Brave et affiche ce que voit le cerveau.
-- ⏭️ Étape 2 : brancher le simulateur au Python et créer le cerveau v0 importable.
+- ✅ Étape 2 : chaîne complète jeu → cerveau → jeu ; cerveau v0 (non entraîné) importable, modes
+  Conseil et Auto ([détails](docs/etape-2-cerveau-v0.md)).
+- ⏭️ Étape 3 : premier entraînement (combat sur les premières vagues) et tableau de bord.
 
 Journal des échanges : [`historique_prompts.md`](historique_prompts.md).

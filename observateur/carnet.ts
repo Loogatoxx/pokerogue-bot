@@ -7,14 +7,26 @@
  *
  * Il ne lit que des informations visibles : il ne « devine » jamais une donnée cachée.
  */
-import { BattleType, BiomeId } from "./noms";
-import type { PokemonJeu, ScenePokerogue } from "./jeu";
-import type { EntreeJournal, Libelle } from "./types";
+import type { MoveJeu, PokemonJeu, ScenePokerogue } from "./jeu";
+import { BattleType, BiomeId, MoveCategory, PokemonType } from "./noms";
+import type { AttaqueVue, EntreeJournal, Libelle } from "./types";
+
+/** Ce qu'un joueur sait d'une attaque qu'il a vue : son type, sa catégorie, sa puissance. */
+export function attaqueVue(move: MoveJeu): AttaqueVue {
+  return {
+    id: move.id,
+    nom: move.name,
+    type: { id: move.type, nom: PokemonType[move.type]?.fr ?? `n°${move.type}` },
+    categorie: { id: move.category, nom: MoveCategory[move.category]?.fr ?? `n°${move.category}` },
+    puissance: move.power,
+    precision: move.accuracy,
+  };
+}
 
 export class Carnet {
   private vague = -1;
-  /** uid de l'adversaire → attaques vues (id → nom). Remis à zéro à chaque vague. */
-  private attaquesVues = new Map<number, Map<number, string>>();
+  /** uid de l'adversaire → attaques vues (id → attaque). Remis à zéro à chaque vague. */
+  private attaquesVues = new Map<number, Map<number, AttaqueVue>>();
   /** uid de l'adversaire → talent affiché par le jeu. Remis à zéro à chaque vague. */
   private talentsReveles = new Map<number, Libelle>();
   /** Pokémon déjà notés dans le journal pour cette vague (rencontres, K.O.). */
@@ -54,8 +66,8 @@ export class Carnet {
     }
   }
 
-  attaquesVuesDe(uid: number): Libelle[] {
-    return [...(this.attaquesVues.get(uid) ?? new Map()).entries()].map(([id, nom]) => ({ id, nom }));
+  attaquesVuesDe(uid: number): AttaqueVue[] {
+    return [...(this.attaquesVues.get(uid)?.values() ?? [])];
   }
 
   talentReveleDe(uid: number): Libelle | null {
@@ -76,13 +88,15 @@ export class Carnet {
   }
 
   private noterAttaquesVues(adversaire: PokemonJeu): void {
-    const vues = this.attaquesVues.get(adversaire.id) ?? new Map<number, string>();
+    const vues = this.attaquesVues.get(adversaire.id) ?? new Map<number, AttaqueVue>();
     for (const tour of adversaire.summonData?.moveHistory ?? []) {
       if (tour.move > 0 && !vues.has(tour.move)) {
-        // Le nom vient de sa propre liste d'attaques ; une attaque appelée par une autre
-        // (Métronome…) peut ne pas y figurer.
+        // On ne retient que les attaques de sa propre liste : une attaque appelée par une autre
+        // (Métronome…) ne dit rien de ce qu'il pourra rejouer.
         const connue = adversaire.getMoveset().find(a => a.moveId === tour.move);
-        vues.set(tour.move, connue?.getMove().name ?? `attaque n°${tour.move}`);
+        if (connue) {
+          vues.set(tour.move, attaqueVue(connue.getMove()));
+        }
       }
     }
     this.attaquesVues.set(adversaire.id, vues);

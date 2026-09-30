@@ -29,3 +29,8 @@ local.properties
 # macOS
 .DS_Store
 banc-*.json
+.journaux/
+
+# Cerveaux : sur le Lexar, sauf la petite fixture de test
+*.cerveau
+!tests/fixtures/*.cerveau
