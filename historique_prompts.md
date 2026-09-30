@@ -135,3 +135,59 @@ Ajouté en cours de réponse :
 **Objectif**
 Vérifier, avant d'écrire le cerveau, que le jeu peut tourner assez vite et assez fidèlement
 pour l'entraîner : c'était le risque qui pouvait faire échouer tout le projet.
+
+---
+
+## 5. Validation, premier commit et étape 1 (extension minimale) — 30/09/2026
+
+**Prompt**
+> faison ta recomendation oui tout ce qui a a faire utilise brave, oui tu peu commit
+
+**Réponse**
+- Mémoire A + C et Brave actés ; premier commit poussé sur GitHub (65bf4b2).
+- Étape 1 : l'observateur (ce que voit le cerveau), le carnet (sa mémoire) et l'extension
+  (capteur + panneau) sont écrits et testés :
+  - 7 tests sur le vrai jeu (perception humaine : ni IVs, ni nature, ni attaques non vues de
+    l'adversaire ; attaques et talent retenus une fois révélés ; tables de noms à jour) ;
+  - une vérification de types prouve que notre description du jeu colle à ses vraies classes
+    (testée en la cassant volontairement) ;
+  - le capteur capture bien la scène du jeu local ; le panneau s'affiche correctement sur une
+    vraie observation de combat double (page d'aperçu).
+- Le navigateur intégré, masqué, ralentit le jeu : l'essai en direct se fait dans Brave.
+
+**Modifications**
+- `observateur/` : `types.ts` (forme de l'observation), `jeu.ts` (ce qu'on lit du jeu),
+  `carnet.ts`, `observateur.ts`, `noms.ts` (généré) et `generer-noms.py`.
+- `extension/` : `manifest.json`, `src/capteur.ts`, `src/panneau.ts`, `src/messages.ts`,
+  `construire.mjs`, `apercu.html` + `apercu-observation.json`.
+- `simulateur/` : `observateur.test.ts`, `exporter-enums.test.ts`, `lancer-tests.sh`,
+  `tsconfig.verification.json`.
+- Racine : `package.json`, `tsconfig.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`.
+- `README.md`, `docs/architecture.md` mis à jour.
+
+**Objectif**
+Donner au cerveau des yeux fidèles à ceux d'un joueur, écrits une seule fois pour le
+simulateur et l'extension, et permettre à Carlos de voir ce que le cerveau perçoit pendant
+qu'il joue.
+
+---
+
+## 6. Essai en direct dans Brave — 30/09/2026
+
+**Prompt**
+> [capture d'écran : le panneau « Ce que le cerveau voit » en direct dans Brave, vague 1,
+> Tiplouf niv. 5 contre Chenipotte niv. 2]
+
+**Réponse**
+- Essai réussi : panneau « en direct », noms en français, argent et Poké Balls conformes à l'écran.
+- Point vérifié : les IVs de Tiplouf tous à 15 sont corrects. Le jeu donne 15 dans chaque IV
+  aux starters d'un compte neuf (`jeu/src/system/game-data.ts:1664`), et une nature fixe.
+- Remarque : le panneau recouvre une partie du jeu (le sprite adverse, l'option « Balls ») ;
+  proposition de le rendre déplaçable.
+
+**Modifications**
+- `README.md`, `docs/architecture.md` : étape 1 marquée comme validée.
+
+**Objectif**
+Confirmer en conditions réelles que le cerveau voit la partie comme un joueur, avant de
+construire le cerveau lui-même.

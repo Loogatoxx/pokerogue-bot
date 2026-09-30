@@ -1,0 +1,4 @@
+# pnpm 12 demande l'autorisation avant d'exécuter les scripts d'installation des dépendances.
+# esbuild fonctionne sans le sien (son binaire arrive par une dépendance optionnelle).
+allowBuilds:
+  esbuild: false

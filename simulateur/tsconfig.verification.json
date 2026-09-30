@@ -1,0 +1,9 @@
+{
+  "//": "Vérifie nos tests et l'observateur avec la configuration stricte du jeu (tout le jeu + nos fichiers). Copié dans jeu/test/bot/ par lancer-tests.sh.",
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "../../.."
+  },
+  "include": ["../../*.ts", "../../src", "../../test", "../../scripts/**/*.boilerplate.ts"]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "pokerogue-bot",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "extension": "node extension/construire.mjs",
+    "verifier": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}

@@ -34,6 +34,29 @@ cd jeu && pnpm install
 Jouer à la copie locale dans le navigateur : `pnpm --dir jeu start:dev`, puis
 http://localhost:8000.
 
+## Installer l'extension dans Brave
+
+```bash
+pnpm install
+pnpm run extension
+```
+
+Puis dans Brave : `brave://extensions` → activer **Mode développeur** (en haut à droite) →
+**Charger l'extension non empaquetée** → choisir le dossier `extension/dist`.
+Après chaque `pnpm run extension`, cliquer sur la flèche ↻ de l'extension pour la recharger.
+
+Elle s'active sur pokerogue.net et sur la copie locale (http://localhost:8000).
+
+## Vérifier l'observateur
+
+```bash
+./simulateur/lancer-tests.sh --types
+```
+
+Joue de vraies situations dans le simulateur, vérifie que le cerveau ne voit que ce qu'un humain
+voit, et que notre description du jeu (`observateur/jeu.ts`) colle toujours aux vraies classes.
+Après une mise à jour du jeu : `python3 observateur/generer-noms.py` régénère les noms français.
+
 ## Où vivent les fichiers
 
 | Quoi | Où | Pourquoi |
@@ -45,6 +68,7 @@ http://localhost:8000.
 
 - ✅ Étape 0 : le simulateur tient une partie complète et enchaîne ~250 décisions/s
   ([résultats](docs/etape-0-vitesse.md)).
-- ⏭️ Étape 1 : extension minimale qui lit la partie en direct.
+- ✅ Étape 1 : l'extension lit la partie en direct dans Brave et affiche ce que voit le cerveau.
+- ⏭️ Étape 2 : brancher le simulateur au Python et créer le cerveau v0 importable.
 
 Journal des échanges : [`historique_prompts.md`](historique_prompts.md).

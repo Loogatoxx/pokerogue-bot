@@ -1,0 +1,526 @@
+{
+  "version": 1,
+  "partie": {
+    "vague": 1,
+    "tour": 2,
+    "typeCombat": {
+      "id": 0,
+      "nom": "sauvage"
+    },
+    "double": true,
+    "biome": {
+      "id": 0,
+      "nom": "Ville"
+    },
+    "meteo": {
+      "id": 0,
+      "nom": "Aucune"
+    },
+    "terrain": {
+      "id": 0,
+      "nom": "Aucun"
+    },
+    "argent": 0,
+    "balls": [
+      {
+        "id": 0,
+        "nom": "Poké Ball",
+        "quantite": 5
+      },
+      {
+        "id": 1,
+        "nom": "Super Ball",
+        "quantite": 0
+      },
+      {
+        "id": 2,
+        "nom": "Hyper Ball",
+        "quantite": 0
+      },
+      {
+        "id": 3,
+        "nom": "Rogue Ball",
+        "quantite": 0
+      },
+      {
+        "id": 4,
+        "nom": "Master Ball",
+        "quantite": 0
+      }
+    ],
+    "dresseur": null
+  },
+  "equipe": [
+    {
+      "uid": 532608583,
+      "espece": 1,
+      "nom": "Bulbasaur",
+      "niveau": 12,
+      "pv": 36,
+      "pvMax": 36,
+      "statut": {
+        "id": 0,
+        "nom": "Aucun"
+      },
+      "types": [
+        {
+          "id": 11,
+          "nom": "Plante"
+        },
+        {
+          "id": 3,
+          "nom": "Poison"
+        }
+      ],
+      "talent": {
+        "id": 65,
+        "nom": "Overgrow"
+      },
+      "passif": null,
+      "nature": {
+        "id": 0,
+        "nom": "Hardi"
+      },
+      "ivs": [
+        31,
+        31,
+        31,
+        31,
+        31,
+        31
+      ],
+      "stats": [
+        36,
+        20,
+        20,
+        24,
+        24,
+        19
+      ],
+      "modifStats": [
+        -2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "attaques": [
+        {
+          "id": 150,
+          "nom": "Splash",
+          "type": {
+            "id": 0,
+            "nom": "Normal"
+          },
+          "categorie": {
+            "id": 2,
+            "nom": "Statut"
+          },
+          "puissance": -1,
+          "precision": -1,
+          "pp": 39,
+          "ppMax": 40
+        },
+        {
+          "id": 33,
+          "nom": "Tackle",
+          "type": {
+            "id": 0,
+            "nom": "Normal"
+          },
+          "categorie": {
+            "id": 0,
+            "nom": "Physique"
+          },
+          "puissance": 40,
+          "precision": 100,
+          "pp": 35,
+          "ppMax": 35
+        },
+        {
+          "id": 22,
+          "nom": "Vine Whip",
+          "type": {
+            "id": 11,
+            "nom": "Plante"
+          },
+          "categorie": {
+            "id": 0,
+            "nom": "Physique"
+          },
+          "puissance": 45,
+          "precision": 100,
+          "pp": 25,
+          "ppMax": 25
+        },
+        {
+          "id": 45,
+          "nom": "Growl",
+          "type": {
+            "id": 0,
+            "nom": "Normal"
+          },
+          "categorie": {
+            "id": 2,
+            "nom": "Statut"
+          },
+          "puissance": -1,
+          "precision": 100,
+          "pp": 40,
+          "ppMax": 40
+        }
+      ],
+      "objets": [],
+      "surTerrain": true,
+      "ko": false,
+      "shiny": false
+    },
+    {
+      "uid": 4012632445,
+      "espece": 4,
+      "nom": "Charmander",
+      "niveau": 12,
+      "pv": 15,
+      "pvMax": 35,
+      "statut": {
+        "id": 0,
+        "nom": "Aucun"
+      },
+      "types": [
+        {
+          "id": 9,
+          "nom": "Feu"
+        }
+      ],
+      "talent": {
+        "id": 66,
+        "nom": "Blaze"
+      },
+      "passif": null,
+      "nature": {
+        "id": 0,
+        "nom": "Hardi"
+      },
+      "ivs": [
+        31,
+        31,
+        31,
+        31,
+        31,
+        31
+      ],
+      "stats": [
+        35,
+        21,
+        19,
+        23,
+        20,
+        24
+      ],
+      "modifStats": [
+        -2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "attaques": [
+        {
+          "id": 150,
+          "nom": "Splash",
+          "type": {
+            "id": 0,
+            "nom": "Normal"
+          },
+          "categorie": {
+            "id": 2,
+            "nom": "Statut"
+          },
+          "puissance": -1,
+          "precision": -1,
+          "pp": 39,
+          "ppMax": 40
+        },
+        {
+          "id": 33,
+          "nom": "Tackle",
+          "type": {
+            "id": 0,
+            "nom": "Normal"
+          },
+          "categorie": {
+            "id": 0,
+            "nom": "Physique"
+          },
+          "puissance": 40,
+          "precision": 100,
+          "pp": 35,
+          "ppMax": 35
+        },
+        {
+          "id": 22,
+          "nom": "Vine Whip",
+          "type": {
+            "id": 11,
+            "nom": "Plante"
+          },
+          "categorie": {
+            "id": 0,
+            "nom": "Physique"
+          },
+          "puissance": 45,
+          "precision": 100,
+          "pp": 25,
+          "ppMax": 25
+        },
+        {
+          "id": 45,
+          "nom": "Growl",
+          "type": {
+            "id": 0,
+            "nom": "Normal"
+          },
+          "categorie": {
+            "id": 2,
+            "nom": "Statut"
+          },
+          "puissance": -1,
+          "precision": 100,
+          "pp": 40,
+          "ppMax": 40
+        }
+      ],
+      "objets": [],
+      "surTerrain": true,
+      "ko": false,
+      "shiny": false
+    },
+    {
+      "uid": 2961498039,
+      "espece": 7,
+      "nom": "Squirtle",
+      "niveau": 12,
+      "pv": 36,
+      "pvMax": 36,
+      "statut": {
+        "id": 0,
+        "nom": "Aucun"
+      },
+      "types": [
+        {
+          "id": 10,
+          "nom": "Eau"
+        }
+      ],
+      "talent": {
+        "id": 67,
+        "nom": "Torrent"
+      },
+      "passif": null,
+      "nature": {
+        "id": 0,
+        "nom": "Hardi"
+      },
+      "ivs": [
+        31,
+        31,
+        31,
+        31,
+        31,
+        31
+      ],
+      "stats": [
+        36,
+        20,
+        24,
+        20,
+        24,
+        19
+      ],
+      "modifStats": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "attaques": [
+        {
+          "id": 150,
+          "nom": "Splash",
+          "type": {
+            "id": 0,
+            "nom": "Normal"
+          },
+          "categorie": {
+            "id": 2,
+            "nom": "Statut"
+          },
+          "puissance": -1,
+          "precision": -1,
+          "pp": 40,
+          "ppMax": 40
+        },
+        {
+          "id": 33,
+          "nom": "Tackle",
+          "type": {
+            "id": 0,
+            "nom": "Normal"
+          },
+          "categorie": {
+            "id": 0,
+            "nom": "Physique"
+          },
+          "puissance": 40,
+          "precision": 100,
+          "pp": 35,
+          "ppMax": 35
+        },
+        {
+          "id": 22,
+          "nom": "Vine Whip",
+          "type": {
+            "id": 11,
+            "nom": "Plante"
+          },
+          "categorie": {
+            "id": 0,
+            "nom": "Physique"
+          },
+          "puissance": 45,
+          "precision": 100,
+          "pp": 25,
+          "ppMax": 25
+        },
+        {
+          "id": 45,
+          "nom": "Growl",
+          "type": {
+            "id": 0,
+            "nom": "Normal"
+          },
+          "categorie": {
+            "id": 2,
+            "nom": "Statut"
+          },
+          "puissance": -1,
+          "precision": 100,
+          "pp": 40,
+          "ppMax": 40
+        }
+      ],
+      "objets": [],
+      "surTerrain": false,
+      "ko": false,
+      "shiny": false
+    }
+  ],
+  "adversaires": [
+    {
+      "uid": 1292114401,
+      "espece": 19,
+      "nom": "Rattata",
+      "niveau": 11,
+      "pvPourcent": 100,
+      "statut": {
+        "id": 0,
+        "nom": "Aucun"
+      },
+      "types": [
+        {
+          "id": 0,
+          "nom": "Normal"
+        }
+      ],
+      "boss": null,
+      "modifStats": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "objets": [],
+      "shiny": false,
+      "ko": false,
+      "talentRevele": {
+        "id": 22,
+        "nom": "Intimidate"
+      },
+      "attaquesVues": [
+        {
+          "id": 44,
+          "nom": "Bite"
+        }
+      ]
+    },
+    {
+      "uid": 918602047,
+      "espece": 19,
+      "nom": "Rattata",
+      "niveau": 11,
+      "pvPourcent": 100,
+      "statut": {
+        "id": 0,
+        "nom": "Aucun"
+      },
+      "types": [
+        {
+          "id": 0,
+          "nom": "Normal"
+        }
+      ],
+      "boss": null,
+      "modifStats": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "objets": [],
+      "shiny": false,
+      "ko": false,
+      "talentRevele": {
+        "id": 22,
+        "nom": "Intimidate"
+      },
+      "attaquesVues": [
+        {
+          "id": 44,
+          "nom": "Bite"
+        }
+      ]
+    }
+  ],
+  "decision": {
+    "phase": "CommandPhase",
+    "type": "combat",
+    "acteur": 532608583
+  },
+  "journal": [
+    {
+      "vague": 1,
+      "texte": "Vague 1 (Ville) : combat sauvage"
+    },
+    {
+      "vague": 1,
+      "texte": "Rencontre : Rattata niv. 11"
+    },
+    {
+      "vague": 1,
+      "texte": "Rencontre : Rattata niv. 11"
+    }
+  ]
+}

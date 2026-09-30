@@ -67,6 +67,17 @@ le boss final à 200) ne sont pas de la mémoire : elles sont données directeme
 
 ## Lecture de la partie dans l'extension
 
+L'extension a deux scripts, parce que Brave isole les extensions de la page :
+
+| Script | Monde | Rôle |
+|---|---|---|
+| `extension/src/capteur.ts` | celui de la page (`"world": "MAIN"`) | capture la scène, fait tourner carnet + observateur 4 fois par seconde |
+| `extension/src/panneau.ts` | isolé (celui de l'extension) | affiche l'observation dans une bulle à part (Shadow DOM) |
+
+Ils se parlent par `window.postMessage`, avec une signature (`SOURCE`) vérifiée à la réception.
+`window.__pokerogueCerveau` donne accès à la scène et à l'observation depuis la console.
+
+
 Vérifié sur pokerogue.net (version 1.12.0.11) : `window.Phaser` est exposé. Remplacer une fois
 `Phaser.Scenes.Systems.prototype.step` permet de capturer la scène `battle`, dont les propriétés
 gardent des noms lisibles (`party`, `field`, `arena`, `phaseManager`, `modifiers`…).
@@ -85,7 +96,8 @@ de 256 Ko. On n'y écrit donc que de gros fichiers, jamais des milliers de petit
 ## Ordre de construction
 
 0. ✅ Vitesse du simulateur — [résultats](etape-0-vitesse.md)
-1. Extension minimale : lit la partie en direct et affiche ce que le cerveau « voit »
+1. ✅ Extension minimale : lit la partie en direct et affiche ce que le cerveau « voit »
+   (validée dans Brave le 30/09)
 2. Cerveau v0 (hasard) importable → on le regarde jouer sur le compte IA
 3. Combat seul sur les premières vagues + premières courbes
 4. Capture, bonus, bons d'œuf, attaque à oublier, biomes

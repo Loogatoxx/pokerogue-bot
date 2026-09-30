@@ -1,0 +1,207 @@
+/**
+ * L'observateur : traduit l'état du jeu en « ce que le cerveau voit » (voir types.ts).
+ *
+ * Écrit une seule fois et partagé : le simulateur l'utilise pour entraîner le cerveau,
+ * l'extension pour le faire jouer sur pokerogue.net. Le cerveau voit donc la partie décrite
+ * exactement de la même façon dans les deux cas.
+ */
+import type { Carnet } from "./carnet";
+import type { AttaqueJeu, PokemonJeu, ScenePokerogue } from "./jeu";
+import {
+  BattleType,
+  BiomeId,
+  MoveCategory,
+  Nature,
+  type Nom,
+  PokeballType,
+  PokemonType,
+  StatusEffect,
+  TerrainType,
+  WeatherType,
+} from "./noms";
+import {
+  type Attaque,
+  type Decision,
+  type Libelle,
+  type Objet,
+  type Observation,
+  type PokemonAdverse,
+  type PokemonAllie,
+  type TypeDecision,
+  VERSION_OBSERVATION,
+} from "./types";
+
+/** Statistiques permanentes (PV → Vitesse) puis de combat (Attaque → Esquive), numérotation du jeu. */
+const STATS_PERMANENTES = [0, 1, 2, 3, 4, 5];
+const STATS_COMBAT = [1, 2, 3, 4, 5, 6, 7];
+
+/** Phase du jeu → décision attendue du joueur. */
+const DECISIONS: Readonly<Record<string, TypeDecision>> = {
+  SelectStarterPhase: "equipe-depart",
+  CommandPhase: "combat",
+  SelectTargetPhase: "cible",
+  SelectModifierPhase: "bonus",
+  SwitchPhase: "remplacement",
+  LearnMovePhase: "attaque-a-oublier",
+  SelectBiomePhase: "biome",
+  MysteryEncounterPhase: "rencontre-mystere",
+};
+
+function libelle(table: Readonly<Record<number, Nom>>, id: number): Libelle {
+  return { id, nom: table[id]?.fr ?? `n°${id}` };
+}
+
+function attaque(a: AttaqueJeu): Attaque {
+  const move = a.getMove();
+  return {
+    id: a.moveId,
+    nom: move.name,
+    type: libelle(PokemonType, move.type),
+    categorie: libelle(MoveCategory, move.category),
+    puissance: move.power,
+    precision: move.accuracy,
+    pp: Math.max(a.getMovePp() - a.ppUsed, 0),
+    ppMax: a.getMovePp(),
+  };
+}
+
+function objets(p: PokemonJeu): Objet[] {
+  return p.getHeldItems().map(o => ({ nom: o.type.name, quantite: o.getStackCount() }));
+}
+
+function modifStats(p: PokemonJeu): number[] {
+  return p.isOnField() ? STATS_COMBAT.map(s => p.getStatStage(s)) : STATS_COMBAT.map(() => 0);
+}
+
+function allie(p: PokemonJeu): PokemonAllie {
+  const talent = p.getAbility();
+  const passif = p.hasPassive() ? p.getPassiveAbility() : null;
+  return {
+    uid: p.id,
+    espece: p.species.speciesId,
+    nom: p.name,
+    niveau: p.level,
+    pv: p.hp,
+    pvMax: p.getMaxHp(),
+    statut: libelle(StatusEffect, p.status?.effect ?? 0),
+    types: p.getTypes().map(t => libelle(PokemonType, t)),
+    talent: { id: talent.id, nom: talent.name },
+    passif: passif ? { id: passif.id, nom: passif.name } : null,
+    nature: libelle(Nature, p.nature),
+    ivs: [...p.ivs],
+    stats: STATS_PERMANENTES.map(s => p.getStat(s)),
+    modifStats: modifStats(p),
+    attaques: p.getMoveset().map(attaque),
+    objets: objets(p),
+    surTerrain: p.isOnField(),
+    ko: p.isFainted(),
+    shiny: p.shiny,
+  };
+}
+
+function adversaire(p: PokemonJeu, carnet: Carnet): PokemonAdverse {
+  // Avec Illusion, le joueur voit le déguisement : espèce, nom, types et chromatisme affichés.
+  const illusion = p.summonData?.illusion ?? null;
+  const boss = p.isBoss() && p.bossSegments
+    ? { segments: p.bossSegments, segmentsRestants: (p.bossSegmentIndex ?? 0) + 1 }
+    : null;
+  return {
+    uid: p.id,
+    espece: illusion?.species ?? p.species.speciesId,
+    nom: p.getNameToRender({ useIllusion: true }),
+    niveau: p.level,
+    pvPourcent: Math.round(p.getHpRatio(true) * 100),
+    statut: libelle(StatusEffect, p.status?.effect ?? 0),
+    types: p.getTypes({ useIllusion: true }).map(t => libelle(PokemonType, t)),
+    boss,
+    modifStats: modifStats(p),
+    objets: objets(p),
+    shiny: illusion?.shiny ?? p.shiny,
+    ko: p.isFainted(),
+    talentRevele: carnet.talentReveleDe(p.id),
+    attaquesVues: carnet.attaquesVuesDe(p.id),
+  };
+}
+
+/** Lit prudemment les choix affichés par l'interface (récompenses, biomes). */
+function optionsAffichees(scene: ScenePokerogue, type: TypeDecision): Decision["options"] {
+  const ecran = scene.ui.getHandler() as {
+    options?: { modifierTypeOption?: { type?: { name?: string }; cost?: number } }[];
+    shopOptionsRows?: { modifierTypeOption?: { type?: { name?: string }; cost?: number } }[][];
+    config?: { options?: { label?: string }[] };
+  } | null;
+  if (!ecran) {
+    return undefined;
+  }
+  if (type === "bonus") {
+    const gratuites = (ecran.options ?? []).map(o => ({ nom: o.modifierTypeOption?.type?.name ?? "?", cout: 0 }));
+    const boutique = (ecran.shopOptionsRows ?? []).flat().map(o => ({
+      nom: o.modifierTypeOption?.type?.name ?? "?",
+      cout: o.modifierTypeOption?.cost ?? 0,
+    }));
+    return [...gratuites, ...boutique];
+  }
+  if (type === "biome") {
+    return (ecran.config?.options ?? []).map(o => ({ nom: o.label ?? "?" }));
+  }
+  return undefined;
+}
+
+function decision(scene: ScenePokerogue): Decision {
+  const phase = scene.phaseManager.getCurrentPhase();
+  const nomPhase = phase?.phaseName ?? "?";
+  const type = DECISIONS[nomPhase] ?? "aucune";
+  const resultat: Decision = { phase: nomPhase, type };
+  const acteur = type === "combat" ? phase?.getPokemon?.()?.id : undefined;
+  if (acteur !== undefined) {
+    resultat.acteur = acteur;
+  }
+  const options = optionsAffichees(scene, type);
+  if (options) {
+    resultat.options = options;
+  }
+  return resultat;
+}
+
+/**
+ * Décrit la partie telle qu'un humain la voit. Renvoie null hors d'une partie (écran titre…).
+ * Le carnet doit avoir été mis à jour juste avant (carnet.mettreAJour(scene)).
+ */
+export function observer(scene: ScenePokerogue, carnet: Carnet): Observation | null {
+  const combat = scene.currentBattle;
+  const arene = scene.arena;
+  if (!combat || !arene) {
+    return null;
+  }
+
+  const adversairesSurTerrain = scene.getEnemyField().filter(p => p.isOnField());
+  const dresseur = combat.trainer
+    ? {
+        nom: combat.trainer.getName(undefined, true),
+        pokemonRestants: scene.getEnemyParty().filter(p => !p.isFainted()).length,
+      }
+    : null;
+
+  return {
+    version: VERSION_OBSERVATION,
+    partie: {
+      vague: combat.waveIndex,
+      tour: combat.turn,
+      typeCombat: libelle(BattleType, combat.battleType),
+      double: combat.double,
+      biome: libelle(BiomeId, arene.biomeId),
+      meteo: libelle(WeatherType, arene.weather?.weatherType ?? 0),
+      terrain: libelle(TerrainType, arene.terrain?.terrainType ?? 0),
+      argent: scene.money,
+      balls: Object.entries(scene.pokeballCounts).map(([id, quantite]) => ({
+        ...libelle(PokeballType, Number(id)),
+        quantite,
+      })),
+      dresseur,
+    },
+    equipe: scene.getPlayerParty().map(allie),
+    adversaires: adversairesSurTerrain.map(p => adversaire(p, carnet)),
+    decision: decision(scene),
+    journal: [...carnet.journal],
+  };
+}
