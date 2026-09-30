@@ -30,9 +30,11 @@ JOURNAUX = RACINE / ".journaux"
 # Fichiers du simulateur copiés dans le jeu : ses raccourcis d'import (#app, #enums…)
 # ne fonctionnent que depuis l'intérieur du jeu.
 FICHIERS_SIMULATEUR = ["environnement.test.ts", "outils-partie.ts"]
-# Chaque copie du jeu perd ~2,5 Mo de mémoire par partie (fuite dans l'outil de test du jeu,
-# non localisée) : on la redémarre au bout de ce nombre de parties (~8 s de redémarrage).
-PARTIES_AVANT_REDEMARRAGE = int(os.environ.get("PONT_REDEMARRAGE", 150))
+# Chaque copie du jeu perd de la mémoire à chaque partie (fuite dans l'outil de test du jeu, non
+# localisée : ~2,5 Mo par partie, ~4,5 Mo avec des équipes de 6), et ralentit avec elle (50 → 95 ms
+# par décision en 50 parties). On la redémarre au bout de ce nombre de parties (~8 s par
+# redémarrage) : à 50, le temps moyen par décision reste vers 75 ms pour ~6 % de surcoût.
+PARTIES_AVANT_REDEMARRAGE = int(os.environ.get("PONT_REDEMARRAGE", 50))
 
 
 @dataclass
@@ -188,10 +190,10 @@ class Pont:
 
     def entretenir(self, i: int) -> Simulateur:
         """Le simulateur n° i, redémarré s'il a joué trop de parties (fuite de mémoire du jeu).
-        Les seuils sont échelonnés (150, 175, 200…) pour que les copies ne redémarrent pas toutes
+        Les seuils sont échelonnés (50, 55, 60…) pour que les copies ne redémarrent pas toutes
         en même temps."""
         simulateur = self.simulateurs[i]
-        if simulateur.parties < PARTIES_AVANT_REDEMARRAGE + 25 * i:
+        if simulateur.parties < PARTIES_AVANT_REDEMARRAGE + 5 * i:
             return simulateur
         simulateur.fermer()
         self._arreter(self.processus[i])

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import signal
 import time
@@ -173,6 +174,9 @@ def main() -> None:
         etat = None
     # On garde une copie des réglages utilisés : un entraînement doit pouvoir être compris plus tard.
     shutil.copy(REGLAGES, dossier / f"reglages-{datetime.now():%Y%m%d-%H%M%S}.toml")
+    # Numéro de ce processus, pour l'arrêter proprement : entraineur/arreter.sh <nom>
+    fichier_pid = dossier / "processus.pid"
+    fichier_pid.write_text(str(os.getpid()))
 
     a = reglages["apprentissage"]
     print(f"Entraînement : {dossier}")
@@ -235,6 +239,7 @@ def main() -> None:
                 entrainement.sauvegarder(pont.versions)
         chemin = entrainement.sauvegarder(pont.versions)
         print(f"Dernier cerveau : {chemin}", flush=True)
+    fichier_pid.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
