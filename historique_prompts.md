@@ -550,3 +550,31 @@ récompenser une bonne équipe plutôt qu'une équipe pleine.
 **Objectif**
 Que le cerveau joue avec un coup d'avance sur l'IA adverse, et cesser d'être payé pour autre
 chose que gagner.
+
+---
+
+## 18. Recherches de stratégie, audit des possibilités, planificateur — v4 — 01/10/2026
+
+**Prompt**
+> vasy on continue, verifie aussi que le bot aies acces a toutes les possibiliter et si y a pas un truc qu il rate, informe toi sur les wiki les reddit comment on fait pour avoir des run presque parfaite et pour alterer le cerveau pour qu'il se dirige vers la, sinon on peu continuer juste petite question j ai fait refresh de l extension j ai voulu mettre le cerveau mais ça na pas marche c'était ecrit que c'est pas compatible le cerveau avec l extension parce que le cerveau a ete entrainer d une autre version
+
+**Réponse**
+- Extension : la 0.8.0 accepte la v3 (vérifié) → Brave avait une version plus ancienne ; version
+  affichée dans le panneau, message de refus clair ; piège corrigé (en-tête d'un cerveau republié).
+- Recherches : stratégie du porteur, argent gardé pour la fin, rotation contre les boss ; vérifié
+  dans le code : soin complet au changement de biome, récompenses du rival.
+- Audit : 6 manques (planificateur, « changer ? » après K.O., bonbons, Total Soin, rencontres
+  mystères, relances/Téra/biome) ; 3 corrigés.
+- Planificateur (« comme aux échecs ») : cerveau guidé × 30 → 52,7 de vague moyenne avec starters
+  au hasard (27,9 seul). **v4 publiée : 53,33, record 115.** Entraînement 9 lancé par-dessus.
+
+**Modifications**
+- Nouveaux : `observateur/planificateur.ts`, `tests/planificateur.test.ts`, `docs/etape-8-planificateur.md`.
+- Modifiés : `cerveau/cerveau.ts` (poidsPlan), `entraineur/reseau.py`, `format_cerveau.py`,
+  `jouer.py`, `evaluer.py` (--plan, versions d'origine), `entrainer.py` (plan dans PPO, --plan),
+  `greffe.py`, `analyse_defaites.py` (--plan, --vague-max), `pont.py` (plan),
+  `simulateur/environnement.test.ts` (plan envoyé), `observateur/prevision.ts` (cible au choix),
+  `observateur/objets.ts` (porteur, Total Soin), `extension/src/panneau.ts` (0.9.0), `reglages.toml`.
+
+**Objectif**
+Jouer comme un humain qui voit un coup d'avance, et suivre ce que font les meilleurs joueurs.
