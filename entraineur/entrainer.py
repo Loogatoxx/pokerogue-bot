@@ -226,10 +226,15 @@ def main() -> None:
         ensemble = Ensemble(pont, reglages)
         debut = time.time()
         fin = debut + args.minutes * 60
-        parties_recentes: list[dict] = []
+        # À la reprise, la fenêtre repart des parties déjà jouées : vide, la « moyenne des 200
+        # dernières » ne portait que sur une poignée de parties et sautait (pic à 60 vu le 01/10).
+        fichier_parties = entrainement.dossier / "parties.jsonl"
+        anciennes = ([json.loads(ligne) for ligne in fichier_parties.read_text(encoding="utf-8").splitlines() if ligne.strip()]
+                     if fichier_parties.exists() else [])
+        parties_recentes: list[dict] = [p for p in anciennes if p.get("depart") is None][-200:]
         # Parties d'exercice (reparties d'une photo d'un combat qui bloque) : suivies à part, pour
         # que la vague moyenne reste celle de vraies parties, comparable d'un entraînement à l'autre.
-        exercices_recents: list[dict] = []
+        exercices_recents: list[dict] = [p for p in anciennes if p.get("depart") is not None][-200:]
         # Ctrl+C (ou arrêt du système) : on termine la mise à jour en cours, puis on sauvegarde
         # et on ferme les copies du jeu proprement, au lieu de s'interrompre n'importe où.
         arret = {"demande": False}
