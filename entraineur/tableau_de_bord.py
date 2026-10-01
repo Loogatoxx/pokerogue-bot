@@ -8,6 +8,7 @@ Usage : .venv/bin/python -m entraineur.tableau_de_bord   puis   http://localhost
 from __future__ import annotations
 
 import json
+import struct
 from collections import Counter
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -44,6 +45,33 @@ def references() -> dict:
         reperes["v0"] = donnees["v0"]["resume"]["vagueMoyenne"]
         reperes["hasard"] = donnees["hasard"]["resume"]["vagueMoyenne"]
     return reperes
+
+
+def entete(chemin: Path) -> dict:
+    """L'en-tête JSON d'un fichier .cerveau (sans charger le réseau) : nom, évaluation…"""
+    with open(chemin, "rb") as f:
+        debut = f.read(8)
+        (longueur,) = struct.unpack("<I", debut[4:8])
+        return json.loads(f.read(longueur).decode("utf-8"))
+
+
+def cerveaux() -> dict:
+    """Les versions officielles, et le cerveau le plus fort désigné dans cerveaux/le-plus-fort.json
+    (choisi par comparaison sur 480 parties : l'évaluation inscrite dans chaque fichier n'a pas
+    toujours été mesurée de la même façon)."""
+    dossier = LEXAR / "cerveaux"
+    officiels = []
+    for f in sorted(dossier.glob("*.cerveau"), key=lambda f: f.stat().st_mtime, reverse=True):
+        if f.name.startswith("._"):
+            continue
+        e = entete(f)
+        officiels.append({"fichier": f.name, "chemin": str(f), "nom": e.get("nom", f.stem),
+                          "evaluation": e.get("evaluation"), "taille": f.stat().st_size})
+    marque = dossier / "le-plus-fort.json"
+    plus_fort = json.loads(marque.read_text(encoding="utf-8")) if marque.exists() else None
+    if plus_fort:
+        plus_fort["chemin"] = str(dossier / plus_fort["fichier"])
+    return {"plusFort": plus_fort, "officiels": officiels}
 
 
 def entrainements() -> list[dict]:
@@ -98,12 +126,30 @@ class Serveur(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(corps)
 
+    def envoyer_cerveau(self, nom: str) -> None:
+        """Le fichier .cerveau à importer dans l'extension (seulement ceux du dossier officiel)."""
+        fichier = LEXAR / "cerveaux" / nom
+        if "/" in nom or nom.startswith(".") or not nom.endswith(".cerveau") or not fichier.is_file():
+            self.envoyer_json({"erreur": "Cerveau introuvable."}, 404)
+            return
+        donnees = fichier.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Disposition", f'attachment; filename="{nom}"')
+        self.send_header("Content-Length", str(len(donnees)))
+        self.end_headers()
+        self.wfile.write(donnees)
+
     def do_GET(self) -> None:
         chemin = urlparse(self.path).path
         if not LEXAR.exists() and chemin.startswith("/api/"):
             self.envoyer_json({"erreur": "Le Lexar n'est pas branché."}, 503)
         elif chemin == "/api/entrainements":
             self.envoyer_json(entrainements())
+        elif chemin == "/api/cerveaux":
+            self.envoyer_json(cerveaux())
+        elif chemin.startswith("/telecharger/"):
+            self.envoyer_cerveau(unquote(chemin.removeprefix("/telecharger/")))
         elif chemin.startswith("/api/entrainement/"):
             try:
                 self.envoyer_json(detail(unquote(chemin.removeprefix("/api/entrainement/"))))

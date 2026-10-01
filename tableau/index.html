@@ -105,6 +105,15 @@
     border: 1px solid var(--axe); border-radius: 6px; padding: 3px 8px;
   }
   .vide { color: var(--discret); padding: 12px 0; }
+  .plus-fort { border: 1px solid var(--serie); background: var(--serie-voile); border-radius: 10px; padding: 12px 14px; margin: 4px 0 16px; }
+  .plus-fort-titre { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 16px; }
+  .plus-fort .aide { margin: 6px 0 10px; }
+  .plus-fort-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pastille { font-size: 12px; color: var(--encre); border: 1px solid var(--serie); border-radius: 999px; padding: 1px 8px; }
+  a.bouton {
+    font-size: 12px; color: var(--encre); text-decoration: none; cursor: pointer;
+    border: 1px solid var(--serie); border-radius: 6px; padding: 3px 10px; background: var(--surface);
+  }
 </style>
 </head>
 <body>
@@ -174,6 +183,7 @@
 
   <section class="carte">
     <h2>Versions du cerveau</h2>
+    <div id="plus-fort"></div>
     <p class="aide">Une sauvegarde toutes les 10 mises à jour. Dans Brave : panneau de l'extension → « Importer un cerveau… ».</p>
     <div id="versions"></div>
   </section>
@@ -472,6 +482,34 @@ function afficher(d) {
     versions.append(ligne);
   }
 }
+
+/** Le cerveau le plus fort, en tête de la section : à télécharger pour l'importer dans Brave. */
+async function chargerPlusFort() {
+  const zone = $("plus-fort");
+  try {
+    const { plusFort } = await (await fetch("/api/cerveaux")).json();
+    zone.replaceChildren();
+    if (!plusFort) return;
+    const carte = element("div", undefined, "plus-fort");
+    const titre = element("div", undefined, "plus-fort-titre");
+    titre.append(element("span", "Le plus fort", "pastille"), element("strong", plusFort.nom));
+    const telecharger = element("a", "Télécharger", "bouton");
+    telecharger.href = `/telecharger/${encodeURIComponent(plusFort.fichier)}`;
+    telecharger.download = plusFort.fichier;
+    const copier = element("button", "Copier le chemin");
+    copier.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(plusFort.chemin);
+      copier.textContent = "Copié";
+    });
+    const actions = element("div", undefined, "plus-fort-actions");
+    actions.append(telecharger, copier);
+    carte.append(titre, element("p", plusFort.pourquoi, "aide"), actions);
+    zone.append(carte);
+  } catch {
+    zone.replaceChildren();
+  }
+}
+chargerPlusFort();
 
 let actuel = null;
 async function charger() {
