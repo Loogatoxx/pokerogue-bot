@@ -19,11 +19,16 @@
  *
  * Historique : v1 = 1 290 nombres ; v2 = + 9 pour la capture (Poké Balls, équipe, déjà capturé) ;
  * v3 = + 5 pour le prochain combat important (dans combien de vagues, rival / dresseur / boss, et
- * « c'est maintenant »). Un cerveau v2 lit les 1 299 premiers nombres, qui n'ont pas changé.
+ * « c'est maintenant »). Un cerveau v2 lit les 1 299 premiers nombres, qui n'ont pas changé ;
+ * v4 = + 88 pour la connaissance « Pokédex » (idée de Carlos, observateur/especes.ts) : pour chaque
+ * adversaire, ce qu'il PEUT avoir à son niveau (meilleure puissance par type, pire menace sur
+ * l'acteur, types qu'un de ses talents possibles annule) et son potentiel ; pour chaque membre de
+ * l'équipe, son potentiel (total de statistiques de sa forme finale).
  */
+import { connaissance, immunitesPossibles, NB_TYPES_CONNUS, pireMenace, puissanceParType } from "./especes";
 import type { AttaqueVue, Libelle, Observation, PokemonAdverse, PokemonAllie } from "./types";
 
-export const VERSION_ENCODAGE = 3;
+export const VERSION_ENCODAGE = 4;
 
 const NB_TYPES = 19; // Normal (0) → Stellaire (18) ; « inconnu » (-1) n'allume aucune case
 const NB_STATUTS = 8;
@@ -45,12 +50,19 @@ const TAILLE_CAPTURE = NB_BALLS + 2 + NB_ADVERSAIRES; // Balls en stock, taille 
 
 const GENRES_COMBAT = ["rival", "dresseur", "boss"] as const;
 const TAILLE_PROCHAIN_COMBAT = 1 + GENRES_COMBAT.length + 1; // dans combien de vagues, genre, maintenant
+// Par adversaire : puissance possible par type, pire menace sur l'acteur, immunités possibles, potentiel.
+const TAILLE_CONNAISSANCE_ADVERSAIRE = NB_TYPES_CONNUS + 1 + NB_TYPES_CONNUS + 2;
+const TAILLE_CONNAISSANCE = NB_ADVERSAIRES * TAILLE_CONNAISSANCE_ADVERSAIRE + NB_ALLIES;
+/** Un total de statistiques ramené vers 0-1 (720 = Arceus). */
+const TOTAL_MAX = 720;
 
 /** Taille de l'observation de chaque version de l'encodage (les versions ne font qu'ajouter à la fin). */
 export const TAILLES_ENCODAGE: Readonly<Record<number, number>> = {
   1: TAILLE_PARTIE + NB_ALLIES * TAILLE_ALLIE + NB_ADVERSAIRES * TAILLE_ADVERSAIRE,
   2: TAILLE_PARTIE + NB_ALLIES * TAILLE_ALLIE + NB_ADVERSAIRES * TAILLE_ADVERSAIRE + TAILLE_CAPTURE,
   3: TAILLE_PARTIE + NB_ALLIES * TAILLE_ALLIE + NB_ADVERSAIRES * TAILLE_ADVERSAIRE + TAILLE_CAPTURE + TAILLE_PROCHAIN_COMBAT,
+  4: TAILLE_PARTIE + NB_ALLIES * TAILLE_ALLIE + NB_ADVERSAIRES * TAILLE_ADVERSAIRE + TAILLE_CAPTURE + TAILLE_PROCHAIN_COMBAT
+    + TAILLE_CONNAISSANCE,
 };
 
 export const TAILLE_OBSERVATION = TAILLES_ENCODAGE[VERSION_ENCODAGE]!;
@@ -207,6 +219,31 @@ export function encoder(obs: Observation): Float32Array {
     e.nombre(Math.min(combat.dans, 10) / 10);
     e.oneHot(GENRES_COMBAT.indexOf(combat.genre), GENRES_COMBAT.length);
     e.booleen(combat.dans === 0);
+  });
+
+  // v4 — la connaissance « Pokédex » : de quoi se méfier, et ce qui vaut d'être capturé.
+  const acteur = obs.equipe.find(a => a.uid === d.acteur) ?? obs.equipe.find(a => a.surTerrain && !a.ko);
+  const typesActeur = acteur ? ids(acteur.types) : [];
+  e.bloc(TAILLE_CONNAISSANCE, () => {
+    for (let place = 0; place < NB_ADVERSAIRES; place++) {
+      const a = obs.adversaires.find(x => x.position === place);
+      const c = a ? connaissance(a.espece) : null;
+      if (!a || !c) {
+        e.vide(TAILLE_CONNAISSANCE_ADVERSAIRE);
+        continue;
+      }
+      for (const puissance of puissanceParType(a.espece, a.niveau)) {
+        e.nombre(borne(puissance / 150));
+      }
+      e.nombre(borne((pireMenace(a.espece, a.niveau, typesActeur)?.force ?? 0) / 300, 2));
+      e.plusieursHot(immunitesPossibles(a.espece, a.talentRevele?.id ?? null), NB_TYPES_CONNUS);
+      e.nombre(c.totalFinal / TOTAL_MAX);
+      e.nombre(c.total / TOTAL_MAX);
+    }
+    for (let place = 0; place < NB_ALLIES; place++) {
+      const membre = obs.equipe[place];
+      e.nombre(membre ? (connaissance(membre.espece)?.totalFinal ?? 0) / TOTAL_MAX : 0);
+    }
   });
 
   if (e.position !== TAILLE_OBSERVATION) {

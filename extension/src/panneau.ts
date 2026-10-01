@@ -21,6 +21,7 @@
 import { type Cerveau, lireCerveau, meilleureAction, penser, type Reponse } from "../../cerveau/cerveau";
 import { decrireAction, NOMBRE_ACTIONS } from "../../observateur/actions";
 import { encoder, TAILLES_ENCODAGE, VERSION_ENCODAGE } from "../../observateur/encodeur";
+import { attaquesPossibles, connaissance, immunitesPossibles, nomTalent, pireMenace } from "../../observateur/especes";
 import { PokeballType, PokemonType } from "../../observateur/noms";
 import {
   type Decision,
@@ -155,13 +156,28 @@ function listeObjets(objets: Objet[]): string {
 
 // ─── Le duel : une ligne par Pokémon ─────────────────────────────────────────────────────────
 
-function ligneAdversaire(a: PokemonAdverse): string {
+/**
+ * Ce dont il faut se méfier chez cet adversaire, d'après le Pokédex (ce qu'il PEUT connaître à son
+ * niveau), face au Pokémon qui joue : une ligne courte, l'essentiel.
+ */
+function aCraindre(a: PokemonAdverse, obs: Observation): string {
+  const acteur = obs.equipe.find(p => p.uid === obs.decision.acteur) ?? obs.equipe.find(p => p.surTerrain && !p.ko);
+  const menace = acteur ? pireMenace(a.espece, a.niveau, acteur.types.map(t => t.id)) : null;
+  if (!menace || a.ko) {
+    return "";
+  }
+  const vue = a.attaquesVues.some(x => x.nom === menace.attaque.nom) ? "" : " (possible)";
+  return `<div class="discret">À craindre pour ${echapper(acteur!.nom)} : ${echapper(menace.attaque.nom)}${vue}</div>`;
+}
+
+function ligneAdversaire(a: PokemonAdverse, obs: Observation): string {
   const boss = a.boss ? ` <span class="alerte">boss ${a.boss.segmentsRestants}/${a.boss.segments}</span>` : "";
   return `
     <div class="pk${a.ko ? " ko" : ""}">
       <div class="haut"><span class="nom">${echapper(a.nom)}${a.shiny ? " ✨" : ""}${a.dejaCapture ? ` <span class="discret" title="Déjà capturé">◓</span>` : ""}</span>
         <span>N.${a.niveau}</span> ${a.types.map(puceType).join("")}</div>
       <div class="ligne-pv">${barrePv(a.pvPourcent)}<span>${a.pvPourcent} %${statut(a.statut)}${boss}</span></div>
+      ${aCraindre(a, obs)}
     </div>`;
 }
 
@@ -176,7 +192,21 @@ function ligneAllie(p: PokemonAllie): string {
 // ─── Les fiches détaillées (repliées) ────────────────────────────────────────────────────────
 
 function ficheAdversaire(a: PokemonAdverse): string {
-  const talent = a.talentRevele ? echapper(a.talentRevele.nom) : `<span class="discret">? (pas encore affiché)</span>`;
+  const c = connaissance(a.espece);
+  const possibles = c ? [...new Set(c.talents.filter(t => t > 0))].map(nomTalent).join(" / ") : "";
+  const talent = a.talentRevele
+    ? echapper(a.talentRevele.nom)
+    : `<span class="discret">? (pas encore affiché${possibles ? ` — possibles : ${echapper(possibles)}` : ""})</span>`;
+  const immunites = immunitesPossibles(a.espece, a.talentRevele?.id ?? null);
+  const annule = immunites.length
+    ? `<div>Peut annuler : ${immunites.map(t => echapper(PokemonType[t]?.fr ?? String(t))).join(", ")}</div>`
+    : "";
+  const peutConnaitre = attaquesPossibles(a.espece, a.niveau)
+    .sort((x, y) => y.puissance - x.puissance)
+    .slice(0, 4)
+    .map(x => `<span class="puce">${echapper(x.nom)} <span class="discret">${x.puissance}</span></span>`)
+    .join("");
+  const potentiel = c ? `<div class="discret">Potentiel : forme finale ${c.totalFinal} (actuelle ${c.total})</div>` : "";
   const attaques = a.attaquesVues.length
     ? a.attaquesVues.map(x => `<span class="puce">${echapper(x.nom)}</span>`).join("")
     : `<span class="discret">aucune pour l'instant</span>`;
@@ -184,10 +214,13 @@ function ficheAdversaire(a: PokemonAdverse): string {
     <div class="fiche">
       <div><span class="nom">${echapper(a.nom)}</span> <span class="discret">(adversaire)</span></div>
       <div>Talent : ${talent}</div>
+      ${annule}
       <div>Attaques vues : ${attaques}</div>
+      ${peutConnaitre ? `<div>Peut connaître (N.${a.niveau}) : ${peutConnaitre}</div>` : ""}
+      ${potentiel}
       ${listeObjets(a.objets)}
       ${modifsNonNulles(a.modifStats)}
-      <div class="discret">Caché au cerveau : IVs, nature, PV exacts, attaques pas encore utilisées.</div>
+      <div class="discret">Caché au cerveau : IVs, nature, PV exacts, ses vraies attaques et son vrai talent tant qu'ils ne sont pas montrés (il connaît seulement le possible, comme un joueur).</div>
     </div>`;
 }
 
@@ -230,7 +263,7 @@ function duelEtDetails(obs: Observation, ouverts: ReadonlySet<string>): string {
     </div>`;
   return `
     <div class="etiquette">ADVERSAIRE${obs.adversaires.length > 1 ? "S" : ""}</div>
-    ${obs.adversaires.map(ligneAdversaire).join("") || `<div class="discret">Personne sur le terrain.</div>`}
+    ${obs.adversaires.map(a => ligneAdversaire(a, obs)).join("") || `<div class="discret">Personne sur le terrain.</div>`}
     <div class="etiquette">ÉQUIPE</div>
     ${obs.equipe.map(ligneAllie).join("")}
     ${section("partie", "PARTIE", partie, ouverts)}

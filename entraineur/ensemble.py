@@ -43,7 +43,14 @@ class Ensemble:
         vagues = apres["vague"] - avant["vague"]
         points = vagues * self.points["vague_gagnee"]
         points += max(0, apres["koEquipe"] - avant["koEquipe"]) * self.points["ko_subi"]
-        points += max(0, apres["tailleEquipe"] - avant["tailleEquipe"]) * self.points["capture"]
+        # Capture gardée : un nouveau venu dans l'équipe, y compris à la place d'un membre (la note
+        # d'équipe ne remplace que pour mieux). Ancien calcul (l'équipe grandit) pour un simulateur
+        # qui ne compte pas encore les recrues.
+        if "recrues" in apres:
+            nouveaux = apres["recrues"] - avant.get("recrues", 0)
+        else:
+            nouveaux = apres["tailleEquipe"] - avant["tailleEquipe"]
+        points += max(0, nouveaux) * self.points["capture"]
         if vagues == 0:
             # Coup de pouce : les PV retirés à l'adversaire (seulement s'ils baissent ; un nouvel
             # adversaire qui entre en pleine forme ne compte pas comme une punition).

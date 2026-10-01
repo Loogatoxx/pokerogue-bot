@@ -50,3 +50,21 @@ describe("Note d'équipe", () => {
     expect(options).toHaveLength(7);
   });
 });
+
+describe("Potentiel des espèces", () => {
+  const equipe = [salameche, reptincel, carapuce, tiplouf, roucool, chenipan];
+
+  it("garde un Embrylex prometteur à la place d'un membre faible", () => {
+    const embrylex = membre("Embrylex", 246, 12, [5, 4], [attaque("Morsure", 15, 0, 60)]);
+    const choix = meilleureOptionEquipe(evaluerArrivee(equipe, embrylex));
+    expect(choix.remplacer).not.toBeNull();
+    expect(choix.pour.join(" ")).toMatch(/potentiel/);
+  });
+
+  it("à niveau, types et attaques égaux, préfère l'espèce au meilleur potentiel", () => {
+    // Seule l'espèce change : Embrylex (forme finale 600) contre Rattata (forme finale 413).
+    const charge = [attaque("Charge", 0, 0, 40)];
+    const note = (espece: number) => meilleureOptionEquipe(evaluerArrivee(equipe, membre("X", espece, 13, [0], charge))).note;
+    expect(note(246)).toBeGreaterThan(note(19));
+  });
+});

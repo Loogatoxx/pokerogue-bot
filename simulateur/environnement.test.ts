@@ -311,6 +311,23 @@ async function jouerPartie(
   let phases = 0;
   /** Pokémon capturés et gardés pendant la partie (l'équipe s'agrandit). */
   let captures = 0;
+  /**
+   * Nouveaux venus dans l'équipe depuis le départ, y compris à la place d'un membre (un identifiant
+   * de Pokémon jamais vu dans l'équipe). C'est ce que récompense l'entraînement : avec l'équipe
+   * pleine, capturer un meilleur Pokémon que l'un des six compte aussi (idée de Carlos).
+   */
+  let recrues = 0;
+  const membresConnus = new Set<number>();
+  const compterRecrues = (o: Observation) => {
+    const depart = membresConnus.size === 0;
+    for (const membre of o.equipe) {
+      if (!membresConnus.has(membre.uid)) {
+        membresConnus.add(membre.uid);
+        recrues += depart ? 0 : 1;
+      }
+    }
+    return recrues;
+  };
   let tailleEquipe = 0;
   let enAttente = false;
   let erreur: string | undefined;
@@ -410,7 +427,7 @@ async function jouerPartie(
         // Les 1 290 nombres en binaire (base64) : plus rapide et plus exact que du texte.
         observation: Buffer.from(encoder(obs).buffer).toString("base64"),
         masque: masque.map(Number),
-        info: infoPartie(obs),
+        info: { ...infoPartie(obs), recrues: compterRecrues(obs) },
       });
       canal.recevoir().then(message => {
         if (message.type !== "action") {
@@ -544,6 +561,7 @@ async function jouerPartie(
     victoire,
     tronquee,
     captures,
+    recrues,
     decisions,
     phases,
     secondes: (performance.now() - debut) / 1000,

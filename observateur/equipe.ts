@@ -13,9 +13,13 @@
  *   - la défense : avoir, pour chaque type d'attaque, au moins un membre qui y résiste ;
  *   - les faiblesses empilées : trois membres ou plus qui craignent le même type ;
  *   - les doublons : deux membres qui partagent un type (et pire, la même espèce) ;
- *   - la solidité : PV, Défense et Défense Spé. moyennes (valeurs réelles, donc selon le niveau).
+ *   - la solidité : PV, Défense et Défense Spé. moyennes (valeurs réelles, donc selon le niveau) ;
+ *   - le potentiel (idée de Carlos) : le total de statistiques de la forme finale de chaque espèce
+ *     (observateur/especes.ts). Un Embrylex niveau 10 a l'air faible ; un joueur sait qu'il
+ *     deviendra Tyranocif, et qu'il vaut mieux qu'un Rattata.
  * Une formule lisible, en attendant que le cerveau décide lui-même (étape 5, team build).
  */
+import { connaissance } from "./especes";
 import { EFFICACITE_TYPES, PokemonType } from "./noms";
 import { type AttaqueNotee, meilleurParType } from "./synergie";
 
@@ -39,7 +43,10 @@ export interface OptionEquipe {
 }
 
 const NB_TYPES = 18;
-const POIDS = { couverture: 0.5, profondeur: 3, defense: 25, solidite: 5, faiblesses: 6, typesPartages: 5, memeEspece: 25 };
+const POIDS = { couverture: 0.5, profondeur: 3, defense: 25, solidite: 5, faiblesses: 6, typesPartages: 5, memeEspece: 25, potentiel: 12 };
+
+/** Potentiel d'un membre : total de statistiques de sa forme finale, en centaines (6 pour 600). */
+const potentielDe = (m: Membre) => (connaissance(m.espece)?.totalFinal ?? 0) / 100;
 
 const moyenne = (valeurs: number[]) => valeurs.reduce((a, b) => a + b, 0) / Math.max(valeurs.length, 1);
 const nomType = (t: number) => PokemonType[t]?.fr ?? `type ${t}`;
@@ -64,6 +71,7 @@ interface Detail {
   faiblesses: number;
   typesPartages: number;
   memeEspece: number;
+  potentiel: number;
   /** Par type d'attaque : quelqu'un y résiste-t-il ? */
   resiste: boolean[];
   /** Par type d'adversaire : puissance de la meilleure attaque de l'équipe. */
@@ -92,6 +100,7 @@ function detailler(equipe: Membre[]): Detail {
     faiblesses,
     typesPartages,
     memeEspece,
+    potentiel: moyenne(equipe.map(potentielDe)),
     resiste,
     couverture,
   };
@@ -104,6 +113,7 @@ export function noterEquipe(equipe: Membre[]): number {
     + POIDS.profondeur * d.profondeur
     + POIDS.defense * d.defense
     + POIDS.solidite * d.solidite
+    + POIDS.potentiel * d.potentiel
     - POIDS.faiblesses * d.faiblesses
     - POIDS.typesPartages * d.typesPartages
     - POIDS.memeEspece * d.memeEspece
@@ -149,6 +159,11 @@ function comparer(nouvelle: Membre[], actuelle: Membre[], arrivant: Membre, part
     pour.push("moins de faiblesses partagées");
   }
   if (parti) {
+    const gain = potentielDe(arrivant) - potentielDe(parti);
+    if (Math.abs(gain) >= 0.5) {
+      const final = (m: Membre) => `${m.nom} (forme finale : ${Math.round(potentielDe(m) * 100)})`;
+      (gain > 0 ? pour : contre).push(`potentiel : ${final(arrivant)} contre ${final(parti)}`);
+    }
     const plusFort = Math.max(...actuelle.map(m => m.niveau));
     if (parti.niveau === plusFort) {
       contre.push(`perd son membre le plus avancé (${parti.nom}, niv. ${parti.niveau})`);
