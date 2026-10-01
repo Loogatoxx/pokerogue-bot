@@ -22,6 +22,7 @@ import { type Cerveau, lireCerveau, meilleureAction, penser, type Reponse } from
 import { decrireAction, NOMBRE_ACTIONS } from "../../observateur/actions";
 import { encoder, TAILLES_ENCODAGE, VERSION_ENCODAGE } from "../../observateur/encodeur";
 import { attaquesPossibles, connaissance, immunitesPossibles, nomTalent } from "../../observateur/especes";
+import { chanceCapture } from "../../observateur/capture";
 import { planifier } from "../../observateur/planificateur";
 import { prevoir } from "../../observateur/prevision";
 import { PokeballType, PokemonType } from "../../observateur/noms";
@@ -181,6 +182,18 @@ function prevision(a: PokemonAdverse, obs: Observation): string {
   return `<div class="discret">Va sans doute utiliser : ${echapper(coup.attaque.nom)} (${Math.round(coup.probabilite * 100)} %)${efficace}${mieux}</div>`;
 }
 
+/** Pokémon sauvage : sa chance d'entrer dans la meilleure Ball en stock (formule du jeu). */
+function capture(a: PokemonAdverse, obs: Observation): string {
+  if (obs.partie.dresseur || a.boss || a.ko) {
+    return "";
+  }
+  const meilleure = [...obs.partie.balls].filter(b => b.quantite > 0).sort((x, y) => y.id - x.id)[0];
+  if (!meilleure) {
+    return "";
+  }
+  return `<div class="discret">Capture : ${Math.round(chanceCapture(a, meilleure.id) * 100)} % avec une ${echapper(meilleure.nom)}</div>`;
+}
+
 function ligneAdversaire(a: PokemonAdverse, obs: Observation): string {
   const boss = a.boss ? ` <span class="alerte">boss ${a.boss.segmentsRestants}/${a.boss.segments}</span>` : "";
   return `
@@ -189,6 +202,7 @@ function ligneAdversaire(a: PokemonAdverse, obs: Observation): string {
         <span>N.${a.niveau}</span> ${a.types.map(puceType).join("")}</div>
       <div class="ligne-pv">${barrePv(a.pvPourcent)}<span>${a.pvPourcent} %${statut(a.statut)}${boss}</span></div>
       ${prevision(a, obs)}
+      ${capture(a, obs)}
     </div>`;
 }
 
@@ -633,7 +647,7 @@ function demarrer(): void {
     const cle = cleDecision(obs);
     const interdites = refusees.get(cle) ?? new Set<number>();
     const masque = obs.decision.masque.map((permise, i) => permise && !interdites.has(i));
-    const reponse = penser(cerveau, entreeDe(cerveau, obs), masque, planifier({ ...obs, decision: { ...obs.decision, masque } }, { capture: true }));
+    const reponse = penser(cerveau, entreeDe(cerveau, obs), masque, planifier({ ...obs, decision: { ...obs.decision, masque } }));
     const choisie = meilleureAction(reponse);
     derniereReponse = reponse;
     afficherChoix(afficherReflexion({ ...obs, decision: { ...obs.decision, masque } }, reponse, choisie));
@@ -794,7 +808,7 @@ function demarrer(): void {
             const interdites = refusees.get(cle) ?? new Set<number>();
             const masqueChoisie = choisie.decision.masque!.map((p, i) => p && !interdites.has(i));
             const reponse = cerveau
-              ? penser(cerveau, entreeDe(cerveau, choisie), masqueChoisie, planifier({ ...choisie, decision: { ...choisie.decision, masque: masqueChoisie } }, { capture: true }))
+              ? penser(cerveau, entreeDe(cerveau, choisie), masqueChoisie, planifier({ ...choisie, decision: { ...choisie.decision, masque: masqueChoisie } }))
               : null;
             if (reponse) {
               interdites.add(meilleureAction(reponse));

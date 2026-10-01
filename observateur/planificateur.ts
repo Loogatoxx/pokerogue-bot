@@ -128,8 +128,11 @@ function valeurBall(obs: Observation, moi: PokemonAllie, lui: PokemonAdverse, ba
   // l'équipe n'est pas pleine, ensuite seulement si l'espèce promet plus que le plus faible des six.
   const potentiel = (espece: number) => connaissance(espece)?.totalFinal ?? 0;
   const plusFaible = Math.min(...obs.equipe.map(m => potentiel(m.espece)));
-  const membre = obs.equipe.length < 6 ? 0.5 : Math.max(0, Math.min(0.5, (potentiel(lui.espece) - plusFaible) / 300));
-  const gain = 2 + membre;
+  const membre = obs.equipe.length < 6 ? 0.3 : Math.max(0, Math.min(0.3, (potentiel(lui.espece) - plusFaible) / 300));
+  // Mesuré (v4, 160 parties, arrêt à 50) : Balls neutres 37,1 ; jugées avec gain 2 + 0,5 : 35,3 ;
+  // avec 1,6 + 0,3 : 31,9. Les captures fréquentes rapportent plus qu'elles ne coûtent : l'option
+  // reste désactivée par défaut (extension et entraînement), le calcul sert à l'affichage.
+  const gain = 1.6 + membre;
   const pvMoi = moi.pv / Math.max(moi.pvMax, 1);
   const pvLui = lui.pvPourcent / 100;
   const d = duel(obs, moi, pvMoi, lui, pvLui);
