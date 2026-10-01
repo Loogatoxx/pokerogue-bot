@@ -514,3 +514,39 @@ plus de décisions.
 Comprendre précisément pourquoi le cerveau bute sur le rival, corriger ce que les règles font mal
 (se soigner, acheter), donner au cerveau ce qu'un joueur sait (le prochain combat, le Pokédex), et
 récompenser une bonne équipe plutôt qu'une équipe pleine.
+
+---
+
+## 17. Dépasser le plafond : entraînement ciblé, puis prévoir l'IA adverse — 01/10/2026
+
+**Prompts**
+> oui on peut essayer de daplcer le plafond
+>
+> (pause) on arrete la arrete tout je reprend plus tard — aller on continue l entrainement
+>
+> je vien de me renseigner et le facteur clee pour pouvoir gagner c'est d anticiper l ia adverse elle est souvent trop dans la superefficaciter et le changement de pokemon faut jouer sur ça et fabriquer notre ia pour contrer en predisant pile poile se qu'elle va faire un peu comme une partie d echecs, on analyse pas seulement la position actuel mais les position eventuel future aussi en trouvent qu elle est le meilleur chemin, l ia ne bluff jamais comme elle ne fait jamais de bluff en essayant de predire le mouvement humain c'est a nous de predire et parfois pas prendre toujours la meilleur attaque sur la situation actuel mais plutot sur la prochaine situation, je vois que notre ia stagne trop dans les 30 depuis 1h
+
+**Réponse**
+- Entraînement ciblé : photos du début des combats qui bloquent (la sauvegarde que fait le jeu),
+  reprises comme « Continuer » ; une partie sur deux repart d'une photo, le combat le plus raté
+  étant tiré le plus souvent. Entraînement 7 : moins bon que la v3 (25,2 contre 27,4).
+- IA adverse lue dans le jeu : elle choisit son coup contre le Pokémon en face d'elle avant ton
+  changement, K.O. d'abord, puis puissance × efficacité (elle adore le super efficace).
+- Prédicteur (`observateur/prevision.ts`) mesuré sur 12 250 coups : 65 % d'attaques annoncées
+  exactement (proche du maximum, un sauvage tire au sort 3 fois sur 8). Donné au cerveau
+  (encodage v5) et affiché dans le panneau (0.8.0).
+- Diagnostic du plafond : les entraînements 6 et 7 payaient chaque remplacement → supprimé ;
+  pas d'apprentissage réduit. Entraînement 8 lancé (v3 greffée + prévision + ciblé).
+
+**Modifications**
+- Nouveaux : `observateur/prevision.ts`, `tests/prevision.test.ts`, `docs/etape-6-entrainement-cible.md`,
+  `docs/etape-7-prevision.md`.
+- Modifiés : `simulateur/outils-partie.ts` (photos, reprise), `simulateur/environnement.test.ts`
+  (photos, départ, précision du prédicteur), `entraineur/ensemble.py` (réserve de photos, tirage
+  adaptatif, récompense des captures), `entraineur/entrainer.py`, `entraineur/pont.py`,
+  `entraineur/tableau_de_bord.py`, `entraineur/analyse_defaites.py`, `entraineur/reglages.toml`,
+  `observateur/encodeur.ts` (v5), `extension/src/panneau.ts`.
+
+**Objectif**
+Que le cerveau joue avec un coup d'avance sur l'IA adverse, et cesser d'être payé pour autre
+chose que gagner.
