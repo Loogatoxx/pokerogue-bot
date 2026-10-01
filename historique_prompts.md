@@ -463,3 +463,50 @@ et 22,3 (six trios), pas mieux que la v2 : pas de v3. Les défaites se concentre
 Vérifier le travail du cloud, comprendre le comportement vu dans Brave avant de toucher au
 cerveau, et entraîner plus vite : chaque heure d'entraînement joue maintenant environ quatre fois
 plus de décisions.
+
+---
+
+## 16. Le mur du rival, puis toute la suite d'un trait — 01/10/2026
+
+**Prompt**
+> analyse les défaites contre le rival d'abord et fait ensuite lz suite mais tout a la suite
+>
+> (en cours de route) je t avoue jai pas tout lu des le debut mais si c'est deja pas fait lui emporter peut etrer avec des api toutes les attaque de chaque pokmemon qui est possible et a quel niveau comme ça il sais d avance quest que sont adversaire peut avoir comme attaque talent çacher etc et sais de quoi faut se mefier, comme ça elle a moin d hesitation deja que je vois que son hesitation monte
+>
+> faut qu il connaissae tout les pokemon imaginon il le voit sauvage faut qu il çapture et le remplacer par un autre parce que c'est un bon pokemon faut pas quil pense que c'est bon il a çapturer les 3 ila plus besoin de capturer
+
+**Réponse**
+- Analyse (récit de partie + `entraineur/analyse_defaites.py`, 320 parties) : contre le rival, le
+  cerveau est à niveau égal mais arrive blessé (au boss de la vague 20 : 68 % de PV pour les
+  perdants, 86 % pour les gagnants) et choisit 5 fois plus d'attaques de statut quand il perd.
+  Les captures sont indispensables (sans : vague moyenne 8,9 au lieu de 24).
+- Soins avant les combats importants (rival, champion, boss) et achats en boutique : même
+  cerveau, vague moyenne 23,7 → 27,2.
+- Prochain combat important dans l'observation (encodage v3), affiché dans le panneau.
+- Fuites de mémoire : trouvées par comptage d'objets et photo de la mémoire (terrain, cadres
+  d'info, interface, étincelles, icônes d'équipe, file d'animation) ; il reste une petite fuite
+  de textes, compensée par un redémarrage des copies toutes les 30 parties.
+- Idées de Carlos : connaissance « Pokédex » générée depuis le jeu, sans API en ligne (attaques
+  par niveau, talents possibles dont le caché, immunités, potentiel de la forme finale) dans
+  l'observation (encodage v4) et dans le panneau (« À craindre pour X : … ») ; la note d'équipe
+  tient compte du potentiel ; chaque capture gardée est récompensée, même équipe pleine.
+- Entraînement 5 (2 h prévues, arrêté à 1 h 50, plateau) : pas mieux que le 4 → pas de v3.
+  Entraînement 6 lancé avec la connaissance.
+
+**Modifications**
+- Nouveaux : `entraineur/analyse_defaites.py`, `observateur/combats.ts`, `observateur/especes.ts`,
+  `observateur/donnees-especes.ts` (généré), `observateur/generer-especes.py`,
+  `simulateur/exporter-especes.test.ts`, `tests/combats.test.ts`, `tests/especes.test.ts`,
+  `docs/etape-5-rival.md`.
+- Modifiés : `simulateur/environnement.test.ts` (récit, ménage entre parties, diagnostics
+  PONT_COMPTAGE / PONT_INSTANTANE, recrues), `simulateur/outils-partie.ts`, `observateur/objets.ts`
+  (soins avant combat, boutique), `observateur/decisions-jeu.ts`, `pilote/pilote.ts` (achats),
+  `observateur/encodeur.ts` (v3, v4), `observateur/types.ts` (v4), `observateur/equipe.ts`
+  (potentiel), `observateur/noms.ts` (combats fixes), `entraineur/ensemble.py` (recrues),
+  `entraineur/reseau.py` (anciens cerveaux), `entraineur/reglages.toml` (vague_max 75),
+  `extension/src/panneau.ts` (0.7.0).
+
+**Objectif**
+Comprendre précisément pourquoi le cerveau bute sur le rival, corriger ce que les règles font mal
+(se soigner, acheter), donner au cerveau ce qu'un joueur sait (le prochain combat, le Pokédex), et
+récompenser une bonne équipe plutôt qu'une équipe pleine.
