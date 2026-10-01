@@ -69,3 +69,50 @@ table d'animation des icônes de l'écran d'équipe, et la file d'animation que 
 Il reste une petite fuite (textes enrichis retenus par la réserve de canevas de Phaser, ~5-10 Mo
 par longue partie), qu'on ne peut pas vider sans risque : les copies redémarrent toutes les
 30 parties.
+
+## 5. La connaissance « Pokédex » (idée de Carlos)
+
+`observateur/donnees-especes.ts` est généré depuis le jeu (`generer-especes.py`), sans API en
+ligne : 1 084 espèces (attaques par niveau, talents possibles dont le caché, évolutions, total des
+statistiques et de la forme finale), 921 attaques, 319 talents avec les types qu'ils annulent
+(Lévitation → Sol…). C'est ce qu'une espèce PEUT avoir, jamais ce que l'adversaire a réellement.
+
+- Encodage v4 (+88 nombres) : pour chaque adversaire, la meilleure puissance possible par type à
+  son niveau, la pire menace sur le Pokémon qui joue, les types qu'un de ses talents possibles
+  annule, son potentiel ; le potentiel de chaque membre de l'équipe.
+- Note d'équipe : critère « potentiel » (à niveau, types et attaques égaux, un Embrylex passe
+  avant un Rattata).
+- Récompense : chaque nouveau venu gardé dans l'équipe (« recrues »), y compris à la place d'un
+  membre. Avant, capturer ne rapportait plus rien une fois l'équipe pleine.
+- Panneau 0.7.0 : « À craindre pour X : attaque » sous chaque adversaire, et dans sa fiche ses
+  talents possibles, ce qu'il peut annuler, ce qu'il peut connaître, son potentiel.
+
+## 6. Entraînements 5 et 6, v3
+
+Mêmes conditions pour tous : 320 parties, starters au hasard, meilleur coup, règles actuelles
+(soins, boutique, potentiel), parties arrêtées à la vague 50.
+
+| Cerveau | Vague moyenne | Rival 1 | Boss 20 | Rival 2 |
+|---|---|---|---|---|
+| v2 | 25,1 | 78 % | 90 % | 52 % |
+| entrainement-5 (170) — **publié v3** | 27,3 | 83 % | 88 % | 55 % |
+| entrainement-6 (240) | 25,1 | 85 % | 87 % | 43 % |
+| entrainement-6 (320) | 24,1 | 80 % | 83 % | 44 % |
+
+- Entraînement 5 (encodage v3, 1 h 50) : pas mieux que le 4, mais au-dessus de la v2.
+- Entraînement 6 (connaissance, recrues, 1 h 20) : **moins bon**. Ni les Balls (27-28 % des choix
+  pour tous) ni la nouvelle note d'équipe (le cerveau 5 y gagne même : 26,7 → 27,3) n'en sont la
+  cause : c'est le combat lui-même qui s'est dégradé.
+- v3 = cerveau 5 greffé sur l'encodage v4 (même comportement) : **27,17** à l'évaluation officielle
+  (Kanto, 64 parties, meilleur coup), record 95.
+
+**Constat** : depuis l'entraînement 4, l'apprentissage par renforcement plafonne vers la vague 27.
+Les gains viennent des règles de joueur (soins, boutique : +3,5 vagues), qui profitent à tous les
+cerveaux. Pistes : entraîner spécialement sur les combats qui bloquent (parties qui commencent
+juste avant le rival), un horizon plus long (gamma 0,99 → 0,995 : une vague compte ~100
+décisions), un réseau plus grand pour profiter des 88 nouveaux nombres.
+
+## 7. Productivité
+
+- Une copie figée immobilisait la collecte 10 minutes (délai de silence) : ramené à 2 minutes.
+- Redémarrage des copies toutes les 30 parties (petite fuite restante).

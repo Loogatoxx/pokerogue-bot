@@ -30,15 +30,17 @@ JOURNAUX = RACINE / ".journaux"
 # Fichiers du simulateur copiés dans le jeu : ses raccourcis d'import (#app, #enums…)
 # ne fonctionnent que depuis l'intérieur du jeu.
 FICHIERS_SIMULATEUR = ["environnement.test.ts", "outils-partie.ts"]
-# Chaque copie du jeu perd de la mémoire à chaque partie, et ralentit avec elle. Les grosses fuites
-# de l'outil de test sont colmatées à chaque fin de partie (simulateur/environnement.test.ts :
-# écouteurs d'animation, liste d'objets graphiques, journaux) ; il en reste une petite, qui divise
-# encore la vitesse par deux en ~45 parties. On redémarre donc chaque copie au bout de ce nombre de
-# parties (~8 s de démarrage, sans gêner les autres depuis la collecte asynchrone).
-PARTIES_AVANT_REDEMARRAGE = int(os.environ.get("PONT_REDEMARRAGE", 25))
+# Chaque copie du jeu perdait de la mémoire à chaque partie, et ralentissait avec elle. Les fuites
+# de l'outil de test sont colmatées entre deux parties (menageEntreParties dans
+# simulateur/environnement.test.ts) ; il en reste une petite (textes retenus par la réserve de
+# canevas de Phaser, ~5-10 Mo par longue partie). On redémarre donc chaque copie au bout de ce
+# nombre de parties (~8 s de démarrage, sans gêner les autres depuis la collecte asynchrone).
+PARTIES_AVANT_REDEMARRAGE = int(os.environ.get("PONT_REDEMARRAGE", 30))
 # Une copie du jeu qui ne répond plus du tout pendant ce délai est considérée comme figée (côté
 # jeu, un écran bloqué est déjà signalé au bout de 60 s : ceci est le dernier filet de sécurité).
-SILENCE_MAX_S = 600
+# 600 → 120 s le 01/10 : la collecte attend chaque copie avant d'apprendre, une copie figée
+# immobilisait donc tout l'entraînement 10 minutes (entrainement-6, mise à jour 225).
+SILENCE_MAX_S = 120
 
 
 @dataclass

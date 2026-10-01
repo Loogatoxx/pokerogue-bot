@@ -250,7 +250,7 @@ def main() -> None:
                 "partiesCollecte": len(finies),
                 "vagueMoyenne": round(float(np.mean(vagues)), 3), "vagueMax": int(max(vagues)),
                 "recompenseMoyenne": round(float(np.mean([p["recompense"] for p in parties_recentes] or [0])), 3),
-                "capturesMoyennes": round(float(np.mean([p.get("captures", 0) for p in parties_recentes] or [0])), 3),
+                "capturesMoyennes": round(float(np.mean([p.get("recrues", p.get("captures", 0)) for p in parties_recentes] or [0])), 3),
                 "decisionsParSeconde": round(lot[0].shape[0] / t_collecte, 1),
                 **mesures,
             }
