@@ -65,3 +65,20 @@ versions du cerveau d'origine.
 
 Départ v4, le cerveau apprend **par-dessus** le planificateur (même poids 30), exercices sur les
 nouveaux murs (20, 25, 30, 40, 50, 55, 66, 80, 90, 95), `vague_max` 120.
+
+## Suite : retours de Carlos en jouant la v4 dans Brave (01/10)
+
+- **« L'IA essaie toujours de capturer ; si le Pokémon résiste, il ne rentre pas et finit par
+  mettre K.O. nos Pokémon. »** Les Balls étaient neutres pour le planificateur. Désormais (option
+  `capture`, active dans l'extension) : chance de capture par la formule du jeu
+  (`observateur/capture.ts` : taux de l'espèce, PV, statut, Ball ; il faut 3 secousses) ; une
+  capture vaut un K.O. plus un membre (tant que l'équipe n'est pas pleine, ensuite selon le
+  potentiel de l'espèce) ; un échec vaut le coup qu'on encaisse. Un Pokémon à taux 45 en pleine
+  forme n'a que ~20 % de chances par Poké Ball : on l'affaiblit d'abord.
+- **« Le mode auto s'est arrêté » sur une rencontre mystère** (« Promos au Centre Commercial »,
+  vague 18). Elles sont coupées par l'outil de test, donc jamais vues à l'entraînement. Le pilote
+  sait maintenant : choisir la première option possible (après l'animation), choisir un Pokémon
+  quand une rencontre le demande, passer les éclosions d'œufs et fermer leur résumé, revenir au
+  menu de combat si le menu des attaques reste ouvert. Option `mysteres` du simulateur (« jeu »
+  ou un pourcentage) : 12 parties avec une rencontre à chaque vague, puis 18 au rythme du jeu,
+  aucun blocage. Extension 0.9.1.
