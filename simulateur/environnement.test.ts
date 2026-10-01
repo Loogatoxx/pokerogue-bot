@@ -26,7 +26,7 @@ import Phaser from "phaser";
 import { describe, it, vi } from "vitest";
 import { decrireAction, NOMBRE_ACTIONS } from "../../../observateur/actions";
 import { planifier } from "../../../observateur/planificateur";
-import { prevoir } from "../../../observateur/prevision";
+import { prevoir, prevoirChangement, scoresChangement, type ScoresChangement } from "../../../observateur/prevision";
 import { Carnet } from "../../../observateur/carnet";
 import { encoder, TAILLE_OBSERVATION, VERSION_ENCODAGE } from "../../../observateur/encodeur";
 import type { PokemonJeu, ScenePokerogue } from "../../../observateur/jeu";
@@ -77,6 +77,11 @@ type MessagePython =
       photos?: number[];
       /** Le planificateur juge aussi les Poké Balls (chance de capture). */
       planCapture?: boolean;
+      /** Le planificateur joue chaque coup possible de l'adversaire (scénarios) et sa prudence. */
+      planScenarios?: boolean;
+      planPrudence?: number;
+      /** Le planificateur prévoit les changements de Pokémon adverses. */
+      planChangements?: boolean;
       /** Rencontres mystères : « jeu » = au rythme du vrai jeu ; un nombre = % de chance par vague.
        * Absent : aucune (réglage par défaut de l'outil de test). */
       mysteres?: "jeu" | number;
@@ -302,6 +307,9 @@ async function jouerPartie(
     depart?: string;
     photos?: number[];
     planCapture?: boolean;
+    planScenarios?: boolean;
+    planPrudence?: number;
+    planChangements?: boolean;
     mysteres?: "jeu" | number;
   },
 ) {
@@ -383,7 +391,15 @@ async function jouerPartie(
    * chaque décision, ce qu'il annonce pour chaque adversaire ; une fois les ordres de l'adversaire
    * donnés, ce qu'il joue vraiment.
    */
-  const prediction = { tours: 0, exacts: 0, memeType: 0, probabilite: 0, changements: 0, statut: 0, horsPrevision: 0 };
+  const prediction = {
+    tours: 0, exacts: 0, memeType: 0, probabilite: 0, changements: 0, statut: 0, horsPrevision: 0,
+    // Changements de Pokémon adverses : annoncés et faits, annoncés à tort, faits sans être annoncés.
+    changementsPrevus: 0, faussesAlertes: 0, changementsRates: 0,
+    // Changements vers un Pokémon que le joueur n'avait encore jamais vu (imprévisibles par le banc vu).
+    changementsVersInconnu: 0,
+  };
+  /** Pour régler la prévision des changements : [actuel, meilleur vu, inconnus, facteur, a changé]. */
+  const calibration: number[][] = [];
   /**
    * Reproduction des combats contre le rival, décision par décision (demande de Carlos : « des
    * rapports avec une reproduction de la partie pour analyser pourquoi il n'arrive pas à passer le
@@ -401,7 +417,7 @@ async function jouerPartie(
     return a.type === "envoyer" ? `Envoyer ${o.equipe[a.place]?.nom ?? "?"}` : "Lancer une Ball";
   };
   // (dans un objet : la minuterie le remplit, la boucle le lit — TypeScript ne suit pas une variable modifiée ailleurs)
-  const annonces: { courantes: Map<number, { ids: number[]; probas: number[]; types: number[] }> | null } = { courantes: null };
+  const annonces: { courantes: Map<number, { ids: number[]; probas: number[]; types: number[]; change: boolean; bancVu: number[]; scores: ScoresChangement | null }> | null } = { courantes: null };
   // Actions refusées par le jeu pour la décision en cours (ex. changement alors qu'on est piégé).
   let cleDecision = "";
   const refusees = new Set<number>();
@@ -474,7 +490,7 @@ async function jouerPartie(
         return;
       }
       if (demande.recit && obs.decision.type === "combat") {
-        const parPlace = new Map<number, { ids: number[]; probas: number[]; types: number[] }>();
+        const parPlace = new Map<number, { ids: number[]; probas: number[]; types: number[]; change: boolean; bancVu: number[]; scores: ScoresChangement | null }>();
         for (const a of obs.adversaires) {
           const p = prevoir(obs, a);
           if (p) {
@@ -482,6 +498,9 @@ async function jouerPartie(
               ids: p.coups.map(c => c.attaque.id),
               probas: p.coups.map(c => c.probabilite),
               types: p.coups.map(c => c.attaque.type),
+              change: (prevoirChangement(obs, a)?.probabilite ?? 0) >= 0.5,
+              bancVu: (obs.banc ?? []).map(b => b.uid),
+              scores: scoresChangement(obs, a),
             });
           }
         }
@@ -499,7 +518,12 @@ async function jouerPartie(
       }
       enAttente = true;
       decisions++;
-      const plan = planifier(obs, { capture: !!demande.planCapture });
+      const plan = planifier(obs, {
+        capture: !!demande.planCapture,
+        scenarios: !!demande.planScenarios,
+        prudence: demande.planPrudence ?? 0,
+        changements: !!demande.planChangements,
+      });
       if (demande.recit && dresseurDe(sceneRecit)?.startsWith("RIVAL")) {
         const pv = (p: { pv: number; pvMax: number }) => `${Math.round((100 * p.pv) / Math.max(p.pvMax, 1))} %`;
         const prevu = obs.adversaires.map(a => {
@@ -598,13 +622,23 @@ async function jouerPartie(
       }
       if (demande.recit && annonces.courantes && phase.is("TurnStartPhase")) {
         // Tous les ordres sont donnés : on compare l'annonce à ce que l'adversaire a choisi.
-        const ordres = (game.scene.currentBattle as unknown as { turnCommands: Record<number, { command: number; move?: { move: number } } | null> }).turnCommands;
+        const ordres = (game.scene.currentBattle as unknown as { turnCommands: Record<number, { command: number; cursor?: number; move?: { move: number } } | null> }).turnCommands;
         for (const [place, annonce] of annonces.courantes) {
           const ordre = ordres[2 + place]; // BattlerIndex.ENEMY = 2
           if (!ordre) {
             continue;
           }
           prediction.tours++;
+          const aChange = ordre.command === 2;
+          prediction.changementsPrevus += aChange && annonce.change ? 1 : 0;
+          prediction.faussesAlertes += !aChange && annonce.change ? 1 : 0;
+          prediction.changementsRates += aChange && !annonce.change ? 1 : 0;
+          const arrivant = aChange ? game.scene.getEnemyParty()[ordre.cursor ?? -1] : undefined;
+          prediction.changementsVersInconnu += arrivant && !annonce.bancVu.includes(arrivant.id) ? 1 : 0;
+          const sc = annonce.scores;
+          if (sc) {
+            calibration.push([+sc.actuel.toFixed(3), +sc.meilleurVu.toFixed(3), sc.inconnus, sc.facteur, aChange ? 1 : 0]);
+          }
           const derniere = journalCombat.at(-1);
           if (derniere && derniere.tour === game.scene.currentBattle?.turn) {
             const joue = ordre.command === 2 ? "change de Pokémon" : (allMoves[ordre.move?.move ?? -1]?.name ?? "?");
@@ -720,7 +754,7 @@ async function jouerPartie(
     regles,
     // Ce qui pourrait s'accumuler d'une partie à l'autre dans ce processus (à surveiller).
     diagnostic,
-    ...(demande.recit ? { recit, defaite, prediction, journalCombat } : {}),
+    ...(demande.recit ? { recit, defaite, prediction, journalCombat, calibration } : {}),
     ...(demande.photos ? { photos } : {}),
     ...(erreur ? { erreur, phase: game.scene.phaseManager.getCurrentPhase()?.phaseName, ecran: UiMode[game.scene.ui.getMode()] } : {}),
   };

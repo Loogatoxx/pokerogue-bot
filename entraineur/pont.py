@@ -92,7 +92,9 @@ class Simulateur:
     def nouvelle_partie(self, graine: str | None = None, especes: list[int] | None = None,
                         style_combat: str = "fixe", vague_max: int | None = None, recit: bool = False,
                         depart: str | None = None, photos: list[int] | None = None,
-                        plan_capture: bool = False, mysteres: str | int | None = None) -> Etat | Fin:
+                        plan_capture: bool = False, mysteres: str | int | None = None,
+                        plan_scenarios: bool = False, plan_prudence: float = 0.0,
+                        plan_changements: bool = False) -> Etat | Fin:
         """style_combat : « fixe » ou « changer » (le jeu propose alors de changer après chaque K.O.).
         vague_max : la partie s'arrête au-delà (info « tronquee »), pour le programme progressif.
         recit : la fin de partie contient aussi le récit (forces en présence à chaque vague, et l'état
@@ -117,6 +119,11 @@ class Simulateur:
             demande["planCapture"] = True
         if mysteres is not None:
             demande["mysteres"] = mysteres
+        if plan_scenarios:
+            demande["planScenarios"] = True
+            demande["planPrudence"] = plan_prudence
+        if plan_changements:
+            demande["planChangements"] = True
         self._envoyer(demande)
         return self._recevoir()
 

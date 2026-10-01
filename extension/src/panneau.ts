@@ -24,7 +24,7 @@ import { encoder, TAILLES_ENCODAGE, VERSION_ENCODAGE } from "../../observateur/e
 import { attaquesPossibles, connaissance, immunitesPossibles, nomTalent } from "../../observateur/especes";
 import { chanceCapture } from "../../observateur/capture";
 import { planifier } from "../../observateur/planificateur";
-import { prevoir } from "../../observateur/prevision";
+import { prevoir, prevoirChangement } from "../../observateur/prevision";
 import { PokeballType, PokemonType } from "../../observateur/noms";
 import {
   type Decision,
@@ -179,7 +179,14 @@ function prevision(a: PokemonAdverse, obs: Observation): string {
     .sort((x, y) => charge(x.i) - charge(y.i))[0];
   const mieux = remplacant && actuel >= 0 && charge(remplacant.i) < charge(actuel) / 2
     ? ` · ${echapper(remplacant.m.nom)} l'encaisserait mieux` : "";
-  return `<div class="discret">Va sans doute utiliser : ${echapper(coup.attaque.nom)} (${Math.round(coup.probabilite * 100)} %)${efficace}${mieux}</div>`;
+  // Un dresseur dont le Pokémon est en mauvaise posture le remplace souvent (règle du jeu).
+  const change = prevoirChangement(obs, a);
+  const changement = change && change.probabilite >= 0.5
+    ? `<div class="discret alerte">Va sans doute changer de Pokémon (${Math.round(change.probabilite * 100)} %)`
+      + `${change.vers ? ` pour ${echapper(change.vers.nom)}` : " pour un Pokémon pas encore vu"}</div>`
+    : "";
+  const debut = changement ? "Sinon, va" : "Va";
+  return `${changement}<div class="discret">${debut} sans doute utiliser : ${echapper(coup.attaque.nom)} (${Math.round(coup.probabilite * 100)} %)${efficace}${mieux}</div>`;
 }
 
 /** Pokémon sauvage : sa chance d'entrer dans la meilleure Ball en stock (formule du jeu). */

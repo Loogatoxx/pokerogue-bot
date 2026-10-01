@@ -229,3 +229,121 @@ export function prevoir(obs: Observation, adversaire: PokemonAdverse, cibleImpos
     plusRapide: vitesse(moi) > vitesse(lui),
   };
 }
+
+// ─── Changements de Pokémon adverses ──────────────────────────────────────────────────────────
+
+/**
+ * Le « score de duel » du jeu (Pokemon.getMatchupScore), avec ce qu'un joueur sait : efficacité
+ * moyenne de ses attaques (vues ou possibles) contre l'autre, résistance à ses types, et un facteur
+ * de PV et de vitesse. Un dresseur s'en sert pour décider de changer de Pokémon.
+ */
+function scoreDuel(
+  source: { types: readonly number[]; attaques: AttaqueCandidate[]; vitesse: number; pv: number; actif: boolean },
+  adverse: { types: readonly number[]; vitesse: number; pv: number },
+): number {
+  let defense = 1 / Math.max(efficacite(adverse.types[0] ?? 0, source.types), 0.25);
+  if (adverse.types.length > 1) {
+    defense /= Math.max(efficacite(adverse.types[1]!, source.types), 0.25);
+  }
+  const offensives = source.attaques.filter(a => a.categorie !== CATEGORIE_STATUT && a.puissance > 0);
+  const attaque = offensives.length
+    ? offensives.reduce((t, a) => t + efficacite(a.type, adverse.types) * (source.types.includes(a.type) ? 1.5 : 1), 0) / offensives.length
+    : 0;
+  const plusRapide = source.vitesse >= adverse.vitesse;
+  let pv = source.pv + (1 - adverse.pv);
+  if (source.pv <= 0.2 && source.actif) {
+    pv = !plusRapide && attaque < 1.5 && defense < 1.5 ? pv * 0.85 : 1 - source.pv + (plusRapide ? 0.2 : 0.1);
+  } else if (plusRapide) {
+    pv *= 1.25;
+  } else if (source.pv > 0.2 && source.pv <= 0.4) {
+    pv *= 0.5;
+  }
+  return (attaque + defense) * Math.min(pv, 1);
+}
+
+/** Vagues où le dresseur est un « boss » (champions, Conseil 4, chefs de la Team, derniers rivaux) :
+ * il change dès qu'un Pokémon fait 2 fois mieux, au lieu de 3. */
+const VAGUES_BOSS = new Set([95, 115, 145, 165, 182, 184, 186, 188, 190, 195]);
+
+export interface ChangementPrevu {
+  /** Le Pokémon qu'il fera entrer s'il est déjà vu ; null = un Pokémon encore jamais vu. */
+  vers: PokemonAdverse | null;
+  probabilite: number;
+}
+
+/** Les éléments de sa décision de changer, tels qu'un joueur peut les estimer. */
+export interface ScoresChangement {
+  /** Score de duel du Pokémon actuel contre le mien. */
+  actuel: number;
+  /** Le meilleur membre du banc déjà vu (null si aucun) et son score. */
+  vers: PokemonAdverse | null;
+  meilleurVu: number;
+  /** Pokémon qui lui restent et qu'on n'a jamais vus (on voit ses Poké Balls, pas ses Pokémon). */
+  inconnus: number;
+  /** Il change si un membre fait `facteur` fois mieux : 3, ou 2 pour un boss. */
+  facteur: number;
+}
+
+export function scoresChangement(obs: Observation, adversaire: PokemonAdverse, cibleImposee?: PokemonAllie): ScoresChangement | null {
+  const cible = cibleImposee ?? cibleDe(obs);
+  if (!obs.partie.dresseur || !cible || adversaire.ko) {
+    return null;
+  }
+  const banc = (obs.banc ?? []).filter(b => !b.ko);
+  const moi = combattantAllie(cible);
+  const vitesse = (c: Combattant) => (c.stats[5] ?? 0) * multiplicateurCran(c.crans[4] ?? 0);
+  const enFace = { types: moi.types, vitesse: vitesse(moi), pv: cible.pv / Math.max(cible.pvMax, 1) };
+  const score = (a: PokemonAdverse, actif: boolean) => {
+    const c = combattantAdverse(a);
+    return scoreDuel({ types: c.types, attaques: candidates(a), vitesse: vitesse(c), pv: a.pvPourcent / 100, actif }, enFace);
+  };
+  const meilleur = banc.map(b => ({ b, s: score(b, false) })).sort((x, y) => y.s - x.s)[0];
+  const presents = obs.adversaires.filter(a => !a.ko).length;
+  return {
+    actuel: score(adversaire, true),
+    vers: meilleur?.b ?? null,
+    meilleurVu: meilleur?.s ?? 0,
+    inconnus: Math.max(0, obs.partie.dresseur.pokemonRestants - presents - banc.length),
+    facteur: obs.partie.vague % 10 === 0 || VAGUES_BOSS.has(obs.partie.vague) ? 2 : 3,
+  };
+}
+
+/**
+ * Chance qu'il change vers un Pokémon jamais vu, selon le score de duel de son Pokémon actuel.
+ * Mesurée dans le simulateur (01/10, 3 757 décisions de dresseurs) : sous 0,4 il change 9 fois
+ * sur 10 ; vers 1 une fois sur 3 ; au-dessus de 2, presque jamais.
+ */
+const CHANGEMENT_INCONNU: [number, number][] = [[0.4, 0.92], [0.65, 0.78], [0.85, 0.6], [0.95, 0.35], [1.05, 0.15], [1.4, 0.1], [2, 0.04], [2.5, 0]];
+
+function interpoler(points: [number, number][], x: number): number {
+  if (x <= points[0]![0]) {
+    return points[0]![1];
+  }
+  for (let i = 1; i < points.length; i++) {
+    const [x1, y1] = points[i]!;
+    const [x0, y0] = points[i - 1]!;
+    if (x <= x1) {
+      return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
+    }
+  }
+  return points.at(-1)![1];
+}
+
+/**
+ * Va-t-il changer de Pokémon ce tour-ci ? Seuls les dresseurs changent : quand un membre de leur
+ * banc a un score de duel 3 fois meilleur (2 fois pour un boss) que le Pokémon actuel, contre
+ * celui qui est en face. Un joueur ne connaît que le banc déjà vu ; mais il voit les Poké Balls
+ * qui restent au dresseur, et sait qu'un Pokémon en mauvaise posture va sans doute laisser sa place.
+ * Mesuré : 89 % des changements se font vers un Pokémon encore jamais vu.
+ */
+export function prevoirChangement(obs: Observation, adversaire: PokemonAdverse, cibleImposee?: PokemonAllie): ChangementPrevu | null {
+  const s = scoresChangement(obs, adversaire, cibleImposee);
+  if (!s) {
+    return null;
+  }
+  if (s.vers && s.meilleurVu >= s.facteur * s.actuel) {
+    return { vers: s.vers, probabilite: 0.7 }; // mesuré : 39 fois sur 56 (le jeu freine les changements répétés)
+  }
+  const p = s.inconnus > 0 ? interpoler(CHANGEMENT_INCONNU, s.actuel) : 0;
+  return p >= 0.1 ? { vers: null, probabilite: p } : null;
+}

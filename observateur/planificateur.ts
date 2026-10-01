@@ -22,7 +22,7 @@
 import { NOMBRE_ACTIONS, PREMIER_CHANGEMENT, PREMIERE_BALL } from "./actions";
 import { chanceCapture } from "./capture";
 import { connaissance } from "./especes";
-import { cibleDe, combattantAdverse, combattantAllie, type Combattant, degats, prevoir } from "./prevision";
+import { cibleDe, combattantAdverse, combattantAllie, type Combattant, degats, prevoir, prevoirChangement } from "./prevision";
 import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
 
 const TOURS_MAX = 8;
@@ -84,41 +84,85 @@ function valeurDuel(d: Duel): number {
   return -1 + 0.5 * Math.min(1, coupsDonnes * d.parTourMoi);
 }
 
-/** Attaquer avec l'attaque `i` cet adversaire ce tour-ci, puis jouer au mieux. */
-function valeurAttaque(obs: Observation, moi: PokemonAllie, lui: PokemonAdverse, i: number): number {
+/**
+ * Combiner les scénarios (un par coup possible de l'adversaire) : l'espérance (somme des valeurs
+ * pondérées par leurs probabilités — l'« expectimax » des moteurs de jeu face au hasard), moins une
+ * part de prudence qui rapproche du pire scénario plausible (probabilité ≥ 10 %).
+ * Idée de Carlos : juger chaque décision face au top 3 des coups de l'adversaire, pas seulement
+ * face au coup qu'on croit le plus probable.
+ */
+function combiner(scenarios: { proba: number; valeur: number }[], prudence: number): number {
+  const total = scenarios.reduce((t, x) => t + x.proba, 0) || 1;
+  const esperance = scenarios.reduce((t, x) => t + x.proba * x.valeur, 0) / total;
+  const plausibles = scenarios.filter(x => x.proba / total >= 0.1);
+  const pire = Math.min(...(plausibles.length ? plausibles : scenarios).map(x => x.valeur));
+  return esperance - prudence * (esperance - pire);
+}
+
+/** Les coups possibles de l'adversaire contre `cible` ce tour-ci : probabilité et dégâts (fraction des PV restants). */
+function scenariosContre(obs: Observation, lui: PokemonAdverse, visee: PokemonAllie, recoit: PokemonAllie): { proba: number; recu: number }[] {
+  const p = prevoir(obs, lui, visee); // il choisit contre celui qui est en face (visee)
+  const pvR = recoit.pv / Math.max(recoit.pvMax, 1);
+  const r = combattantAllie(recoit);
+  const d = combattantAdverse(lui);
+  return (p?.coups ?? []).map(c => ({ proba: c.probabilite, recu: degats(d, r, c.attaque) / Math.max(pvR, 0.01) }));
+}
+
+/** Attaquer avec l'attaque `i`, en recevant `recu` (fraction de mes PV restants) ce tour-ci. */
+function valeurAttaqueSelon(obs: Observation, moi: PokemonAllie, lui: PokemonAdverse, ceTour: number, d: Duel, recu: number): number {
   const pvMoi = moi.pv / Math.max(moi.pvMax, 1);
   const pvLui = lui.pvPourcent / 100;
-  const ceTour = mesDegats(moi, lui, pvLui)[i] ?? 0;
-  const d = duel(obs, moi, pvMoi, lui, pvLui);
-  if (ceTour >= 1 && (d.plusRapide || d.parTourLui < 1)) {
-    return 1.5 + 0.5 * (d.plusRapide ? 1 : 1 - d.parTourLui); // il tombe ce tour-ci
+  if (ceTour >= 1 && (d.plusRapide || recu < 1)) {
+    return 1.5 + 0.5 * (d.plusRapide ? 1 : 1 - recu); // il tombe ce tour-ci
   }
-  if (!d.plusRapide && d.parTourLui >= 1) {
+  if (!d.plusRapide && recu >= 1) {
     return -1; // il me met K.O. avant que je frappe
   }
-  if (d.plusRapide && d.parTourLui >= 1) {
+  if (d.plusRapide && recu >= 1) {
     return -1 + 0.5 * Math.min(1, ceTour); // je frappe, puis je tombe
   }
   // Les deux encaissent ; la suite est une course au K.O. avec ma meilleure attaque.
   const pvLuiApres = pvLui * (1 - ceTour);
-  const pvMoiApres = pvMoi * (1 - d.parTourLui);
+  const pvMoiApres = pvMoi * (1 - recu);
   return valeurDuel(duel(obs, moi, pvMoiApres, lui, pvLuiApres)) - 0.1 * (1 - ceTour / Math.max(d.parTourMoi, 0.01));
 }
 
-/** Changer pour `remplacant` : il reçoit le coup prévu contre celui qui part, puis la course. */
-function valeurChangement(obs: Observation, partant: PokemonAllie, remplacant: PokemonAllie, lui: PokemonAdverse): number {
+/** Attaquer avec l'attaque `i` cet adversaire ce tour-ci, puis jouer au mieux. */
+function valeurAttaque(obs: Observation, moi: PokemonAllie, lui: PokemonAdverse, i: number, options: OptionsPlan): number {
+  const pvMoi = moi.pv / Math.max(moi.pvMax, 1);
+  const pvLui = lui.pvPourcent / 100;
+  const ceTour = mesDegats(moi, lui, pvLui)[i] ?? 0;
+  const d = duel(obs, moi, pvMoi, lui, pvLui);
+  const scenarios = options.scenarios ? scenariosContre(obs, lui, moi, moi) : [];
+  const valeur = scenarios.length
+    ? combiner(scenarios.map(x => ({ proba: x.proba, valeur: valeurAttaqueSelon(obs, moi, lui, ceTour, d, x.recu) })), options.prudence ?? 0)
+    : valeurAttaqueSelon(obs, moi, lui, ceTour, d, d.parTourLui); // dégâts moyens
+  // S'il change pour X, mon attaque frappe X, et je ne reçois rien ce tour-ci.
+  return avecChangement(obs, lui, moi, options, valeur, vers => {
+    const x = vers ?? inconnuComme(lui);
+    const pvX = x.pvPourcent / 100;
+    const surX = mesDegats(moi, x, pvX)[i] ?? 0;
+    return surX >= 1 ? 1.5 : valeurDuel(duel(obs, moi, pvMoi, x, pvX * (1 - surX)));
+  });
+}
+
+/** Changer pour `remplacant` : il reçoit le coup choisi contre celui qui part, puis la course. */
+function valeurChangement(obs: Observation, partant: PokemonAllie, remplacant: PokemonAllie, lui: PokemonAdverse, options: OptionsPlan): number {
   const pvR = remplacant.pv / Math.max(remplacant.pvMax, 1);
-  const p = prevoir(obs, lui, partant); // son attaque est choisie contre celui qui est en face
-  if (!p) {
+  const scenarios = scenariosContre(obs, lui, partant, remplacant);
+  if (!scenarios.length) {
     return 0;
   }
-  const r = combattantAllie(remplacant);
-  const d = combattantAdverse(lui);
-  const recu = p.coups.reduce((s, c) => s + c.probabilite * degats(d, r, c.attaque), 0) / Math.max(pvR, 0.01);
-  if (recu >= 1) {
-    return -1.5; // il tomberait en entrant
-  }
-  return valeurDuel(duel(obs, remplacant, pvR * (1 - recu), lui, lui.pvPourcent / 100)) - 0.15;
+  const valeur = (recu: number) => (recu >= 1 ? -1.5 : valeurDuel(duel(obs, remplacant, pvR * (1 - recu), lui, lui.pvPourcent / 100)) - 0.15);
+  const reste = options.scenarios
+    ? combiner(scenarios.map(x => ({ proba: x.proba, valeur: valeur(x.recu) })), options.prudence ?? 0)
+    : valeur(scenarios.reduce((t, x) => t + x.proba * x.recu, 0)); // dégâts moyens
+  // S'il change aussi (il décide contre celui qui part) : mon remplaçant affronte X, sans coup reçu.
+  return avecChangement(obs, lui, partant, options, reste,
+    vers => {
+      const x = vers ?? inconnuComme(lui);
+      return valeurDuel(duel(obs, remplacant, pvR, x, x.pvPourcent / 100)) - 0.15;
+    });
 }
 
 /** Lancer la Ball n° `ball` : capture (combat gagné sans un coup de plus) ou échec (il frappe). */
@@ -143,6 +187,27 @@ function valeurBall(obs: Observation, moi: PokemonAllie, lui: PokemonAdverse, ba
 export interface OptionsPlan {
   /** Juger aussi les Poké Balls par la chance de capture (sinon elles restent neutres). */
   capture?: boolean;
+  /** Juger chaque action contre chaque coup possible de l'adversaire (sinon : ses dégâts moyens). */
+  scenarios?: boolean;
+  /** 0 = espérance seule ; 1 = le pire scénario plausible. */
+  prudence?: number;
+  /** Prévoir ses changements de Pokémon (dresseurs, banc déjà vu) et en tenir compte. */
+  changements?: boolean;
+}
+
+/**
+ * Mêler la valeur « il reste » et la valeur « il change pour X », selon la chance qu'il change.
+ * X peut être encore inconnu (null) : on joue alors le duel contre un Pokémon de force comparable.
+ */
+function avecChangement(obs: Observation, lui: PokemonAdverse, enFace: PokemonAllie, options: OptionsPlan,
+  valeur: number, siChange: (x: PokemonAdverse | null) => number): number {
+  const change = options.changements ? prevoirChangement(obs, lui, enFace) : null;
+  return change ? (1 - change.probabilite) * valeur + change.probabilite * siChange(change.vers) : valeur;
+}
+
+/** Un Pokémon jamais vu : force comparable à l'actuel, en pleine forme, types inconnus (efficacité neutre). */
+function inconnuComme(lui: PokemonAdverse): PokemonAdverse {
+  return { ...lui, uid: -1, types: [], pvPourcent: 100, modifStats: lui.modifStats.map(() => 0), boss: null, attaquesVues: [] };
 }
 
 /**
@@ -173,7 +238,7 @@ export function planifier(obs: Observation, options: OptionsPlan = {}): number[]
   }
   for (let action = 0; action < PREMIER_CHANGEMENT; action++) {
     const lui = adversaires.find(a => a.position === action % 2) ?? adversaires[0]!;
-    valeurs[action] = masque[action] ? valeurAttaque(obs, moi, lui, Math.floor(action / 2)) : 0;
+    valeurs[action] = masque[action] ? valeurAttaque(obs, moi, lui, Math.floor(action / 2), options) : 0;
   }
   for (let action = PREMIER_CHANGEMENT; action < PREMIERE_BALL; action++) {
     const remplacant = obs.equipe[action - PREMIER_CHANGEMENT];
@@ -181,7 +246,7 @@ export function planifier(obs: Observation, options: OptionsPlan = {}): number[]
       continue;
     }
     // Contre plusieurs adversaires : le pire des duels.
-    valeurs[action] = Math.min(...adversaires.map(lui => valeurChangement(obs, moi, remplacant, lui)));
+    valeurs[action] = Math.min(...adversaires.map(lui => valeurChangement(obs, moi, remplacant, lui, options)));
   }
   const meilleureAttaque = Math.max(...valeurs.slice(0, PREMIER_CHANGEMENT).filter((_, i) => masque[i]), -2);
   const sauvage = adversaires.length === 1 ? adversaires[0]! : null;

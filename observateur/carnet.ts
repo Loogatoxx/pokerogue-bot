@@ -9,7 +9,7 @@
  */
 import type { MoveJeu, PokemonJeu, ScenePokerogue } from "./jeu";
 import { BattleType, BiomeId, MoveCategory, PokemonType } from "./noms";
-import type { AttaqueVue, EntreeJournal, Libelle } from "./types";
+import type { AttaqueVue, EntreeJournal, Libelle, PokemonAdverse } from "./types";
 
 /** Ce qu'un joueur sait d'une attaque qu'il a vue : son type, sa catégorie, sa puissance. */
 export function attaqueVue(move: MoveJeu): AttaqueVue {
@@ -31,6 +31,8 @@ export class Carnet {
   private talentsReveles = new Map<number, Libelle>();
   /** Pokémon déjà notés dans le journal pour cette vague (rencontres, K.O.). */
   private dejaNotes = new Set<string>();
+  /** uid → dernier état vu d'un Pokémon adverse sur le terrain (le banc dont on se souvient). */
+  private adversairesVus = new Map<number, PokemonAdverse>();
   readonly journal: EntreeJournal[] = [];
 
   /** À appeler régulièrement (à chaque phase dans le simulateur, plusieurs fois par seconde en ligne). */
@@ -74,12 +76,29 @@ export class Carnet {
     return this.talentsReveles.get(uid) ?? null;
   }
 
+  /** Retenir l'état d'un adversaire vu sur le terrain (appelé par l'observateur). */
+  retenirAdversaire(adversaire: PokemonAdverse): void {
+    this.adversairesVus.set(adversaire.uid, adversaire);
+  }
+
+  /**
+   * Le banc adverse dont on se souvient : les Pokémon déjà vus pendant ce combat et qui ne sont
+   * plus sur le terrain, dans leur dernier état vu (K.O. ou non : le jeu l'affiche). Un Pokémon
+   * jamais sorti reste inconnu, comme pour un joueur.
+   */
+  bancVu(surTerrain: Set<number>, estKo: (uid: number) => boolean): PokemonAdverse[] {
+    return [...this.adversairesVus.values()]
+      .filter(a => !surTerrain.has(a.uid))
+      .map(a => ({ ...a, position: -1, ko: estKo(a.uid) }));
+  }
+
   private nouvelleVague(scene: ScenePokerogue): void {
     const combat = scene.currentBattle!;
     this.vague = combat.waveIndex;
     this.attaquesVues.clear();
     this.talentsReveles.clear();
     this.dejaNotes.clear();
+    this.adversairesVus.clear();
 
     const biome = BiomeId[scene.arena!.biomeId]?.fr ?? `biome ${scene.arena!.biomeId}`;
     const dresseur = combat.trainer ? ` contre ${combat.trainer.getName(undefined, true)}` : "";
@@ -115,5 +134,6 @@ export class Carnet {
     this.attaquesVues.clear();
     this.talentsReveles.clear();
     this.dejaNotes.clear();
+    this.adversairesVus.clear();
   }
 }

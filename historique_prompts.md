@@ -619,3 +619,54 @@ Jouer comme un humain qui voit un coup d'avance, et suivre ce que font les meill
 **Objectif**
 Que le mode auto ne bloque plus dans le vrai jeu, voir précisément pourquoi le bot perd contre le
 rival, et le préparer comme un joueur prépare ce combat.
+
+## 20. Juger le top 3 des coups adverses — 01/10/2026
+
+**Prompt**
+> regarde si le probleme ne vient pas du fait que quand il essaye de prevoir un moov par exemple un remplacement ver un pokemon feu donc d utiliser une attque eau mais sur un pokemon sur le terrain qui est en eau […] essaye de faire en sorte qu il evalue avec une formule mathematque quel decision prendre pour l ensemble du top 3 et non pas le coup qu'il pense prevue
+
+**Réponse**
+- Vérifié : le planificateur ne jouait pas « tout sur un coup » ; il utilisait déjà les dégâts
+  moyens pondérés par les probabilités du top 3.
+- Ajouté l'évaluation par scénarios (espérance, avec une part de prudence) : moins bonne
+  (36,4 et 34,5 contre 38,8) → option désactivée par défaut.
+
+**Modifications**
+- `observateur/planificateur.ts` (options `scenarios`, `prudence`), `simulateur/environnement.test.ts`,
+  `entraineur/pont.py`, `entraineur/analyse_defaites.py` (`--scenarios`, `--prudence`).
+
+**Objectif**
+Vérifier que les décisions ne reposent pas sur un seul coup adverse supposé.
+
+## 21. Prévoir les changements de Pokémon adverses — 01/10/2026
+
+**Prompt**
+> quoi mais c'est la base de la prediction c'est savoir quand ils changent les pokemon
+>
+> c'est normal que l entrainement du cerveau j ai l impression il est arreter je vois depuis un moment 50.0 sans bouger
+>
+> parce que en sois c'est le dernier truc qui permet d augmenter les chance de gagner si on considere l echange de pokemon
+
+**Réponse**
+- Règle du jeu relue (EnemyCommandPhase) : seuls les dresseurs changent, quand un membre du banc
+  fait 3 fois mieux (2 fois pour un boss) au score de duel.
+- Mesuré : 89 % des changements vont vers un Pokémon jamais vu. Nouvelle prévision à partir des
+  Poké Balls restantes et du score de duel du Pokémon actuel : 61 % des changements annoncés
+  (avant 12 %), 7 annonces sur 10 justes. Affichée dans le panneau (0.9.4).
+- Dans le planificateur : aucun gain mesurable sur 480 parties (35,6 → 36,2 / 36,0, rival 2
+  73 → 68 / 71 %). L'IA change quand on gagne déjà l'échange ; nos défaites viennent des tours où
+  elle reste. Option désactivée par défaut.
+- Bruit des mesures découvert : 160 parties ne suffisent pas (38,8 puis 34,8 / 34,9 / 37,0).
+- Entraînement 9 : arrêté à 18 h 27 pour libérer la machine pendant les mesures (d'où le 50,0 figé).
+
+**Modifications**
+- `observateur/carnet.ts` (banc vu), `observateur/types.ts` (observation v5, champ `banc`),
+  `observateur/observateur.ts`, `observateur/prevision.ts` (`scoreDuel`, `scoresChangement`,
+  `prevoirChangement`), `observateur/planificateur.ts` (option `changements`),
+  `simulateur/environnement.test.ts` (justesse des annonces, calibration), `entraineur/pont.py`,
+  `entraineur/analyse_defaites.py` (`--changements`), `extension/src/panneau.ts`, manifest 0.9.4,
+  `docs/etape-9-changements.md`.
+
+**Objectif**
+Que le bot sache, comme un joueur, quand le dresseur va changer de Pokémon, et vérifier par la
+mesure si en tenir compte fait gagner.

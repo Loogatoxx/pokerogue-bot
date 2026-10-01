@@ -9,7 +9,7 @@
  */
 import type { CombatImportant } from "./combats";
 
-export const VERSION_OBSERVATION = 4;
+export const VERSION_OBSERVATION = 5;
 
 /** Un identifiant du jeu et son nom lisible. */
 export interface Libelle {
@@ -168,6 +168,9 @@ export interface Observation {
   };
   equipe: PokemonAllie[];
   adversaires: PokemonAdverse[];
+  /** v5 — le banc adverse dont on se souvient : vus pendant ce combat, plus sur le terrain
+   * (position -1). Sert à prévoir ses changements (observateur/prevision.ts). */
+  banc: PokemonAdverse[];
   decision: Decision;
   /** Mémoire de la partie entière (carnet), du plus ancien au plus récent. */
   journal: EntreeJournal[];

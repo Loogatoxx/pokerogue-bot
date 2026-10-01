@@ -212,6 +212,8 @@ export function observer(scene: ScenePokerogue, carnet: Carnet): Observation | n
   }
 
   const adversairesSurTerrain = scene.getEnemyField().filter(p => p.isOnField());
+  const surTerrain = adversairesSurTerrain.map(p => adversaire(p, carnet, scene));
+  surTerrain.forEach(a => carnet.retenirAdversaire(a));
   const dresseur = combat.trainer
     ? {
         nom: combat.trainer.getName(undefined, true),
@@ -239,7 +241,11 @@ export function observer(scene: ScenePokerogue, carnet: Carnet): Observation | n
       prochainCombat: prochainCombatImportant(combat.waveIndex),
     },
     equipe: scene.getPlayerParty().map(allie),
-    adversaires: adversairesSurTerrain.map(p => adversaire(p, carnet, scene)),
+    adversaires: surTerrain,
+    banc: carnet.bancVu(
+      new Set(surTerrain.map(a => a.uid)),
+      uid => scene.getEnemyParty().find(p => p.id === uid)?.isFainted() ?? true,
+    ),
     decision: decision(scene),
     journal: [...carnet.journal],
   };
