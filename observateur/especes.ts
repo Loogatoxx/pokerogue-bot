@@ -37,11 +37,13 @@ export interface Connaissance {
   totalFinal: number;
   /** Talents possibles : [1, 2, caché] (identifiants du jeu, 0 = aucun). */
   talents: readonly number[];
+  /** Taux de capture de l'espèce (3 = légendaire … 255 = très facile). */
+  tauxCapture: number;
 }
 
 export function connaissance(espece: number): Connaissance | null {
   const e = ESPECES[espece];
-  return e ? { nom: e[0], types: e[1], total: e[2], totalFinal: e[3], talents: e[4] } : null;
+  return e ? { nom: e[0], types: e[1], total: e[2], totalFinal: e[3], talents: e[4], tauxCapture: e[6] } : null;
 }
 
 /** Les attaques offensives que cette espèce peut connaître à ce niveau (apprises en montant). */

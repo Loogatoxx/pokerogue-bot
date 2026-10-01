@@ -11,6 +11,7 @@
  *   Python → Node : nouvelle-partie · action · fin
  */
 import { BattleScene } from "#app/battle-scene";
+import { activeOverrides } from "#app/overrides";
 import { BattleStyle } from "#enums/battle-style";
 import { allMoves } from "#data/data-lists";
 import { MoveCategory } from "#enums/move-category";
@@ -74,6 +75,11 @@ type MessagePython =
       depart?: string;
       /** Vagues dont on veut la photo du début (pour s'entraîner ensuite sur ces combats). */
       photos?: number[];
+      /** Le planificateur juge aussi les Poké Balls (chance de capture). */
+      planCapture?: boolean;
+      /** Rencontres mystères : « jeu » = au rythme du vrai jeu ; un nombre = % de chance par vague.
+       * Absent : aucune (réglage par défaut de l'outil de test). */
+      mysteres?: "jeu" | number;
     }
   | { type: "action"; action: number }
   | { type: "fin" };
@@ -295,6 +301,8 @@ async function jouerPartie(
     recit?: boolean;
     depart?: string;
     photos?: number[];
+    planCapture?: boolean;
+    mysteres?: "jeu" | number;
   },
 ) {
   // Nettoyage entre deux parties d'un même processus (normalement fait par l'outil de test
@@ -320,6 +328,12 @@ async function jouerPartie(
   game.override.normalizeNatures = false;
   game.override.disableShinies = false;
   game.override.removeEnemyStartingItems = false;
+  // Rencontres mystères : l'outil de test les coupe ; le vrai jeu en propose (Carlos, 01/10).
+  if (demande.mysteres === "jeu") {
+    vi.spyOn(activeOverrides, "MYSTERY_ENCOUNTER_RATE_OVERRIDE", "get").mockReturnValue(null as unknown as number);
+  } else if (typeof demande.mysteres === "number") {
+    game.override.mysteryEncounterChance(demande.mysteres);
+  }
   // Style « Changer » : le jeu demande « Changer de Pokémon ? » après chaque K.O. adverse
   // (réglage possible du joueur en ligne) ; « Fixe » : il ne demande rien.
   game.settings.battleStyle(demande.styleCombat === "changer" ? BattleStyle.SWITCH : BattleStyle.SET);
@@ -475,7 +489,7 @@ async function jouerPartie(
         observation: Buffer.from(encoder(obs).buffer).toString("base64"),
         masque: masque.map(Number),
         // La valeur de chaque action selon le planificateur (observateur/planificateur.ts).
-        plan: planifier(obs),
+        plan: planifier(obs, { capture: !!demande.planCapture }),
         info: { ...infoPartie(obs), recrues: compterRecrues(obs) },
       });
       canal.recevoir().then(message => {

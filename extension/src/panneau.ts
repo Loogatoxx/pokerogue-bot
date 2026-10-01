@@ -633,7 +633,7 @@ function demarrer(): void {
     const cle = cleDecision(obs);
     const interdites = refusees.get(cle) ?? new Set<number>();
     const masque = obs.decision.masque.map((permise, i) => permise && !interdites.has(i));
-    const reponse = penser(cerveau, entreeDe(cerveau, obs), masque, planifier({ ...obs, decision: { ...obs.decision, masque } }));
+    const reponse = penser(cerveau, entreeDe(cerveau, obs), masque, planifier({ ...obs, decision: { ...obs.decision, masque } }, { capture: true }));
     const choisie = meilleureAction(reponse);
     derniereReponse = reponse;
     afficherChoix(afficherReflexion({ ...obs, decision: { ...obs.decision, masque } }, reponse, choisie));
@@ -794,7 +794,7 @@ function demarrer(): void {
             const interdites = refusees.get(cle) ?? new Set<number>();
             const masqueChoisie = choisie.decision.masque!.map((p, i) => p && !interdites.has(i));
             const reponse = cerveau
-              ? penser(cerveau, entreeDe(cerveau, choisie), masqueChoisie, planifier({ ...choisie, decision: { ...choisie.decision, masque: masqueChoisie } }))
+              ? penser(cerveau, entreeDe(cerveau, choisie), masqueChoisie, planifier({ ...choisie, decision: { ...choisie.decision, masque: masqueChoisie } }, { capture: true }))
               : null;
             if (reponse) {
               interdites.add(meilleureAction(reponse));

@@ -37,7 +37,8 @@ def type_action(action: int) -> str:
     return "attaque" if action < PREMIER_CHANGEMENT else "changement" if action < PREMIERE_BALL else "ball"
 
 
-def jouer(pont: Pont, cerveau, nombre: int, sans_balls: bool = False, plan: float = 0.0, vague_max: int = 50) -> list[dict]:
+def jouer(pont: Pont, cerveau, nombre: int, sans_balls: bool = False, plan: float = 0.0, vague_max: int = 50,
+          plan_capture: bool = False) -> list[dict]:
     """Joue `nombre` parties ; chacune renvoie sa fin (avec le récit) et ses actions par vague."""
     parties: list[dict] = []
     verrou = threading.Lock()
@@ -53,7 +54,7 @@ def jouer(pont: Pont, cerveau, nombre: int, sans_balls: bool = False, plan: floa
                 especes = hasard.sample(STARTERS_COMPTE_NEUF, 3)
             actions: dict[int, Counter] = defaultdict(Counter)
             tours: dict[int, int] = {}
-            etat = simulateur.nouvelle_partie(especes=especes, vague_max=vague_max, recit=True)
+            etat = simulateur.nouvelle_partie(especes=especes, vague_max=vague_max, recit=True, plan_capture=plan_capture)
             while isinstance(etat, Etat):
                 masque = etat.masque.copy()
                 if sans_balls and masque[:PREMIERE_BALL].any():
@@ -193,6 +194,7 @@ def main() -> None:
     parametres.add_argument("--sans-balls", action="store_true", help="expérience : aucune Ball permise")
     parametres.add_argument("--plan", type=float, help="poids du planificateur (par défaut : celui du cerveau ; 0 = cerveau seul)")
     parametres.add_argument("--vague-max", type=int, default=50, help="arrêt des parties au-delà (200 = sans limite)")
+    parametres.add_argument("--plan-capture", action="store_true", help="le planificateur juge aussi les Poké Balls")
     args = parametres.parse_args()
     torch.set_num_threads(2)
 
@@ -206,7 +208,7 @@ def main() -> None:
           + (f", planificateur × {args.plan if args.plan is not None else cerveau.poids_plan:g}" if (args.plan or cerveau.poids_plan) else ""))
     with Pont(args.processus) as pont:
         poids = args.plan if args.plan is not None else cerveau.poids_plan
-        parties = jouer(pont, cerveau, args.parties, args.sans_balls, poids, args.vague_max)
+        parties = jouer(pont, cerveau, args.parties, args.sans_balls, poids, args.vague_max, args.plan_capture)
     dossier = LEXAR / "analyses"
     dossier.mkdir(exist_ok=True)
     fichier = dossier / f"defaites-{datetime.now():%Y-%m-%d-%Hh%M}{'-sans-balls' if args.sans_balls else ''}{f'-plan{args.plan:g}' if args.plan else ''}.json"

@@ -41,3 +41,26 @@ describe("Planificateur", () => {
     expect(Math.max(...valeurs.slice(0, 8))).toBeGreaterThanOrEqual(1.5);
   });
 });
+
+describe("Planificateur et capture", () => {
+  // Un Embrylex sauvage (taux de capture 45) face à Bulbizarre, Poké Balls en stock.
+  function sauvage(pv: number): Observation {
+    const obs = situation(pv);
+    obs.partie.dresseur = null;
+    obs.adversaires[0] = { ...obs.adversaires[0]!, espece: 246, nom: "Embrylex", types: [{ id: 5, nom: "Roche" }, { id: 4, nom: "Sol" }], statsDeBase: [50, 64, 50, 45, 50, 41], attaquesVues: [] };
+    obs.decision.masque![14] = true;
+    return obs;
+  }
+
+  it("n'insiste pas avec une Ball sur un Pokémon difficile en pleine forme", () => {
+    const valeurs = planifier(sauvage(100), { capture: true })!;
+    expect(valeurs[14]!).toBeLessThan(Math.max(...valeurs.slice(0, 8)));
+  });
+
+  it("lance la Ball quand il est presque K.O. et qu'on n'a que 3 membres", () => {
+    const obs = sauvage(3);
+    obs.equipe = obs.equipe.slice(0, 3);
+    const valeurs = planifier(obs, { capture: true })!;
+    expect(valeurs[14]!).toBeGreaterThan(1);
+  });
+});

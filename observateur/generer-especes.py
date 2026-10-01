@@ -64,8 +64,8 @@ def main() -> None:
         f"// Source : copie locale du jeu (version {json.loads((JEU / 'package.json').read_text())['version']}).",
         "// Connaissance « Pokédex » : ce qu'une espèce PEUT avoir, jamais ce qu'un adversaire a réellement.",
         "",
-        "/** [nom, types, total des stats, total de la forme finale, talents [1, 2, caché], attaques [niveau, id, niveau, id…]] */",
-        "export type DonneesEspece = readonly [string, readonly number[], number, number, readonly number[], readonly number[]];",
+        "/** [nom, types, total des stats, total de la forme finale, talents [1, 2, caché], attaques [niveau, id, niveau, id…], taux de capture] */",
+        "export type DonneesEspece = readonly [string, readonly number[], number, number, readonly number[], readonly number[], number];",
         "/** [nom, type, catégorie (0 physique, 1 spéciale, 2 statut), puissance, précision] */",
         "export type DonneesAttaque = readonly [string, number, number, number, number];",
         "/** [nom, types annulés] */",
@@ -77,7 +77,7 @@ def main() -> None:
         nom = noms_especes.get(camel(e["cle"]), e["cle"])
         attaques = ",".join(f"{n},{a}" for n, a in e["attaques"])
         lignes.append(f'  {e["id"]}: ["{texte(nom)}", [{",".join(map(str, e["types"]))}], {e["total"]}, '
-                      f'{total_final(e["id"])}, [{",".join(map(str, e["talents"]))}], [{attaques}]],')
+                      f'{total_final(e["id"])}, [{",".join(map(str, e["talents"]))}], [{attaques}], {e["capture"]}],')
     lignes += ["};", "", "export const ATTAQUES: Readonly<Record<number, DonneesAttaque>> = {"]
     for a in export["attaques"]:
         nom = noms_attaques.get(camel(a["cle"]), {}).get("name", a["cle"])

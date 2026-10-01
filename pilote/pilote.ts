@@ -225,6 +225,38 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
     return "suite";
   }
 
+  if (mode === ECRAN.MYSTERY_ENCOUNTER) {
+    return choisirRencontreMystere(e);
+  }
+
+  // Œufs reçus d'une rencontre mystère, qui éclosent pendant la partie : passer l'animation, puis
+  // fermer le résumé (sinon tout reste bloqué, y compris la partie suivante dans le simulateur).
+  if (mode === ECRAN.ECLOSION) {
+    e.processInput(BOUTON.ACTION);
+    return "éclosion";
+  }
+  if (mode === ECRAN.RESUME_ECLOSIONS) {
+    e.processInput(BOUTON.CANCEL);
+    return "ferme les éclosions";
+  }
+
+  // Le menu des attaques ouvert alors que le cerveau attend le menu de combat (attaque refusée par
+  // le jeu, par exemple) : on revient au menu de combat, où le cerveau choisit de nouveau.
+  if (mode === ECRAN.FIGHT) {
+    e.processInput(BOUTON.CANCEL);
+    return "revient au menu de combat";
+  }
+
+  if (mode === ECRAN.PARTY && !["SwitchPhase", "SelectModifierPhase", "AttemptCapturePhase"].includes(phase)) {
+    // Une rencontre mystère (ou un autre écran) demande de choisir un Pokémon : le premier valide,
+    // puis l'option « Choisir » (ou appliquer, envoyer…). Sans option utilisable, on revient.
+    const place = scene.getPlayerParty().findIndex(p => !p.isFainted());
+    const fait = pasDansEquipe(e, Math.max(place, 0), [
+      OPTION_EQUIPE.CHOISIR, OPTION_EQUIPE.APPLIQUER, OPTION_EQUIPE.ENVOYER, OPTION_EQUIPE.ENSEIGNER,
+    ]);
+    return fait === "options" ? "choisit un Pokémon" : "suite";
+  }
+
   if (mode === ECRAN.POKEDEX_PAGE || mode === ECRAN.RENAME_POKEMON) {
     // Écrans ouverts par erreur (Pokédex, renommer) : on revient en arrière.
     e.processInput(BOUTON.CANCEL);
@@ -270,6 +302,25 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
     return "suite";
   }
   return null;
+}
+
+/**
+ * Rencontre mystère (remarque de Carlos, 01/10 : le mode auto restait bloqué sur « Promos au
+ * Centre Commercial »). L'écran du jeu attend la fin de son animation (blockInput) ; ensuite on
+ * choisit la première option dont les conditions sont remplies. Une règle simple en attendant que
+ * le cerveau juge lui-même chaque rencontre.
+ */
+function choisirRencontreMystere(e: Ecran): string | null {
+  const ecranRencontre = e as Ecran & { blockInput?: boolean; optionsMeetsReqs?: boolean[]; encounterOptions?: unknown[] };
+  if (ecranRencontre.blockInput) {
+    return null;
+  }
+  const nombre = ecranRencontre.encounterOptions?.length ?? 1;
+  const possibles = Array.from({ length: nombre }, (_, i) => i).filter(i => ecranRencontre.optionsMeetsReqs?.[i] !== false);
+  const choix = possibles[0] ?? 0;
+  e.setCursor(choix);
+  e.processInput(BOUTON.ACTION);
+  return `rencontre mystère : option ${choix + 1}`;
 }
 
 function choisirRecompense(scene: ScenePokerogue, e: Ecran, etat: EtatPilote): string {

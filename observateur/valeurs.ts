@@ -15,7 +15,11 @@ function valeurDe(table: Readonly<Record<number, Nom>>, cle: string): number {
 export const ECRAN = {
   COMMAND: valeurDe(UiMode, "COMMAND"),
   CONFIRM: valeurDe(UiMode, "CONFIRM"),
+  ECLOSION: valeurDe(UiMode, "EGG_HATCH_SCENE"),
+  RESUME_ECLOSIONS: valeurDe(UiMode, "EGG_HATCH_SUMMARY"),
+  FIGHT: valeurDe(UiMode, "FIGHT"),
   MODIFIER_SELECT: valeurDe(UiMode, "MODIFIER_SELECT"),
+  MYSTERY_ENCOUNTER: valeurDe(UiMode, "MYSTERY_ENCOUNTER"),
   OPTION_SELECT: valeurDe(UiMode, "OPTION_SELECT"),
   PARTY: valeurDe(UiMode, "PARTY"),
   POKEDEX_PAGE: valeurDe(UiMode, "POKEDEX_PAGE"),
@@ -54,5 +58,6 @@ export const OPTION_EQUIPE = {
   APPLIQUER: valeurDe(PartyOption, "APPLY"),
   ENSEIGNER: valeurDe(PartyOption, "TEACH"),
   RELACHER: valeurDe(PartyOption, "RELEASE"),
+  CHOISIR: valeurDe(PartyOption, "SELECT"),
   ATTAQUE_1: valeurDe(PartyOption, "MOVE_1"),
 };

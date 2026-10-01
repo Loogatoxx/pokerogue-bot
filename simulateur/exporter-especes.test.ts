@@ -27,6 +27,7 @@ it("exporte la connaissance des espèces", () => {
     talents: [s.ability1, s.ability2, s.abilityHidden],
     attaques: s.getLevelMoves().map(([niveau, attaque]) => [niveau, attaque]),
     evolutions: speciesDataRegistry.getEvolutions(s.speciesId).map(e => e.speciesId),
+    capture: s.catchRate,
   }));
   const attaques = allMoves
     .filter(m => m)

@@ -14,10 +14,14 @@
  * environ −1 si on le perd (moins ce qu'on a infligé). C'est une recherche courte et lisible, pas
  * une boule de cristal : les attaques de statut, objets et talents ne sont pas simulés.
  *
- * Les Poké Balls ne sont pas jugées ici (le cerveau garde la main sur la capture) : elles reçoivent
- * la valeur de la meilleure attaque, pour ne pas peser dans un sens ou dans l'autre.
+ * Les Poké Balls (option `capture`) : chance de capture (observateur/capture.ts) × gain de la
+ * capture + chance d'échec × le coup qu'on encaisse pendant ce temps. Contre un Pokémon en pleine
+ * forme et difficile à attraper, mieux vaut l'affaiblir d'abord (remarque de Carlos, 01/10). Sans
+ * cette option, elles reçoivent la valeur de la meilleure attaque (neutres : le cerveau décide).
  */
 import { NOMBRE_ACTIONS, PREMIER_CHANGEMENT, PREMIERE_BALL } from "./actions";
+import { chanceCapture } from "./capture";
+import { connaissance } from "./especes";
 import { cibleDe, combattantAdverse, combattantAllie, type Combattant, degats, prevoir } from "./prevision";
 import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
 
@@ -117,11 +121,32 @@ function valeurChangement(obs: Observation, partant: PokemonAllie, remplacant: P
   return valeurDuel(duel(obs, remplacant, pvR * (1 - recu), lui, lui.pvPourcent / 100)) - 0.15;
 }
 
+/** Lancer la Ball n° `ball` : capture (combat gagné sans un coup de plus) ou échec (il frappe). */
+function valeurBall(obs: Observation, moi: PokemonAllie, lui: PokemonAdverse, ball: number): number {
+  const p = chanceCapture(lui, ball);
+  // Une capture vaut un K.O. (combat gagné, expérience donnée) plus un membre : utile tant que
+  // l'équipe n'est pas pleine, ensuite seulement si l'espèce promet plus que le plus faible des six.
+  const potentiel = (espece: number) => connaissance(espece)?.totalFinal ?? 0;
+  const plusFaible = Math.min(...obs.equipe.map(m => potentiel(m.espece)));
+  const membre = obs.equipe.length < 6 ? 0.5 : Math.max(0, Math.min(0.5, (potentiel(lui.espece) - plusFaible) / 300));
+  const gain = 2 + membre;
+  const pvMoi = moi.pv / Math.max(moi.pvMax, 1);
+  const pvLui = lui.pvPourcent / 100;
+  const d = duel(obs, moi, pvMoi, lui, pvLui);
+  const echec = d.parTourLui >= 1 ? -1 : valeurDuel(duel(obs, moi, pvMoi * (1 - d.parTourLui), lui, pvLui)) - 0.1;
+  return p * gain + (1 - p) * echec;
+}
+
+export interface OptionsPlan {
+  /** Juger aussi les Poké Balls par la chance de capture (sinon elles restent neutres). */
+  capture?: boolean;
+}
+
 /**
  * La valeur de chaque action de combat (index = action du cerveau, observateur/actions.ts) ; null
  * hors combat. Les actions interdites par le masque gardent une valeur sans importance.
  */
-export function planifier(obs: Observation): number[] | null {
+export function planifier(obs: Observation, options: OptionsPlan = {}): number[] | null {
   const masque = obs.decision.masque;
   const adversaires = obs.adversaires.filter(a => !a.ko);
   if (!masque || !adversaires.length) {
@@ -156,8 +181,11 @@ export function planifier(obs: Observation): number[] | null {
     valeurs[action] = Math.min(...adversaires.map(lui => valeurChangement(obs, moi, remplacant, lui)));
   }
   const meilleureAttaque = Math.max(...valeurs.slice(0, PREMIER_CHANGEMENT).filter((_, i) => masque[i]), -2);
+  const sauvage = adversaires.length === 1 ? adversaires[0]! : null;
   for (let action = PREMIERE_BALL; action < NOMBRE_ACTIONS; action++) {
-    valeurs[action] = meilleureAttaque;
+    valeurs[action] = options.capture && sauvage && masque[action]
+      ? valeurBall(obs, moi, sauvage, action - PREMIERE_BALL)
+      : meilleureAttaque;
   }
   return valeurs;
 }
