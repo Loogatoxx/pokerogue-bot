@@ -49,6 +49,8 @@ class Etat:
     observation: np.ndarray  # float32, taille tailleEntree
     masque: np.ndarray       # bool, taille nombreActions
     info: dict               # vague, PV de l'équipe… (pour calculer la récompense)
+    # Valeur de chaque action selon le planificateur (observateur/planificateur.ts), ou None.
+    plan: np.ndarray | None = None
 
 
 @dataclass
@@ -84,6 +86,7 @@ class Simulateur:
             observation=np.frombuffer(base64.b64decode(message["observation"]), dtype="<f4").copy(),
             masque=np.array(message["masque"], dtype=bool),
             info=message["info"],
+            plan=np.array(message["plan"], dtype=np.float32) if message.get("plan") else None,
         )
 
     def nouvelle_partie(self, graine: str | None = None, especes: list[int] | None = None,

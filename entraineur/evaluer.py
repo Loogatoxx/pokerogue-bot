@@ -32,17 +32,23 @@ def main() -> None:
     parametres.add_argument("--parties", type=int, default=64)
     parametres.add_argument("--processus", type=int, default=8)
     parametres.add_argument("--publier", metavar="NOM", help="publier comme version officielle (ex. v1)")
+    parametres.add_argument("--plan", type=float, help="poids du planificateur (par défaut : celui du cerveau)")
     args = parametres.parse_args()
     torch.set_num_threads(2)
 
     cerveau, entete = lire(args.cerveau)
-    print(f"Cerveau : {entete['nom']} ({entete['entrainement']['parties']} parties d'entraînement)")
+    if args.plan is not None:
+        cerveau.poids_plan = args.plan
+    print(f"Cerveau : {entete['nom']} ({entete['entrainement']['parties']} parties d'entraînement)"
+          + (f", guidé par le planificateur × {cerveau.poids_plan:g}" if cerveau.poids_plan else ""))
     with Pont(args.processus) as pont:
         print("\nMeilleur coup (comme le mode auto de l'extension) :")
         meilleur = jouer_parties(pont, politique_cerveau(cerveau, tirage=False), args.parties, afficher=False)
         print("Tirage (comme à l'entraînement) :")
         tirage = jouer_parties(pont, politique_cerveau(cerveau, tirage=True), args.parties, afficher=False)
-        versions = pont.versions
+    # Les versions du cerveau lui-même (celles avec lesquelles il lit l'observation), pas celles du
+    # code actuel : sinon l'extension croirait qu'il attend un autre encodage et le refuserait.
+    versions = {"versionObservation": entete["versionObservation"], "versionEncodage": entete["versionEncodage"]}
 
     r_meilleur, r_tirage = resumer(meilleur), resumer(tirage)
     print(f"\n{'':16}{'vague moy.':>11}{'médiane':>9}{'max':>5}{'erreurs':>9}")
@@ -54,7 +60,8 @@ def main() -> None:
         chemin = ecrire(
             LEXAR / "cerveaux" / f"{args.publier}-{date}.cerveau", cerveau,
             nom=args.publier,
-            description=f"{entete['description']} Publié depuis {args.cerveau.parent.parent.name}/{args.cerveau.name}.",
+            description=f"{entete['description']} Publié depuis {args.cerveau.parent.parent.name}/{args.cerveau.name}."
+            + (f" Guidé par le planificateur (poids {cerveau.poids_plan:g})." if cerveau.poids_plan else ""),
             versions=versions, entrainement=entete["entrainement"],
             evaluation={k: r_meilleur[k] for k in ("parties", "vagueMoyenne", "vagueMax")},
         )

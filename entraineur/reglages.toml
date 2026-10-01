@@ -15,7 +15,7 @@ defaite = 0.0            # partie perdue (en plus de ne plus gagner de vagues)
 [partie]
 # Programme progressif : au-delà de cette vague, la partie s'arrête (comme un élève à qui on
 # ne donne d'abord que les premiers exercices). À relever quand il y arrive souvent.
-vague_max = 75               # 50 → 75 le 01/10 : 22 % des parties y arrivaient (rival n° 3 à la vague 55)
+vague_max = 120              # 75 → 120 le 01/10 : la v4 (planificateur) atteint la vague 115
 # « fixe » ou « changer » (le jeu propose de changer de Pokémon après chaque K.O. adverse).
 style_combat = "fixe"
 # « hasard » : trois des 27 starters d'un compte neuf, tirés à chaque partie (comme un humain qui
@@ -25,7 +25,7 @@ starters = "hasard"
 # qui bloque, plutôt que de la vague 1. 55 % des défaites avaient lieu contre le rival (vagues 8 et
 # 25) : on s'y exerce bien plus souvent. Les photos viennent des parties elles-mêmes (vraies équipes).
 entrainement_cible = 0.5
-photos_vagues = [8, 20, 25, 30, 40, 50, 55]
+photos_vagues = [20, 25, 30, 40, 50, 55, 66, 80, 90, 95]  # 01/10 : avec le planificateur, le rival 1 passe à ~100 %
 
 [apprentissage]
 simulateurs = 8                 # copies du jeu en parallèle

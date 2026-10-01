@@ -50,6 +50,7 @@ def greffer(ancien: Cerveau, taille_entree: int, nombre_actions: int) -> Cerveau
     n.bias[a.out_features:] = a.bias.mean()
 
     nouveau.valeur.load_state_dict(ancien.valeur.state_dict())
+    nouveau.poids_plan = ancien.poids_plan  # le guidage par le planificateur survit à la greffe
     return nouveau
 
 

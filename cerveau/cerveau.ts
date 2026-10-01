@@ -37,6 +37,11 @@ export interface EnteteCerveau {
   entrainement: { parties: number; decisions: number };
   /** Résultats mesurés dans le simulateur au moment de l'export (facultatif). */
   evaluation?: { parties: number; vagueMoyenne: number; vagueMax: number };
+  /**
+   * Poids du planificateur (observateur/planificateur.ts) : ses valeurs, multipliées par ce poids,
+   * s'ajoutent aux scores du cerveau. Absent ou 0 : le cerveau décide seul.
+   */
+  poidsPlan?: number;
   tronc: Couche[];
   politique: Couche[];
   valeur: Couche[];
@@ -92,13 +97,19 @@ function appliquer(couches: Couche[], poids: Float32Array, entree: Float32Array)
  * Fait réfléchir le cerveau : observation encodée + actions permises → probabilités et valeur.
  * Les actions interdites reçoivent une probabilité nulle (« masquage »).
  */
-export function penser(cerveau: Cerveau, entree: Float32Array, masque: boolean[]): Reponse {
+export function penser(cerveau: Cerveau, entree: Float32Array, masque: boolean[], plan: number[] | null = null): Reponse {
   const { entete, poids } = cerveau;
   if (entree.length !== entete.tailleEntree) {
     throw new Error(`Ce cerveau attend ${entete.tailleEntree} nombres, l'observation en donne ${entree.length}.`);
   }
   const commun = appliquer(entete.tronc, poids, entree);
   const scores = appliquer(entete.politique, poids, commun);
+  // Guidé par le planificateur : un coup d'avance sur l'IA adverse.
+  if (plan && entete.poidsPlan) {
+    scores.forEach((s, i) => {
+      scores[i] = s + entete.poidsPlan! * (plan[i] ?? 0);
+    });
+  }
   const valeur = appliquer(entete.valeur, poids, commun)[0]!;
 
   // « Softmax » masqué : transforme les scores en probabilités qui somment à 1.

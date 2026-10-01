@@ -81,3 +81,13 @@ describe("Note des objets", () => {
     expect(meilleurAchat(evaluerAchats([enBoutique], blesse, 30))).toBeNull(); // trop cher
   });
 });
+
+describe("Stratégie du porteur", () => {
+  it("donne le Super Bonbon au meilleur Pokémon tant qu'il est sous le niveau 40", () => {
+    const bonbon: ObjetPropose = { id: "RARE_CANDY", nom: "Super Bonbon", cout: 0 };
+    const jeune = { equipe: [membre("Rattata", 6, [0], 20, 20), membre("Kaiminus", 18, [10], 40, 40)], balls: [5, 0, 0, 0, 0] };
+    expect(evaluerObjets([bonbon], jeune)[0]!.cible).toBe(1);
+    const avance = { equipe: [membre("Rattata", 30, [0], 60, 60), membre("Aligatueur", 55, [10], 160, 160)], balls: [5, 0, 0, 0, 0] };
+    expect(evaluerObjets([bonbon], avance)[0]!.cible).toBe(0); // passé 40, il aide le membre en retard
+  });
+});

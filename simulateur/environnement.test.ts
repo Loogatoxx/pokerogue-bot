@@ -24,6 +24,7 @@ import { writeHeapSnapshot } from "node:v8";
 import Phaser from "phaser";
 import { describe, it, vi } from "vitest";
 import { decrireAction, NOMBRE_ACTIONS } from "../../../observateur/actions";
+import { planifier } from "../../../observateur/planificateur";
 import { prevoir } from "../../../observateur/prevision";
 import { Carnet } from "../../../observateur/carnet";
 import { encoder, TAILLE_OBSERVATION, VERSION_ENCODAGE } from "../../../observateur/encodeur";
@@ -473,6 +474,8 @@ async function jouerPartie(
         // Les 1 290 nombres en binaire (base64) : plus rapide et plus exact que du texte.
         observation: Buffer.from(encoder(obs).buffer).toString("base64"),
         masque: masque.map(Number),
+        // La valeur de chaque action selon le planificateur (observateur/planificateur.ts).
+        plan: planifier(obs),
         info: { ...infoPartie(obs), recrues: compterRecrues(obs) },
       });
       canal.recevoir().then(message => {

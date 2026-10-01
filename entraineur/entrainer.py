@@ -66,7 +66,7 @@ class Entrainement:
             "cerveau": self.cerveau.state_dict(), "optimiseur": self.optimiseur.state_dict(),
             "tailles": [m.out_features for m in self.cerveau.tronc if isinstance(m, torch.nn.Linear)],
             "mises_a_jour": self.mises_a_jour, "decisions": self.decisions, "parties": self.parties,
-            "origine": self.origine,
+            "origine": self.origine, "poids_plan": self.cerveau.poids_plan,
         }, self.dossier / "etat.pt")
         return chemin
 
@@ -100,12 +100,14 @@ class Entrainement:
                     restantes[0] -= 1
                 etat = ensemble.etats[i]
                 o, m = torch.from_numpy(etat.observation), torch.from_numpy(etat.masque)
+                # Valeurs du planificateur (0 s'il n'en a pas) : le cerveau apprend par-dessus.
+                pl = torch.from_numpy(etat.plan) if etat.plan is not None else torch.zeros(len(etat.masque))
                 with torch.no_grad():
-                    scores, valeur = self.cerveau(o[None], m[None])
+                    scores, valeur = self.cerveau(o[None], m[None], pl[None])
                 loi = Categorical(logits=scores[0])
                 action = loi.sample()
                 recompense, finie = ensemble.jouer(i, int(action))
-                pistes[i].append((o, m, action, loi.log_prob(action), valeur[0], recompense, finie))
+                pistes[i].append((o, m, pl, action, loi.log_prob(action), valeur[0], recompense, finie))
 
         list(ensemble.fils.map(jouer, range(n)))
 
@@ -122,19 +124,19 @@ class Entrainement:
                                                   torch.from_numpy(etat.masque)[None])
             suivante, accumule = valeur_suivante[0], torch.tensor(0.0)
             bilan = []
-            for o, m, action, logprob, valeur, recompense, finie in reversed(piste):
+            for o, m, pl, action, logprob, valeur, recompense, finie in reversed(piste):
                 continue_ = 0.0 if finie else 1.0  # une partie finie ne regarde pas la suivante
                 ecart = recompense + gamma * suivante * continue_ - valeur
                 accumule = ecart + gamma * lam * continue_ * accumule
-                bilan.append((o, m, action, logprob, accumule, accumule + valeur, recompense))
+                bilan.append((o, m, pl, action, logprob, accumule, accumule + valeur, recompense))
                 suivante = valeur
             lignes.extend(reversed(bilan))
 
-        obs, masques, actions, logprobs, avantages, retours, recompenses = zip(*lignes)
-        return (torch.stack(obs), torch.stack(masques), torch.stack(actions), torch.stack(logprobs),
-                torch.stack(avantages), torch.stack(retours), float(sum(recompenses)))
+        obs, masques, plans, actions, logprobs, avantages, retours, recompenses = zip(*lignes)
+        return (torch.stack(obs), torch.stack(masques), torch.stack(plans), torch.stack(actions),
+                torch.stack(logprobs), torch.stack(avantages), torch.stack(retours), float(sum(recompenses)))
 
-    def apprendre(self, obs, masques, actions, logprobs, avantages, retours) -> dict:
+    def apprendre(self, obs, masques, plans, actions, logprobs, avantages, retours) -> dict:
         self.cerveau.train()
         total = obs.shape[0]
         taille_lot = total // self.a["mini_lots"]
@@ -143,7 +145,7 @@ class Entrainement:
             ordre = torch.randperm(total)
             for debut in range(0, total, taille_lot):
                 lot = ordre[debut:debut + taille_lot]
-                scores, valeur = self.cerveau(obs[lot], masques[lot])
+                scores, valeur = self.cerveau(obs[lot], masques[lot], plans[lot])
                 loi = Categorical(logits=scores)
                 ratio = (loi.log_prob(actions[lot]) - logprobs[lot]).exp()
                 av = avantages[lot]
@@ -178,6 +180,7 @@ def main() -> None:
     parametres.add_argument("--minutes", type=float, default=30)
     parametres.add_argument("--nom", help="nom du dossier d'entraînement (par défaut : date et heure)")
     parametres.add_argument("--simulateurs", type=int, help="nombre de copies du jeu (par défaut : reglages.toml)")
+    parametres.add_argument("--plan", type=float, help="poids du planificateur (par défaut : celui du cerveau de départ)")
     args = parametres.parse_args()
     torch.set_num_threads(4)
 
@@ -207,6 +210,7 @@ def main() -> None:
         if etat is not None:
             cerveau = Cerveau(pont.taille_entree, pont.nombre_actions, tuple(etat["tailles"]))
             cerveau.load_state_dict(etat["cerveau"])
+            cerveau.poids_plan = float(etat.get("poids_plan", 0.0))
             entrainement = Entrainement(dossier, cerveau, reglages, origine,
                                         etat["mises_a_jour"], etat["decisions"], etat["parties"])
             entrainement.optimiseur.load_state_dict(etat["optimiseur"])
@@ -215,6 +219,10 @@ def main() -> None:
                 raise SystemExit("Ce cerveau ne correspond pas aux observations actuelles du jeu.")
             entrainement = Entrainement(dossier, cerveau, reglages, origine)
 
+        if args.plan is not None:
+            entrainement.cerveau.poids_plan = args.plan
+        if entrainement.cerveau.poids_plan:
+            print(f"Guidé par le planificateur (poids {entrainement.cerveau.poids_plan:g}) : le cerveau apprend par-dessus.")
         ensemble = Ensemble(pont, reglages)
         debut = time.time()
         fin = debut + args.minutes * 60

@@ -22,6 +22,7 @@ import { type Cerveau, lireCerveau, meilleureAction, penser, type Reponse } from
 import { decrireAction, NOMBRE_ACTIONS } from "../../observateur/actions";
 import { encoder, TAILLES_ENCODAGE, VERSION_ENCODAGE } from "../../observateur/encodeur";
 import { attaquesPossibles, connaissance, immunitesPossibles, nomTalent } from "../../observateur/especes";
+import { planifier } from "../../observateur/planificateur";
 import { prevoir } from "../../observateur/prevision";
 import { PokeballType, PokemonType } from "../../observateur/noms";
 import {
@@ -31,7 +32,6 @@ import {
   type Observation,
   type PokemonAdverse,
   type PokemonAllie,
-  VERSION_OBSERVATION,
 } from "../../observateur/types";
 import { type ContenuPanneau, cleDecision, estMessageCapteur, type MessageCapteur, SOURCE } from "./messages";
 
@@ -342,6 +342,9 @@ function choixDuPilote(obs: Observation): string {
 
 type StockageChrome = { get(cle: string): Promise<Record<string, unknown>>; set(v: Record<string, unknown>): Promise<void> };
 const stockageChrome = (globalThis as { chrome?: { storage?: { local?: StockageChrome } } }).chrome?.storage?.local;
+/** Version de l'extension réellement chargée par le navigateur (« aperçu » hors extension). */
+const VERSION_EXTENSION =
+  (globalThis as { chrome?: { runtime?: { getManifest?(): { version: string } } } }).chrome?.runtime?.getManifest?.().version ?? "aperçu";
 const memoire: Record<string, unknown> = {};
 
 /** chrome.storage dans l'extension ; simple mémoire vive ailleurs (page d'aperçu). */
@@ -384,8 +387,9 @@ function incompatibilite(cerveau: Cerveau): string | null {
   // encodage v2) lit simplement le début de l'observation, qui n'a pas changé de sens.
   const lisible = e.versionEncodage <= VERSION_ENCODAGE && TAILLES_ENCODAGE[e.versionEncodage] === e.tailleEntree;
   if (!lisible || e.nombreActions !== NOMBRE_ACTIONS) {
-    return `Ce cerveau a appris avec une autre version des observations (obs. v${e.versionObservation}, `
-      + `encodage v${e.versionEncodage}) que l'extension (obs. v${VERSION_OBSERVATION}, encodage v${VERSION_ENCODAGE}).`;
+    return `Ce cerveau (encodage v${e.versionEncodage}) est plus récent que l'extension ${VERSION_EXTENSION} `
+      + `(encodage v${VERSION_ENCODAGE} au plus). Recharge l'extension dans brave://extensions (bouton ↻), `
+      + `puis réimporte le cerveau.`;
   }
   return null;
 }
@@ -588,13 +592,15 @@ function demarrer(): void {
         : "";
       texte = `<div><span class="nom">${echapper(e.nom)}</span></div>
         <div class="discret" title="${echapper(e.description)}">${date} · ${e.entrainement.parties} parties d'entraînement${eval_}</div>
+        ${e.poidsPlan ? `<div class="discret">Guidé par le planificateur (poids ${e.poidsPlan}) : un coup d'avance sur l'IA adverse.</div>` : ""}
         ${valeur}
-        <div class="discret">Explication en phrases : à venir (étape 6).</div>`;
+        <div class="discret">Explication en phrases : à venir.</div>`;
     } else {
       texte = `<div class="discret">Aucun cerveau chargé (fichiers .cerveau dans /Volumes/Lexar/pokerogue-bot/cerveaux).</div>`;
     }
     const message = messageCerveau ? `<div class="alerte">${echapper(messageCerveau)}</div>` : "";
-    const corps = `<div class="fiche">${texte}${message}<div style="margin-top:4px"><button data-action="importer" tabindex="-1">IMPORTER UN CERVEAU…</button></div></div>`;
+    const corps = `<div class="fiche">${texte}${message}<div style="margin-top:4px"><button data-action="importer" tabindex="-1">IMPORTER UN CERVEAU…</button></div>
+      <div class="discret">Extension ${echapper(VERSION_EXTENSION)} · lit les cerveaux jusqu'à l'encodage v${VERSION_ENCODAGE}</div></div>`;
     remplir(ui.cerveau, section("cerveau", "CERVEAU", corps, new Set(affichage.ouverts)));
   }
 
@@ -627,7 +633,7 @@ function demarrer(): void {
     const cle = cleDecision(obs);
     const interdites = refusees.get(cle) ?? new Set<number>();
     const masque = obs.decision.masque.map((permise, i) => permise && !interdites.has(i));
-    const reponse = penser(cerveau, entreeDe(cerveau, obs), masque);
+    const reponse = penser(cerveau, entreeDe(cerveau, obs), masque, planifier({ ...obs, decision: { ...obs.decision, masque } }));
     const choisie = meilleureAction(reponse);
     derniereReponse = reponse;
     afficherChoix(afficherReflexion({ ...obs, decision: { ...obs.decision, masque } }, reponse, choisie));
@@ -786,7 +792,10 @@ function demarrer(): void {
           const choisie = cleEnvoyee === cle ? derniereObservation : null;
           if (choisie) {
             const interdites = refusees.get(cle) ?? new Set<number>();
-            const reponse = cerveau ? penser(cerveau, entreeDe(cerveau, choisie), choisie.decision.masque!.map((p, i) => p && !interdites.has(i))) : null;
+            const masqueChoisie = choisie.decision.masque!.map((p, i) => p && !interdites.has(i));
+            const reponse = cerveau
+              ? penser(cerveau, entreeDe(cerveau, choisie), masqueChoisie, planifier({ ...choisie, decision: { ...choisie.decision, masque: masqueChoisie } }))
+              : null;
             if (reponse) {
               interdites.add(meilleureAction(reponse));
               refusees.set(cle, interdites);

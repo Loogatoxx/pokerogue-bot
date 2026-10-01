@@ -111,11 +111,11 @@ export function degats(
 
 const ids = (libelles: { id: number }[]) => libelles.map(l => l.id);
 
-function combattantAllie(p: PokemonAllie): Combattant {
+export function combattantAllie(p: PokemonAllie): Combattant {
   return { niveau: p.niveau, types: ids(p.types), stats: p.stats, crans: p.modifStats };
 }
 
-function combattantAdverse(a: PokemonAdverse): Combattant {
+export function combattantAdverse(a: PokemonAdverse): Combattant {
   return { niveau: a.niveau, types: ids(a.types), stats: statsEstimees(a.statsDeBase, a.niveau), crans: a.modifStats };
 }
 
@@ -173,13 +173,17 @@ function probabilitesIA(scores: number[], intelligente: boolean): number[] {
 }
 
 /** Le Pokémon que vise l'adversaire : celui qui décide, sinon le premier sur le terrain. */
-function cibleDe(obs: Observation): PokemonAllie | undefined {
+export function cibleDe(obs: Observation): PokemonAllie | undefined {
   return obs.equipe.find(p => p.uid === obs.decision.acteur && p.surTerrain)
     ?? obs.equipe.find(p => p.surTerrain && !p.ko);
 }
 
-export function prevoir(obs: Observation, adversaire: PokemonAdverse): Prevision | null {
-  const cible = cibleDe(obs);
+/**
+ * Son coup probable contre `cible` (par défaut, le Pokémon qui décide : c'est lui qu'il vise ce
+ * tour-ci). Avec une autre cible : ce qu'il ferait au tour suivant si elle était en face de lui.
+ */
+export function prevoir(obs: Observation, adversaire: PokemonAdverse, cibleImposee?: PokemonAllie): Prevision | null {
+  const cible = cibleImposee ?? cibleDe(obs);
   if (!cible || adversaire.ko) {
     return null;
   }

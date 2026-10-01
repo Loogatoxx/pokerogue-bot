@@ -37,7 +37,7 @@ def type_action(action: int) -> str:
     return "attaque" if action < PREMIER_CHANGEMENT else "changement" if action < PREMIERE_BALL else "ball"
 
 
-def jouer(pont: Pont, cerveau, nombre: int, sans_balls: bool = False) -> list[dict]:
+def jouer(pont: Pont, cerveau, nombre: int, sans_balls: bool = False, plan: float = 0.0, vague_max: int = 50) -> list[dict]:
     """Joue `nombre` parties ; chacune renvoie sa fin (avec le récit) et ses actions par vague."""
     parties: list[dict] = []
     verrou = threading.Lock()
@@ -53,12 +53,12 @@ def jouer(pont: Pont, cerveau, nombre: int, sans_balls: bool = False) -> list[di
                 especes = hasard.sample(STARTERS_COMPTE_NEUF, 3)
             actions: dict[int, Counter] = defaultdict(Counter)
             tours: dict[int, int] = {}
-            etat = simulateur.nouvelle_partie(especes=especes, vague_max=50, recit=True)
+            etat = simulateur.nouvelle_partie(especes=especes, vague_max=vague_max, recit=True)
             while isinstance(etat, Etat):
                 masque = etat.masque.copy()
                 if sans_balls and masque[:PREMIERE_BALL].any():
                     masque[PREMIERE_BALL:] = False
-                action, _ = cerveau.choisir(torch.from_numpy(etat.observation), torch.from_numpy(masque), tirage=False)
+                action = choisir(cerveau, etat.observation, masque, etat.plan, plan)
                 vague = etat.info["vague"]
                 # Seulement les vrais choix (attaquer OU changer OU lancer une Ball).
                 if etat.masque[:PREMIER_CHANGEMENT].any():
@@ -79,6 +79,18 @@ def jouer(pont: Pont, cerveau, nombre: int, sans_balls: bool = False) -> list[di
     for f in fils:
         f.join()
     return parties
+
+
+def choisir(cerveau, observation, masque, valeurs_plan, poids_plan: float) -> int:
+    """Le meilleur coup du cerveau, éventuellement guidé par le planificateur : on ajoute
+    poids_plan × (valeur du plan) à ses scores. 0 = le cerveau seul ; très grand = le plan décide
+    (sauf la capture, que le plan laisse neutre)."""
+    with torch.no_grad():
+        scores, _ = cerveau(torch.from_numpy(observation), torch.from_numpy(masque))
+    if poids_plan and valeurs_plan is not None:
+        scores = scores + poids_plan * torch.from_numpy(valeurs_plan)
+    scores = scores.masked_fill(~torch.from_numpy(masque), -1e9)
+    return int(torch.argmax(scores))
 
 
 def etape(partie: dict, vague: int) -> dict | None:
@@ -179,6 +191,8 @@ def main() -> None:
     parametres.add_argument("--processus", type=int, default=8)
     parametres.add_argument("--relire", type=Path, help="refaire le rapport d'une analyse déjà enregistrée")
     parametres.add_argument("--sans-balls", action="store_true", help="expérience : aucune Ball permise")
+    parametres.add_argument("--plan", type=float, help="poids du planificateur (par défaut : celui du cerveau ; 0 = cerveau seul)")
+    parametres.add_argument("--vague-max", type=int, default=50, help="arrêt des parties au-delà (200 = sans limite)")
     args = parametres.parse_args()
     torch.set_num_threads(2)
 
@@ -188,12 +202,14 @@ def main() -> None:
     cerveau, entete = lire(args.cerveau)
     cerveau.eval()
     print(f"Cerveau : {entete['nom']} — {args.parties} parties, meilleur coup, starters au hasard"
-          + (", SANS Balls" if args.sans_balls else ""))
+          + (", SANS Balls" if args.sans_balls else "")
+          + (f", planificateur × {args.plan if args.plan is not None else cerveau.poids_plan:g}" if (args.plan or cerveau.poids_plan) else ""))
     with Pont(args.processus) as pont:
-        parties = jouer(pont, cerveau, args.parties, args.sans_balls)
+        poids = args.plan if args.plan is not None else cerveau.poids_plan
+        parties = jouer(pont, cerveau, args.parties, args.sans_balls, poids, args.vague_max)
     dossier = LEXAR / "analyses"
     dossier.mkdir(exist_ok=True)
-    fichier = dossier / f"defaites-{datetime.now():%Y-%m-%d-%Hh%M}{'-sans-balls' if args.sans_balls else ''}.json"
+    fichier = dossier / f"defaites-{datetime.now():%Y-%m-%d-%Hh%M}{'-sans-balls' if args.sans_balls else ''}{f'-plan{args.plan:g}' if args.plan else ''}.json"
     fichier.write_text(json.dumps({"cerveau": str(args.cerveau), "parties": parties}, ensure_ascii=False))
     print(f"Données : {fichier}")
     rapport(parties)

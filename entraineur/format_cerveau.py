@@ -56,6 +56,7 @@ def ecrire(chemin: Path, cerveau: Cerveau, *, nom: str, description: str, versio
         "tailleEntree": cerveau.taille_entree, "nombreActions": cerveau.nombre_actions,
         "entrainement": entrainement or {"parties": 0, "decisions": 0},
         **({"evaluation": evaluation} if evaluation else {}),
+        **({"poidsPlan": cerveau.poids_plan} if cerveau.poids_plan else {}),
         **blocs,
     }
     texte = json.dumps(entete, ensure_ascii=False).encode("utf-8")
@@ -85,4 +86,5 @@ def lire(chemin: Path) -> tuple[Cerveau, dict]:
             n = decrite["entree"] * decrite["sortie"]
             couche.weight.data = torch.from_numpy(poids[decrite["poids"]:decrite["poids"] + n].copy()).view(decrite["sortie"], decrite["entree"])
             couche.bias.data = torch.from_numpy(poids[decrite["biais"]:decrite["biais"] + decrite["sortie"]].copy())
+    cerveau.poids_plan = float(entete.get("poidsPlan", 0.0))
     return cerveau, entete

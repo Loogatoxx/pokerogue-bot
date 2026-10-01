@@ -15,15 +15,17 @@ import torch
 from .pont import Etat, Fin, Pont
 from .reseau import Cerveau
 
-Politique = Callable[[np.ndarray, np.ndarray], int]
+# Une politique reçoit l'observation, le masque et les valeurs du planificateur (ou None).
+Politique = Callable[[np.ndarray, np.ndarray, "np.ndarray | None"], int]
 
 
 def politique_cerveau(cerveau: Cerveau, tirage: bool = True) -> Politique:
     """Le cerveau choisit : tirage au sort selon ses probabilités, ou l'action la plus probable."""
     cerveau.eval()
 
-    def choisir(observation: np.ndarray, masque: np.ndarray) -> int:
-        action, _ = cerveau.choisir(torch.from_numpy(observation), torch.from_numpy(masque), tirage=tirage)
+    def choisir(observation: np.ndarray, masque: np.ndarray, plan: np.ndarray | None = None) -> int:
+        action, _ = cerveau.choisir(torch.from_numpy(observation), torch.from_numpy(masque), tirage=tirage,
+                                    plan=None if plan is None else torch.from_numpy(plan))
         return action
 
     return choisir
@@ -33,7 +35,7 @@ def politique_hasard(generateur: np.random.Generator | None = None) -> Politique
     """Référence : une action permise au hasard, sans réfléchir."""
     generateur = generateur or np.random.default_rng()
 
-    def choisir(_observation: np.ndarray, masque: np.ndarray) -> int:
+    def choisir(_observation: np.ndarray, masque: np.ndarray, _plan: np.ndarray | None = None) -> int:
         return int(generateur.choice(np.flatnonzero(masque)))
 
     return choisir
@@ -54,7 +56,7 @@ def jouer_parties(pont: Pont, politique: Politique, nombre: int, afficher: bool 
                 restantes[0] -= 1
             etat: Etat | Fin = simulateur.nouvelle_partie()
             while isinstance(etat, Etat):
-                etat = simulateur.agir(politique(etat.observation, etat.masque))
+                etat = simulateur.agir(politique(etat.observation, etat.masque, etat.plan))
             with verrou:
                 resultats.append(etat.info)
                 if afficher:

@@ -98,6 +98,8 @@ export const VALEURS: Readonly<Record<string, number>> = {
   LOCK_CAPSULE: 3, SHINY_CHARM: 2, LURE: 2, SUPER_LURE: 2, MAX_LURE: 2,
 };
 const VALEUR_INCONNUE = 5;
+/** Jusqu'à ce niveau, les Super Bonbons vont au porteur de l'équipe (son meilleur Pokémon). */
+const NIVEAU_PORTEUR = 40;
 
 const SOINS = new Set(["POTION", "SUPER_POTION", "HYPER_POTION", "MAX_POTION", "FULL_RESTORE"]);
 const RAPPELS = new Set(["REVIVE", "MAX_REVIVE"]);
@@ -217,9 +219,18 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
     if (objet.id === "RARER_CANDY") {
       return { note: 14 * equipe.filter(m => !m.ko).length * 0.6, cible: null, pour: ["+1 niveau pour toute l'équipe"], contre: [] };
     }
-    // Un niveau compte plus pour un membre en retard.
-    const r = meilleurReceveur(objet, ctx, m => (m.ko ? 0 : 14 * (1.5 - importance(m, equipe))))!;
-    return { note: r.valeur, cible: r.place, pour: [`+1 niveau pour ${equipe[r.place]!.nom}`], contre: [] };
+    // Stratégie du porteur (guides de la communauté) : concentrer les niveaux sur le meilleur
+    // Pokémon jusqu'au niveau 40, il fait l'essentiel du travail ; ensuite, aider ceux en retard.
+    const porteur = equipe.reduce((a, b) => (b.niveau > a.niveau && !b.ko ? b : a), equipe[0]!);
+    const tempsDuPorteur = porteur.niveau < NIVEAU_PORTEUR;
+    const r = meilleurReceveur(objet, ctx, m => {
+      if (m.ko) {
+        return 0;
+      }
+      return tempsDuPorteur ? (m === porteur ? 18 : 4) : 14 * (1.5 - importance(m, equipe));
+    })!;
+    const pourquoi = tempsDuPorteur && equipe[r.place] === porteur ? " (le porteur de l'équipe)" : "";
+    return { note: r.valeur, cible: r.place, pour: [`+1 niveau pour ${equipe[r.place]!.nom}${pourquoi}`], contre: [] };
   }
 
   if (CT.has(objet.id) && objet.ct) {
@@ -274,9 +285,15 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
   }
 
   if (objet.id === "FULL_HEAL") {
-    const malades = equipe.filter(m => m.statut && !m.ko);
-    return malades.length
-      ? { note: 20, cible: equipe.indexOf(malades[0]!), pour: [`guérit ${malades[0]!.nom}`], contre: [] }
+    // Le plus important des membres empoisonnés, brûlés, paralysés…
+    const r = meilleurReceveur(objet, ctx, m => (m.statut && !m.ko ? 22 * importance(m, equipe) : 0));
+    return r && r.valeur > 0
+      ? {
+          note: r.valeur * urgenceSoin(ctx.prochainCombat),
+          cible: r.place,
+          pour: [`guérit ${equipe[r.place]!.nom}`, ...avant(ctx.prochainCombat)],
+          contre: [],
+        }
       : rien("personne n'a de problème de statut");
   }
 
@@ -306,7 +323,7 @@ export function meilleurObjet(options: OptionObjet[]): OptionObjet | null {
 // ─── Boutique ─────────────────────────────────────────────────────────────────────────────────
 
 /** Ce que la boutique vend d'utile pour l'équipe : soins, Rappels, PP. */
-const ACHETABLES = new Set([...SOINS, ...RAPPELS, ...PP, "SACRED_ASH"]);
+const ACHETABLES = new Set([...SOINS, ...RAPPELS, ...PP, "SACRED_ASH", "FULL_HEAL"]);
 /** Note minimale (une fois le prix déduit) pour qu'un achat vaille la peine. */
 export const SEUIL_ACHAT = 8;
 
