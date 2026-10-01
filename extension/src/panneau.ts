@@ -22,7 +22,7 @@ import { type Cerveau, lireCerveau, meilleureAction, penser, type Reponse } from
 import { decrireAction, NOMBRE_ACTIONS } from "../../observateur/actions";
 import { encoder, TAILLES_ENCODAGE, VERSION_ENCODAGE } from "../../observateur/encodeur";
 import { attaquesPossibles, connaissance, immunitesPossibles, nomTalent, pireMenace } from "../../observateur/especes";
-import { PokeballType, PokemonType } from "../../observateur/noms";
+import { EFFICACITE_TYPES, PokeballType, PokemonType } from "../../observateur/noms";
 import {
   type Decision,
   type Libelle,
@@ -162,12 +162,23 @@ function listeObjets(objets: Objet[]): string {
  */
 function aCraindre(a: PokemonAdverse, obs: Observation): string {
   const acteur = obs.equipe.find(p => p.uid === obs.decision.acteur) ?? obs.equipe.find(p => p.surTerrain && !p.ko);
-  const menace = acteur ? pireMenace(a.espece, a.niveau, acteur.types.map(t => t.id)) : null;
-  if (!menace || a.ko) {
+  if (!acteur || a.ko) {
     return "";
   }
-  const vue = a.attaquesVues.some(x => x.nom === menace.attaque.nom) ? "" : " (possible)";
-  return `<div class="discret">À craindre pour ${echapper(acteur!.nom)} : ${echapper(menace.attaque.nom)}${vue}</div>`;
+  const typesCible = acteur.types.map(t => t.id);
+  const typesAttaquant = a.types.map(t => t.id);
+  // Une attaque déjà vue passe avant une attaque seulement possible, à force égale.
+  const force = (type: number, puissance: number) =>
+    puissance * (typesAttaquant.includes(type) ? 1.5 : 1) * typesCible.reduce((m, t) => m * (EFFICACITE_TYPES[type]?.[t] ?? 1), 1);
+  const vue = a.attaquesVues
+    .filter(x => x.puissance > 0)
+    .map(x => ({ nom: x.nom, force: force(x.type.id, x.puissance) }))
+    .sort((x, y) => y.force - x.force)[0];
+  const possible = pireMenace(a.espece, a.niveau, typesCible);
+  const choix = vue && (!possible || vue.force >= possible.force)
+    ? { nom: vue.nom, quoi: "" }
+    : possible ? { nom: possible.attaque.nom, quoi: " (possible)" } : null;
+  return choix ? `<div class="discret">À craindre pour ${echapper(acteur.nom)} : ${echapper(choix.nom)}${choix.quoi}</div>` : "";
 }
 
 function ligneAdversaire(a: PokemonAdverse, obs: Observation): string {
