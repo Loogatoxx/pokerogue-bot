@@ -65,3 +65,10 @@ Départ : v3 greffée sur l'encodage v5 (`cerveaux/v3-greffe-prevision`), entra�
 La prévision donne au cerveau « un coup d'avance ». La suite naturelle de l'idée de Carlos est
 une vraie recherche, comme un moteur d'échecs : simuler chaque action possible avec ce modèle de
 l'IA adverse et de la formule de dégâts, sur deux ou trois tours, et garder le meilleur chemin.
+
+## État à la pause (01/10)
+
+Entraînement 8 arrêté à la demande de Carlos (il avait besoin de la machine) à la mise à jour
+123, cerveau sauvegardé. Pas encore évalué. Remarque de Carlos : la barre des 30 vagues est
+atteinte très difficilement — à revoir ensuite. Reprise :
+`.venv/bin/python -m entraineur.entrainer --reprendre /Volumes/Lexar/pokerogue-bot/entrainements/entrainement-8 --minutes 120 --simulateurs 10`
