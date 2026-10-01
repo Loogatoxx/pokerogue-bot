@@ -205,7 +205,9 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
     }
     const stock = ctx.balls.reduce((a, b) => a + b, 0);
     const pleine = equipe.length >= 6;
-    const note = 4 * objet.ball.nombre * (pleine ? 0.5 : 1.5) * (stock < 5 ? 1.5 : 1) * (objet.ball.type >= 1 ? 1.3 : 1);
+    // Équipe pleine : une capture ne sert plus qu'à remplacer un membre ; les objets durables
+    // (objets tenus, CT, vitamines) valent mieux que des Balls.
+    const note = 4 * objet.ball.nombre * (pleine ? 0.2 : 1.5) * (stock < 5 ? 1.5 : 1) * (objet.ball.type >= 1 ? 1.3 : 1);
     return {
       note,
       cible: null,
@@ -336,6 +338,15 @@ export const SEUIL_ACHAT = 8;
  * avant le rival ou un champion ; il ne gaspille pas son argent quand tout le monde va bien.
  */
 export function evaluerAchats(objets: ObjetPropose[], ctx: ContexteObjets, argent: number): OptionObjet[] {
+  // Réserve : de quoi acheter un Rappel, pour ranimer le porteur s'il tombe. Remarque de Carlos
+  // (01/10) : « morte vague 66, plus d'argent pour ranimer le porteur (Zacian) ». La boutique
+  // vend un Rappel dès la vague 1 ; les soins ordinaires ne doivent pas entamer cette réserve.
+  // Pas en début de partie (l'argent est rare et les Potions comptent), ni à la veille d'un combat
+  // important (on soigne d'abord) : à partir de la vague 30.
+  const rappels = objets.filter(o => RAPPELS.has(o.id)).map(o => o.cout);
+  const combat = ctx.prochainCombat;
+  const vague = combat ? combat.vague - combat.dans : 0;
+  const reserve = rappels.length && vague >= 30 && urgenceSoin(combat) === 1 ? Math.min(...rappels) : 0;
   return objets.map((objet, index) => {
     if (!ACHETABLES.has(objet.id)) {
       return { index, nom: objet.nom, note: 0, cible: null, pour: [], contre: ["pas utile à acheter ici"] };
@@ -344,14 +355,15 @@ export function evaluerAchats(objets: ObjetPropose[], ctx: ContexteObjets, argen
       return { index, nom: objet.nom, note: -1, cible: null, pour: [], contre: [`trop cher (${objet.cout} ₽, il reste ${argent} ₽)`] };
     }
     const j = juger(objet, ctx);
-    const note = j.note - 4 * (objet.cout / Math.max(argent, 1));
+    const entame = !RAPPELS.has(objet.id) && objet.id !== "SACRED_ASH" && objet.id !== "FULL_HEAL" && argent - objet.cout < reserve;
+    const note = j.note - 4 * (objet.cout / Math.max(argent, 1)) - (entame ? 15 : 0);
     return {
       index,
       nom: objet.nom,
       note: Math.round(note * 10) / 10,
       cible: j.cible,
       pour: j.pour,
-      contre: [...j.contre, `coûte ${objet.cout} ₽ sur ${argent}`],
+      contre: [...j.contre, `coûte ${objet.cout} ₽ sur ${argent}`, ...(entame ? [`entamerait la réserve pour un Rappel (${reserve} ₽)`] : [])],
     };
   });
 }

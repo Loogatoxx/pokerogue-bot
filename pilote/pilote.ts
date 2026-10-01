@@ -16,7 +16,10 @@ import {
 } from "../observateur/decisions-jeu";
 import { meilleureOptionEquipe } from "../observateur/equipe";
 import type { ScenePokerogue } from "../observateur/jeu";
+import { Carnet } from "../observateur/carnet";
 import { meilleurAchat, meilleurObjet } from "../observateur/objets";
+import { observer } from "../observateur/observateur";
+import { changerAuDebut } from "../observateur/planificateur";
 import { meilleureOption, optionsApprentissageAffichees } from "../observateur/synergie";
 import { BOUTON, CIBLE, COMMANDE, ECRAN, OPTION_EQUIPE, USAGE_ATTAQUE_NORMAL } from "../observateur/valeurs";
 
@@ -289,12 +292,16 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
   }
 
   if (mode === ECRAN.CONFIRM && phase === "CheckSwitchPhase") {
-    // « Changer de Pokémon ? » après un K.O. adverse (style de combat « Changer ») : non,
-    // le cerveau peut changer lui-même à son tour. On vise « Non » (2e option) puis on valide :
-    // la touche Annuler ne fait rien si la fenêtre interdit l'annulation.
-    e.setCursor(1);
+    // « Changer de Pokémon ? » au début d'une vague contre des sauvages (style de combat
+    // « Changer ») : un changement gratuit, l'adversaire déjà visible. Oui (1re option) si le
+    // planificateur trouve mieux sur le banc ; non (2e) sinon. On vise puis on valide : la touche
+    // Annuler ne fait rien si la fenêtre interdit l'annulation.
+    const position = (scene.phaseManager.getCurrentPhase() as { fieldIndex?: number } | null | undefined)?.fieldIndex ?? 0;
+    const obs = observer(scene, new Carnet());
+    const oui = !!obs && changerAuDebut(obs, position);
+    e.setCursor(oui ? 0 : 1);
     e.processInput(BOUTON.ACTION);
-    return "ne change pas";
+    return oui ? "change en début de vague" : "ne change pas";
   }
 
   if (e.awaitingActionInput || mode === ECRAN.CONFIRM) {

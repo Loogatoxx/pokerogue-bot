@@ -15,6 +15,7 @@ import { activeOverrides } from "#app/overrides";
 import { BattleStyle } from "#enums/battle-style";
 import { allMoves } from "#data/data-lists";
 import { MoveCategory } from "#enums/move-category";
+import { MysteryEncounterType } from "#enums/mystery-encounter-type";
 import { SpeciesId } from "#enums/species-id";
 import { TrainerType } from "#enums/trainer-type";
 import { UiMode } from "#enums/ui-mode";
@@ -85,6 +86,8 @@ type MessagePython =
       /** Rencontres mystères : « jeu » = au rythme du vrai jeu ; un nombre = % de chance par vague.
        * Absent : aucune (réglage par défaut de l'outil de test). */
       mysteres?: "jeu" | number;
+      /** Forcer une rencontre mystère précise à chaque vague possible (nom de MysteryEncounterType). */
+      mystere?: string;
     }
   | { type: "action"; action: number }
   | { type: "fin" };
@@ -311,6 +314,7 @@ async function jouerPartie(
     planPrudence?: number;
     planChangements?: boolean;
     mysteres?: "jeu" | number;
+    mystere?: string;
   },
 ) {
   // Nettoyage entre deux parties d'un même processus (normalement fait par l'outil de test
@@ -341,6 +345,11 @@ async function jouerPartie(
     vi.spyOn(activeOverrides, "MYSTERY_ENCOUNTER_RATE_OVERRIDE", "get").mockReturnValue(null as unknown as number);
   } else if (typeof demande.mysteres === "number") {
     game.override.mysteryEncounterChance(demande.mysteres);
+  }
+  if (demande.mystere) {
+    // Tester une rencontre précise (les PNJ qui bloquaient le mode auto, Carlos 01/10).
+    game.override.mysteryEncounterChance(100).mysteryEncounter(
+      MysteryEncounterType[demande.mystere as keyof typeof MysteryEncounterType]);
   }
   // Style « Changer » : le jeu demande « Changer de Pokémon ? » après chaque K.O. adverse
   // (réglage possible du joueur en ligne) ; « Fixe » : il ne demande rien.
@@ -381,6 +390,12 @@ async function jouerPartie(
   let tronquee = false;
   /** Combien de fois chaque règle du pilote a servi (ex. « récompense », « ne change pas »). */
   const regles: Record<string, number> = {};
+  // Ce que le pilote a acheté ou pris en récompense, par objet (« achat : Total Soin »…), et les
+  // Pokémon de l'équipe qui commencent une vague avec un problème de statut (paralysie…).
+  const achats: Record<string, number> = {};
+  const recompenses: Record<string, number> = {};
+  const statuts = { vagues: 0, membresAvecStatut: 0, porteurAvecStatut: 0 };
+  let derniereVagueStatuts = 0;
   const sceneRecit = game.scene as unknown as SceneRecit;
   const recit: EtapeRecit[] = [];
   /** Photos du début des vagues demandées (texte de la sauvegarde du jeu). */
@@ -462,7 +477,14 @@ async function jouerPartie(
     }
     try {
       if (!decisionCerveauEnAttente(scene)) {
-        const fait = repondreParRegles(scene, etat)?.split(" :")[0];
+        const texte = repondreParRegles(scene, etat);
+        const fait = texte?.split(" :")[0];
+        const detail = texte?.split(" : ")[1];
+        if (detail && fait === "achat") {
+          achats[detail] = (achats[detail] ?? 0) + 1;
+        } else if (detail && fait === "récompense") {
+          recompenses[detail] = (recompenses[detail] ?? 0) + 1;
+        }
         if (fait) {
           derniereActivite = performance.now();
         }
@@ -669,6 +691,14 @@ async function jouerPartie(
         continue;
       }
       const vague = game.scene.currentBattle?.waveIndex ?? 0;
+      if (vague !== derniereVagueStatuts) {
+        derniereVagueStatuts = vague;
+        const equipe = game.scene.getPlayerParty().filter(p => !p.isFainted());
+        const porteur = equipe.reduce<(typeof equipe)[number] | undefined>((m, p) => (!m || p.level > m.level ? p : m), undefined);
+        statuts.vagues++;
+        statuts.membresAvecStatut += equipe.filter(p => (p.status?.effect ?? 0) !== 0).length;
+        statuts.porteurAvecStatut += porteur && (porteur.status?.effect ?? 0) !== 0 ? 1 : 0;
+      }
       if (demande.photos?.includes(vague) && !(vague in photos)) {
         const photo = photoDeLaVague(game);
         if (photo?.vague === vague) {
@@ -752,6 +782,9 @@ async function jouerPartie(
     secondes: (performance.now() - debut) / 1000,
     graine,
     regles,
+    achats,
+    recompenses,
+    statuts,
     // Ce qui pourrait s'accumuler d'une partie à l'autre dans ce processus (à surveiller).
     diagnostic,
     ...(demande.recit ? { recit, defaite, prediction, journalCombat, calibration } : {}),

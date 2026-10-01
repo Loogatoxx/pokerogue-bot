@@ -670,3 +670,48 @@ Vérifier que les décisions ne reposent pas sur un seul coup adverse supposé.
 **Objectif**
 Que le bot sache, comme un joueur, quand le dresseur va changer de Pokémon, et vérifier par la
 mesure si en tenir compte fait gagner.
+
+## 22. Ce que Carlos voit en jeu : captures, porteur, doubles, argent, PNJ — 01-02/10/2026
+
+**Prompts**
+> regarde a un moment il a fait une moyenne a 60 et la sa descend sans plus jamais redescendre […]
+>
+> tu peu mettre disponible le cerveau le plus fort dans la section cerveau
+>
+> […] il sacharne avec des pokeball sur un pokemon alors qu il a deja toute l equipe de 6 et il a pas fait la liason que si on affaiblit un pokemon il a plus de chance de çapturer […]
+>
+> j ai remarquer pour un combat 2v2 il a pas voulu sortir un pokemon qui avait une faiblesse face au deux autre […] quand le pokemon meurt et qu il est reanimer il le joue plus vraiment pour le monter […] il bloque encore sur les npc qui propose des objet […] vague 60 essayer de capturer des pokemon et que l equipe un a un meurt […] il va jamais achetter de total soin […] morte vague 66 contre un dresseur, parce plus d argent pour la boutique pour revive le çarry (zacian) […]
+>
+> la capture fais en sorte que elle s active uniquement si l equipe n est pas complete ou que le pokemon servira a remplacer un autre et sans risque pour nos propre pokemon […] jamais les laisser full hp pour les capturer
+>
+> oui pour les debut pourquoi pas les pokeball mais pas au bout d un moment ou ça sert plus rien
+>
+> […] oublie pas tout ce qu on avais dis […] relire ces passage voir si tu n oublie rien et fait tout dans l opti
+>
+> si rien ne marche une chose que je autorise pour l entrainement de l ia est de tricher […] en lui montrant des run parfaite et elle essayera de reproduire […] chaque seed est 100% gagnable […]
+
+**Réponse**
+- Courbe : la fenêtre des 200 parties repartait vide à la reprise (pic à 60) ; corrigé. Cerveaux
+  de l'entraînement 9 évalués sur 480 parties : pas de recul, un plafond (130 : 37,7).
+- **v5** = cerveau 130, « Le plus fort » sur le tableau de bord (bouton Télécharger).
+- Captures : la règle complète mesurée (affaiblir d'abord) faisait perdre (rival 1 91 → 76 %) ;
+  retenu : Ball inutile ou dangereuse interdite quand sa chance est sous 50 %.
+- Changement gratuit en début de vague (style « Changer ») + porteur favorisé ; combats doubles
+  (les coups des deux adversaires) ; réserve d'argent pour un Rappel dès la vague 30 ; Balls en
+  récompense moins prisées avec l'équipe pleine. Mesures : neutres dans le bruit (±2 vagues).
+- Test des 31 rencontres mystères : Delibird-y fige le jeu ; Fun and Games et Safari parfois.
+- Statuts : rares (4 % des vagues), Total Soin acheté quand il est en vente.
+- Idée du professeur qui « triche » pendant l'entraînement : plan proposé (rejouer chaque vague
+  plusieurs fois, garder la meilleure, faire imiter le cerveau).
+
+**Modifications**
+- `observateur/planificateur.ts` (règle de capture, `changerAuDebut`, `valeurEntree`,
+  `BONUS_PORTEUR`, `degatsDesAutres`), `pilote/pilote.ts` (changement gratuit),
+  `observateur/objets.ts` (réserve, Balls), `simulateur/environnement.test.ts` (`mystere`,
+  compteurs `achats`, `recompenses`, `statuts`), `entraineur/pont.py`, `entraineur/analyse_defaites.py`
+  (redémarrage des copies, copies figées, `--style`), `entraineur/entrainer.py` (fenêtre glissante,
+  disque qui disparaît), `entraineur/tableau_de_bord.py` et `tableau/index.html` (le plus fort),
+  nouveau `entraineur/tester_mysteres.py`, `docs/etape-10-retours-de-jeu.md`, extension 0.9.5.
+
+**Objectif**
+Corriger ce que Carlos voit en regardant jouer le bot, en vérifiant chaque correction par la mesure.
