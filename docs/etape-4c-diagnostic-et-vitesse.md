@@ -101,3 +101,27 @@ entrainement-1).
 `reglages.toml` → `[partie] starters = "hasard"` : trois des 27 starters d'un compte neuf à chaque
 partie, comme un humain qui choisit les siens (`"kanto"` pour revenir à l'ancien comportement).
 Chaque partie du journal note ses starters.
+
+## Entraînement 4 (30/09 → 01/10)
+
+Départ : entrainement-3 (mise à jour 54), starters au hasard, collecte asynchrone, 8 puis 12
+copies, 2 heures : **13 128 parties, 950 000 décisions** (entrainement-3 : 110 000 en 1 heure),
+135 décisions/s en moyenne. Vague moyenne en entraînement : 20 → 22-23 ; entropie stable vers 0,4.
+
+| Cerveau | Kanto, 64 parties (meilleur coup) | Six trios, 16 parties chacun |
+|---|---|---|
+| v2 | 22,44 | 25,0 |
+| entrainement-3 · 54 | 24,66 | 22,1 |
+| entrainement-4 · 312 | 22,81 (tirage : 24,2, record 90) | 22,3 |
+
+Pas de progrès net : **toujours pas de v3**. Le plafond a une cause précise. Sur les 4 000 dernières
+parties, les défaites se concentrent sur les combats fixes :
+
+| Vague | Part des défaites | Combat |
+|---|---|---|
+| 8 | 27 % | rival (1er) |
+| 20 | 11,5 % | boss |
+| 25 | 28 % | rival (2e) |
+
+88 % des parties s'arrêtent avant la vague 26. Le cerveau ne manque pas d'entraînement : il bute
+sur le rival, qu'un humain voit venir et prépare (équipe montée en niveau, soins, objets).

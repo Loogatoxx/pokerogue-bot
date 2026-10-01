@@ -454,7 +454,12 @@ le cerveau décide, dans le style de PokeRogue.
   correction de type).
 - `docs/etape-4c-diagnostic-et-vitesse.md`.
 
+**Suite (01/10, fin de l'entraînement 4)**
+950 000 décisions en 2 heures (entrainement-3 : 110 000 en 1 heure). Cerveau final : 22,81 (Kanto)
+et 22,3 (six trios), pas mieux que la v2 : pas de v3. Les défaites se concentrent sur le rival
+(vagues 8 et 25 : 55 % des défaites) et le boss de la vague 20 : c'est là qu'il faut agir.
+
 **Objectif**
 Vérifier le travail du cloud, comprendre le comportement vu dans Brave avant de toucher au
-cerveau, et entraîner plus vite : chaque heure d'entraînement joue maintenant environ six fois
+cerveau, et entraîner plus vite : chaque heure d'entraînement joue maintenant environ quatre fois
 plus de décisions.
