@@ -12,6 +12,7 @@
  */
 import { BattleScene } from "#app/battle-scene";
 import { BattleStyle } from "#enums/battle-style";
+import { allMoves } from "#data/data-lists";
 import { MoveCategory } from "#enums/move-category";
 import { SpeciesId } from "#enums/species-id";
 import { TrainerType } from "#enums/trainer-type";
@@ -23,6 +24,7 @@ import { writeHeapSnapshot } from "node:v8";
 import Phaser from "phaser";
 import { describe, it, vi } from "vitest";
 import { decrireAction, NOMBRE_ACTIONS } from "../../../observateur/actions";
+import { prevoir } from "../../../observateur/prevision";
 import { Carnet } from "../../../observateur/carnet";
 import { encoder, TAILLE_OBSERVATION, VERSION_ENCODAGE } from "../../../observateur/encodeur";
 import type { PokemonJeu, ScenePokerogue } from "../../../observateur/jeu";
@@ -361,6 +363,14 @@ async function jouerPartie(
   /** Photos du début des vagues demandées (texte de la sauvegarde du jeu). */
   const photos: Record<number, string> = {};
   let defaite: Record<string, unknown> | undefined;
+  /**
+   * Précision du prédicteur de l'IA adverse (observateur/prevision.ts), mesurée en jouant : à
+   * chaque décision, ce qu'il annonce pour chaque adversaire ; une fois les ordres de l'adversaire
+   * donnés, ce qu'il joue vraiment.
+   */
+  const prediction = { tours: 0, exacts: 0, memeType: 0, probabilite: 0, changements: 0, statut: 0, horsPrevision: 0 };
+  // (dans un objet : la minuterie le remplit, la boucle le lit — TypeScript ne suit pas une variable modifiée ailleurs)
+  const annonces: { courantes: Map<number, { ids: number[]; probas: number[]; types: number[] }> | null } = { courantes: null };
   // Actions refusées par le jeu pour la décision en cours (ex. changement alors qu'on est piégé).
   let cleDecision = "";
   const refusees = new Set<number>();
@@ -431,6 +441,20 @@ async function jouerPartie(
       if (decisions > DECISIONS_MAX) {
         erreur = `plus de ${DECISIONS_MAX} décisions`;
         return;
+      }
+      if (demande.recit && obs.decision.type === "combat") {
+        const parPlace = new Map<number, { ids: number[]; probas: number[]; types: number[] }>();
+        for (const a of obs.adversaires) {
+          const p = prevoir(obs, a);
+          if (p) {
+            parPlace.set(a.position, {
+              ids: p.coups.map(c => c.attaque.id),
+              probas: p.coups.map(c => c.probabilite),
+              types: p.coups.map(c => c.attaque.type),
+            });
+          }
+        }
+        annonces.courantes = parPlace;
       }
       const etape = recit.at(-1);
       if (demande.recit && etape && etape.adversaires.length === 0) {
@@ -508,6 +532,33 @@ async function jouerPartie(
           };
         }
         break;
+      }
+      if (demande.recit && annonces.courantes && phase.is("TurnStartPhase")) {
+        // Tous les ordres sont donnés : on compare l'annonce à ce que l'adversaire a choisi.
+        const ordres = (game.scene.currentBattle as unknown as { turnCommands: Record<number, { command: number; move?: { move: number } } | null> }).turnCommands;
+        for (const [place, annonce] of annonces.courantes) {
+          const ordre = ordres[2 + place]; // BattlerIndex.ENEMY = 2
+          if (!ordre) {
+            continue;
+          }
+          prediction.tours++;
+          if (ordre.command === 2) {
+            prediction.changements++; // Command.POKEMON : il change de Pokémon
+            continue;
+          }
+          const id = ordre.move?.move ?? -1;
+          const attaque = allMoves[id];
+          if (attaque && attaque.category === MoveCategory.STATUS) {
+            prediction.statut++; // attaque de statut : le prédicteur ne vise que les attaques offensives
+            continue;
+          }
+          const i = annonce.ids.indexOf(id);
+          prediction.exacts += i === 0 ? 1 : 0;
+          prediction.memeType += attaque && attaque.type === annonce.types[0] ? 1 : 0;
+          prediction.probabilite += i >= 0 ? annonce.probas[i]! : 0;
+          prediction.horsPrevision += i < 0 ? 1 : 0;
+        }
+        annonces.courantes = null;
       }
       if (phase.is("ScanIvsPhase")) {
         // L'écran du Scanner d'IV plante sans graphismes ; on saute seulement l'affichage.
@@ -601,7 +652,7 @@ async function jouerPartie(
     regles,
     // Ce qui pourrait s'accumuler d'une partie à l'autre dans ce processus (à surveiller).
     diagnostic,
-    ...(demande.recit ? { recit, defaite } : {}),
+    ...(demande.recit ? { recit, defaite, prediction } : {}),
     ...(demande.photos ? { photos } : {}),
     ...(erreur ? { erreur, phase: game.scene.phaseManager.getCurrentPhase()?.phaseName, ecran: UiMode[game.scene.ui.getMode()] } : {}),
   };

@@ -21,8 +21,9 @@
 import { type Cerveau, lireCerveau, meilleureAction, penser, type Reponse } from "../../cerveau/cerveau";
 import { decrireAction, NOMBRE_ACTIONS } from "../../observateur/actions";
 import { encoder, TAILLES_ENCODAGE, VERSION_ENCODAGE } from "../../observateur/encodeur";
-import { attaquesPossibles, connaissance, immunitesPossibles, nomTalent, pireMenace } from "../../observateur/especes";
-import { EFFICACITE_TYPES, PokeballType, PokemonType } from "../../observateur/noms";
+import { attaquesPossibles, connaissance, immunitesPossibles, nomTalent } from "../../observateur/especes";
+import { prevoir } from "../../observateur/prevision";
+import { PokeballType, PokemonType } from "../../observateur/noms";
 import {
   type Decision,
   type Libelle,
@@ -157,28 +158,27 @@ function listeObjets(objets: Objet[]): string {
 // ─── Le duel : une ligne par Pokémon ─────────────────────────────────────────────────────────
 
 /**
- * Ce dont il faut se méfier chez cet adversaire, d'après le Pokédex (ce qu'il PEUT connaître à son
- * niveau), face au Pokémon qui joue : une ligne courte, l'essentiel.
+ * Ce que l'adversaire va sans doute faire (observateur/prevision.ts : la formule de l'IA du jeu,
+ * avec ce qu'un joueur voit), et qui de l'équipe l'encaisserait le mieux : le jeu de prédiction.
  */
-function aCraindre(a: PokemonAdverse, obs: Observation): string {
-  const acteur = obs.equipe.find(p => p.uid === obs.decision.acteur) ?? obs.equipe.find(p => p.surTerrain && !p.ko);
-  if (!acteur || a.ko) {
+function prevision(a: PokemonAdverse, obs: Observation): string {
+  const p = prevoir(obs, a);
+  const coup = p?.coups[0];
+  if (!p || !coup) {
     return "";
   }
-  const typesCible = acteur.types.map(t => t.id);
-  const typesAttaquant = a.types.map(t => t.id);
-  // Une attaque déjà vue passe avant une attaque seulement possible, à force égale.
-  const force = (type: number, puissance: number) =>
-    puissance * (typesAttaquant.includes(type) ? 1.5 : 1) * typesCible.reduce((m, t) => m * (EFFICACITE_TYPES[type]?.[t] ?? 1), 1);
-  const vue = a.attaquesVues
-    .filter(x => x.puissance > 0)
-    .map(x => ({ nom: x.nom, force: force(x.type.id, x.puissance) }))
-    .sort((x, y) => y.force - x.force)[0];
-  const possible = pireMenace(a.espece, a.niveau, typesCible);
-  const choix = vue && (!possible || vue.force >= possible.force)
-    ? { nom: vue.nom, quoi: "" }
-    : possible ? { nom: possible.attaque.nom, quoi: " (possible)" } : null;
-  return choix ? `<div class="discret">À craindre pour ${echapper(acteur.nom)} : ${echapper(choix.nom)}${choix.quoi}</div>` : "";
+  const efficace = p.superEfficace >= 0.5 ? " · super efficace" : "";
+  // Le membre du banc qui encaisserait le mieux ce coup, s'il fait nettement mieux que l'actuel.
+  const restant = (i: number) => (obs.equipe[i]!.pv / Math.max(obs.equipe[i]!.pvMax, 1)) || 1;
+  const charge = (i: number) => (p.degatsSiEntre[i] ?? 0) / restant(i);
+  const actuel = obs.equipe.findIndex(m => m.surTerrain && !m.ko);
+  const remplacant = obs.equipe
+    .map((m, i) => ({ m, i }))
+    .filter(({ m }) => !m.ko && !m.surTerrain)
+    .sort((x, y) => charge(x.i) - charge(y.i))[0];
+  const mieux = remplacant && actuel >= 0 && charge(remplacant.i) < charge(actuel) / 2
+    ? ` · ${echapper(remplacant.m.nom)} l'encaisserait mieux` : "";
+  return `<div class="discret">Va sans doute utiliser : ${echapper(coup.attaque.nom)} (${Math.round(coup.probabilite * 100)} %)${efficace}${mieux}</div>`;
 }
 
 function ligneAdversaire(a: PokemonAdverse, obs: Observation): string {
@@ -188,7 +188,7 @@ function ligneAdversaire(a: PokemonAdverse, obs: Observation): string {
       <div class="haut"><span class="nom">${echapper(a.nom)}${a.shiny ? " ✨" : ""}${a.dejaCapture ? ` <span class="discret" title="Déjà capturé">◓</span>` : ""}</span>
         <span>N.${a.niveau}</span> ${a.types.map(puceType).join("")}</div>
       <div class="ligne-pv">${barrePv(a.pvPourcent)}<span>${a.pvPourcent} %${statut(a.statut)}${boss}</span></div>
-      ${aCraindre(a, obs)}
+      ${prevision(a, obs)}
     </div>`;
 }
 

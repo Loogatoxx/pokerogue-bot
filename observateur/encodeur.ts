@@ -23,12 +23,18 @@
  * v4 = + 88 pour la connaissance « Pokédex » (idée de Carlos, observateur/especes.ts) : pour chaque
  * adversaire, ce qu'il PEUT avoir à son niveau (meilleure puissance par type, pire menace sur
  * l'acteur, types qu'un de ses talents possibles annule) et son potentiel ; pour chaque membre de
- * l'équipe, son potentiel (total de statistiques de sa forme finale).
+ * l'équipe, son potentiel (total de statistiques de sa forme finale) ;
+ * v5 = + 66 pour la prévision du coup adverse (idée de Carlos, observateur/prevision.ts) : pour
+ * chaque adversaire, le type probable de son attaque, le risque de super efficace et de K.O. sur
+ * le Pokémon visé, ce qu'encaisserait chaque membre s'il entrait (le jeu de prédiction), ce que
+ * mes attaques font à ses PV restants, et qui frappe en premier. Mesuré sur 12 250 coups : 65 %
+ * d'attaques annoncées exactement (un sauvage tire lui-même sa meilleure 5 fois sur 8).
  */
 import { connaissance, immunitesPossibles, NB_TYPES_CONNUS, pireMenace, puissanceParType } from "./especes";
+import { NB_TYPES_PREVUS, prevoir } from "./prevision";
 import type { AttaqueVue, Libelle, Observation, PokemonAdverse, PokemonAllie } from "./types";
 
-export const VERSION_ENCODAGE = 4;
+export const VERSION_ENCODAGE = 5;
 
 const NB_TYPES = 19; // Normal (0) → Stellaire (18) ; « inconnu » (-1) n'allume aucune case
 const NB_STATUTS = 8;
@@ -53,6 +59,10 @@ const TAILLE_PROCHAIN_COMBAT = 1 + GENRES_COMBAT.length + 1; // dans combien de 
 // Par adversaire : puissance possible par type, pire menace sur l'acteur, immunités possibles, potentiel.
 const TAILLE_CONNAISSANCE_ADVERSAIRE = NB_TYPES_CONNUS + 1 + NB_TYPES_CONNUS + 2;
 const TAILLE_CONNAISSANCE = NB_ADVERSAIRES * TAILLE_CONNAISSANCE_ADVERSAIRE + NB_ALLIES;
+// Par adversaire : type probable, super efficace, dégâts et K.O. sur la cible, dégâts si chaque
+// membre entrait, mes 4 attaques, plus rapide.
+const TAILLE_PREVISION_ADVERSAIRE = NB_TYPES_PREVUS + 1 + 1 + 1 + NB_ALLIES + NB_ATTAQUES + 1;
+const TAILLE_PREVISION = NB_ADVERSAIRES * TAILLE_PREVISION_ADVERSAIRE;
 /** Un total de statistiques ramené vers 0-1 (720 = Arceus). */
 const TOTAL_MAX = 720;
 
@@ -63,6 +73,8 @@ export const TAILLES_ENCODAGE: Readonly<Record<number, number>> = {
   3: TAILLE_PARTIE + NB_ALLIES * TAILLE_ALLIE + NB_ADVERSAIRES * TAILLE_ADVERSAIRE + TAILLE_CAPTURE + TAILLE_PROCHAIN_COMBAT,
   4: TAILLE_PARTIE + NB_ALLIES * TAILLE_ALLIE + NB_ADVERSAIRES * TAILLE_ADVERSAIRE + TAILLE_CAPTURE + TAILLE_PROCHAIN_COMBAT
     + TAILLE_CONNAISSANCE,
+  5: TAILLE_PARTIE + NB_ALLIES * TAILLE_ALLIE + NB_ADVERSAIRES * TAILLE_ADVERSAIRE + TAILLE_CAPTURE + TAILLE_PROCHAIN_COMBAT
+    + TAILLE_CONNAISSANCE + TAILLE_PREVISION,
 };
 
 export const TAILLE_OBSERVATION = TAILLES_ENCODAGE[VERSION_ENCODAGE]!;
@@ -243,6 +255,34 @@ export function encoder(obs: Observation): Float32Array {
     for (let place = 0; place < NB_ALLIES; place++) {
       const membre = obs.equipe[place];
       e.nombre(membre ? (connaissance(membre.espece)?.totalFinal ?? 0) / TOTAL_MAX : 0);
+    }
+  });
+
+  // v5 — la prévision du coup adverse : « un coup d'avance », comme aux échecs.
+  e.bloc(TAILLE_PREVISION, () => {
+    for (let place = 0; place < NB_ADVERSAIRES; place++) {
+      const a = obs.adversaires.find(x => x.position === place);
+      const p = a ? prevoir(obs, a) : null;
+      if (!p) {
+        e.vide(TAILLE_PREVISION_ADVERSAIRE);
+        continue;
+      }
+      for (const proba of p.probabiliteParType) {
+        e.nombre(proba);
+      }
+      e.nombre(p.superEfficace);
+      e.nombre(borne(p.degatsSurCible, 2));
+      e.nombre(p.koCible);
+      // Dégâts rapportés aux PV restants de chacun : à 1 ou plus, il tomberait en entrant.
+      for (let place2 = 0; place2 < NB_ALLIES; place2++) {
+        const membre = obs.equipe[place2];
+        const restant = membre ? membre.pv / Math.max(membre.pvMax, 1) : 0;
+        e.nombre(membre && restant > 0 ? borne((p.degatsSiEntre[place2] ?? 0) / restant, 2) : 0);
+      }
+      for (let i = 0; i < NB_ATTAQUES; i++) {
+        e.nombre(borne(p.mesDegats[i] ?? 0, 2));
+      }
+      e.booleen(p.plusRapide);
     }
   });
 

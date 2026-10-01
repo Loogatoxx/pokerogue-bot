@@ -103,6 +103,17 @@ def rapport(parties: list[dict]) -> None:
     total = total_statut + sum(e["attaquesOffensives"] for p in valides for e in p.get("recit", []))
     print(f"Attaques de statut choisies alors qu'il pouvait frapper : {100 * total_statut / max(total, 1):.1f} % "
           f"({total_statut} sur {total})")
+    previsions = [p["prediction"] for p in valides if p.get("prediction")]
+    if previsions:
+        somme = {k: sum(x[k] for x in previsions) for k in previsions[0]}
+        offensifs = max(1, somme["tours"] - somme["changements"] - somme["statut"])
+        print(f"\nPrédiction de l'IA adverse ({somme['tours']} coups adverses) :")
+        print(f"  attaque exacte (1er choix annoncé) : {100 * somme['exacts'] / offensifs:.1f} % des attaques offensives")
+        print(f"  bon type (1er choix annoncé)       : {100 * somme['memeType'] / offensifs:.1f} %")
+        print(f"  probabilité donnée au vrai coup    : {100 * somme['probabilite'] / offensifs:.1f} % en moyenne")
+        print(f"  attaque jamais envisagée           : {100 * somme['horsPrevision'] / offensifs:.1f} %")
+        print(f"  changements de Pokémon adverses    : {100 * somme['changements'] / max(1, somme['tours']):.1f} % des coups ; "
+              f"attaques de statut : {100 * somme['statut'] / max(1, somme['tours']):.1f} %")
     print("\nOù il perd :")
     for v, n in sorted(fins.items(), key=lambda x: -x[1])[:8]:
         print(f"  vague {v:3d} : {n:4d} défaites ({100 * n / perdues:4.1f} %)  {COMBATS.get(v, '')}")

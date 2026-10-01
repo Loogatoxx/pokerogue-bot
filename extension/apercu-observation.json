@@ -58,7 +58,7 @@
   },
   "equipe": [
     {
-      "uid": 637862270,
+      "uid": 340733646,
       "espece": 1,
       "nom": "Bulbasaur",
       "niveau": 12,
@@ -193,7 +193,7 @@
       "shiny": false
     },
     {
-      "uid": 410242462,
+      "uid": 2773035912,
       "espece": 4,
       "nom": "Charmander",
       "niveau": 12,
@@ -324,7 +324,7 @@
       "shiny": false
     },
     {
-      "uid": 3343433322,
+      "uid": 1182171544,
       "espece": 7,
       "nom": "Squirtle",
       "niveau": 12,
@@ -580,7 +580,7 @@
   "decision": {
     "phase": "CommandPhase",
     "type": "combat",
-    "acteur": 637862270,
+    "acteur": 340733646,
     "positionActeur": 0,
     "masque": [
       true,
