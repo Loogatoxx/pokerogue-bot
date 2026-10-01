@@ -3,12 +3,20 @@
  * (observateur/equipe.ts) et d'objets (observateur/objets.ts).
  *
  * - Récompenses après une vague : les objets proposés, et pour chacun les Pokémon que le jeu
- *   accepte (son propre filtre, celui qui affiche « ça n'aura aucun effet »).
+ *   accepte (son propre filtre, celui qui affiche « ça n'aura aucun effet ») ; et la boutique.
  * - Capture avec l'équipe pleine : l'équipe actuelle et le Pokémon qui vient d'être capturé.
  */
+import { prochainCombatImportant } from "./combats";
 import { evaluerArrivee, type OptionEquipe } from "./equipe";
 import type { AttaqueJeu, MoveJeu, PokemonJeu, ScenePokerogue } from "./jeu";
-import { type ContexteObjets, evaluerObjets, type MembreObjets, type ObjetPropose, type OptionObjet } from "./objets";
+import {
+  type ContexteObjets,
+  evaluerAchats,
+  evaluerObjets,
+  type MembreObjets,
+  type ObjetPropose,
+  type OptionObjet,
+} from "./objets";
 import type { AttaqueNotee } from "./synergie";
 import { ECRAN } from "./valeurs";
 
@@ -57,6 +65,8 @@ export function optionsEquipePleineAffichees(scene: ScenePokerogue): OptionEquip
 /** Ce qu'on lit d'un objet du jeu (propriétés présentes selon sa catégorie). */
 interface TypeObjetJeu {
   id?: string;
+  /** Clé de traduction, ex. « modifierType:ModifierType.POTION ». */
+  localeKey?: string;
   name?: string;
   /** null = l'objet peut être donné à ce Pokémon ; un message sinon. */
   selectFilter?: (pokemon: PokemonJeu) => string | null;
@@ -70,57 +80,99 @@ interface TypeObjetJeu {
   stat?: number;
 }
 
+type OptionAffichee = { modifierTypeOption?: { type?: TypeObjetJeu; cost?: number } };
+type EcranRecompenses = { options?: OptionAffichee[]; shopOptionsRows?: OptionAffichee[][] } | null;
+
+/** Traduit un objet affiché par le jeu en objet à noter. */
+function versObjet(option: OptionAffichee, equipe: PokemonJeu[]): ObjetPropose {
+  const t: TypeObjetJeu = option.modifierTypeOption?.type ?? {};
+  // Les articles de la boutique sont créés sans identifiant par le jeu : on le lit alors dans leur
+  // clé de traduction (« modifierType:ModifierType.POTION » → POTION).
+  const id = t.id ?? t.localeKey?.match(/ModifierType\.([A-Z_]+)$/)?.[1] ?? "?";
+  const objet: ObjetPropose = { id, nom: t.name ?? "?", cout: option.modifierTypeOption?.cost ?? 0 };
+  if (t.selectFilter) {
+    const filtre = t.selectFilter;
+    objet.ciblesPossibles = equipe.flatMap((p, place) => (filtre(p) === null ? [place] : []));
+  }
+  if (t.restorePoints !== undefined || t.restorePercent !== undefined) {
+    objet.soin = { points: t.restorePoints ?? 0, pourcent: t.restorePercent ?? 0, statut: !!t.healStatus };
+  }
+  if (t.pokeballType !== undefined) {
+    objet.ball = { type: t.pokeballType, nombre: t.count ?? 1 };
+  }
+  // Pour connaître l'attaque d'une CT, on emprunte la classe « attaque d'un Pokémon » à un membre
+  // de l'équipe : new Classe(id).getMove() donne ses données (type, puissance…), connues de tous.
+  const ClasseAttaque = equipe[0]?.getMoveset()[0]?.constructor as (new (id: number) => AttaqueJeu) | undefined;
+  if (t.moveId !== undefined && ClasseAttaque) {
+    objet.ct = versNotee(new ClasseAttaque(t.moveId).getMove());
+  }
+  if (t.moveType !== undefined) {
+    objet.boosterType = { type: t.moveType };
+  }
+  if (t.stat !== undefined) {
+    objet.vitamine = t.stat;
+  }
+  return objet;
+}
+
 /** Les récompenses gratuites affichées (rangée principale de l'écran des bonus), ou null. */
 export function objetsProposes(scene: ScenePokerogue): ObjetPropose[] | null {
   if (scene.ui.getMode() !== ECRAN.MODIFIER_SELECT) {
     return null;
   }
-  const ecran = scene.ui.getHandler() as {
-    options?: { modifierTypeOption?: { type?: TypeObjetJeu; cost?: number } }[];
-  } | null;
+  const ecran = scene.ui.getHandler() as EcranRecompenses;
   if (!ecran?.options?.length) {
     return null;
   }
   const equipe = scene.getPlayerParty();
-  // Pour connaître l'attaque d'une CT, on emprunte la classe « attaque d'un Pokémon » à un membre
-  // de l'équipe : new Classe(id).getMove() donne ses données (type, puissance…), connues de tous.
-  const ClasseAttaque = equipe[0]?.getMoveset()[0]?.constructor as (new (id: number) => AttaqueJeu) | undefined;
+  return ecran.options.map(option => versObjet(option, equipe));
+}
 
-  return ecran.options.map(option => {
-    const t: TypeObjetJeu = option.modifierTypeOption?.type ?? {};
-    const objet: ObjetPropose = { id: t.id ?? "?", nom: t.name ?? "?", cout: option.modifierTypeOption?.cost ?? 0 };
-    if (t.selectFilter) {
-      const filtre = t.selectFilter;
-      objet.ciblesPossibles = equipe.flatMap((p, place) => (filtre(p) === null ? [place] : []));
-    }
-    if (t.restorePoints !== undefined || t.restorePercent !== undefined) {
-      objet.soin = { points: t.restorePoints ?? 0, pourcent: t.restorePercent ?? 0, statut: !!t.healStatus };
-    }
-    if (t.pokeballType !== undefined) {
-      objet.ball = { type: t.pokeballType, nombre: t.count ?? 1 };
-    }
-    if (t.moveId !== undefined && ClasseAttaque) {
-      objet.ct = versNotee(new ClasseAttaque(t.moveId).getMove());
-    }
-    if (t.moveType !== undefined) {
-      objet.boosterType = { type: t.moveType };
-    }
-    if (t.stat !== undefined) {
-      objet.vitamine = t.stat;
-    }
-    return objet;
-  });
+/** Un article de la boutique et sa place à l'écran (rangée et colonne du curseur du jeu). */
+export interface ArticleBoutique {
+  objet: ObjetPropose;
+  rangee: number;
+  colonne: number;
+}
+
+/**
+ * Les articles de la boutique (rangées sous les récompenses), ou null hors de cet écran. Le jeu
+ * numérote ses rangées de bas en haut : la dernière rangée de la boutique est la rangée 2 du
+ * curseur, l'avant-dernière la 3 (voir getRowItems du jeu).
+ */
+export function boutiqueAffichee(scene: ScenePokerogue): ArticleBoutique[] | null {
+  if (scene.ui.getMode() !== ECRAN.MODIFIER_SELECT) {
+    return null;
+  }
+  const rangees = (scene.ui.getHandler() as EcranRecompenses)?.shopOptionsRows ?? [];
+  const equipe = scene.getPlayerParty();
+  return rangees.flatMap((rangee, r) =>
+    rangee.map((option, colonne) => ({ objet: versObjet(option, equipe), rangee: rangees.length - r + 1, colonne })),
+  );
+}
+
+/** Ce que les notes d'objets savent de la partie : l'équipe, les Balls, le prochain combat important. */
+function contexte(scene: ScenePokerogue): ContexteObjets {
+  return {
+    equipe: scene.getPlayerParty().map(membreDe),
+    balls: [0, 1, 2, 3, 4].map(b => scene.pokeballCounts[b] ?? 0),
+    // Les récompenses arrivent après la vague gagnée : ce qui compte, c'est la suivante.
+    prochainCombat: prochainCombatImportant((scene.currentBattle?.waveIndex ?? 0) + 1),
+  };
 }
 
 /** Les récompenses affichées, notées d'après l'état de l'équipe ; null hors de cet écran. */
 export function optionsRecompensesAffichees(scene: ScenePokerogue): OptionObjet[] | null {
   const objets = objetsProposes(scene);
-  if (!objets) {
+  return objets ? evaluerObjets(objets, contexte(scene)) : null;
+}
+
+/** Les articles de la boutique, notés (prix compris) ; null hors de cet écran. */
+export function optionsBoutiqueAffichees(scene: ScenePokerogue): (OptionObjet & { rangee: number; colonne: number })[] | null {
+  const articles = boutiqueAffichee(scene);
+  if (!articles) {
     return null;
   }
-  const contexte: ContexteObjets = {
-    equipe: scene.getPlayerParty().map(membreDe),
-    balls: [0, 1, 2, 3, 4].map(b => scene.pokeballCounts[b] ?? 0),
-  };
-  return evaluerObjets(objets, contexte);
+  const notes = evaluerAchats(articles.map(a => a.objet), contexte(scene), scene.money);
+  return notes.map((o, i) => ({ ...o, rangee: articles[i]!.rangee, colonne: articles[i]!.colonne }));
 }

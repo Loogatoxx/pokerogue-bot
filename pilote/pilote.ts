@@ -9,10 +9,14 @@
  * le jeu exactement de la même façon dans les deux cas.
  */
 import { decrireAction } from "../observateur/actions";
-import { optionsEquipePleineAffichees, optionsRecompensesAffichees } from "../observateur/decisions-jeu";
+import {
+  optionsBoutiqueAffichees,
+  optionsEquipePleineAffichees,
+  optionsRecompensesAffichees,
+} from "../observateur/decisions-jeu";
 import { meilleureOptionEquipe } from "../observateur/equipe";
 import type { ScenePokerogue } from "../observateur/jeu";
-import { meilleurObjet } from "../observateur/objets";
+import { meilleurAchat, meilleurObjet } from "../observateur/objets";
 import { meilleureOption, optionsApprentissageAffichees } from "../observateur/synergie";
 import { BOUTON, CIBLE, COMMANDE, ECRAN, OPTION_EQUIPE, USAGE_ATTAQUE_NORMAL } from "../observateur/valeurs";
 
@@ -40,12 +44,19 @@ export interface EtatPilote {
   receveur: number | null;
   /** Membre à relâcher pour faire de la place au Pokémon capturé (note d'équipe), ou null. */
   placeARelacher: number | null;
+  /** Achats en boutique dans la vague (plafonnés), articles refusés, et dernier achat tenté. */
+  achats: number;
+  achatsRefuses: Set<number>;
+  dernierAchat: { index: number; argent: number } | null;
 }
+
+/** Achats au plus par vague : de quoi soigner l'équipe, sans boucle si quelque chose cloche. */
+const ACHATS_MAX = 6;
 
 export function nouvelEtatPilote(): EtatPilote {
   return {
     cible: CIBLE.ENNEMI_1, essaisCible: 0, recompensesEssayees: new Set(), vagueRecompenses: -1,
-    receveur: null, placeARelacher: null,
+    receveur: null, placeARelacher: null, achats: 0, achatsRefuses: new Set(), dernierAchat: null,
   };
 }
 
@@ -266,6 +277,15 @@ function choisirRecompense(scene: ScenePokerogue, e: Ecran, etat: EtatPilote): s
   if (vague !== etat.vagueRecompenses) {
     etat.vagueRecompenses = vague;
     etat.recompensesEssayees.clear();
+    etat.achats = 0;
+    etat.achatsRefuses.clear();
+    etat.dernierAchat = null;
+  }
+  // D'abord la boutique : un humain y achète des soins (surtout avant le rival ou un champion)
+  // avant de prendre sa récompense gratuite, qui fait passer à la vague suivante.
+  const achat = choisirAchat(scene, e, etat);
+  if (achat) {
+    return achat;
   }
   // Rangée 1 = les récompenses gratuites, notées d'après l'état de l'équipe (observateur/objets.ts).
   // On prend la mieux notée pas encore essayée dans cette vague ; si aucune ne sert, on passe.
@@ -282,6 +302,32 @@ function choisirRecompense(scene: ScenePokerogue, e: Ecran, etat: EtatPilote): s
   e.setCursor(choix.index);
   e.processInput(BOUTON.ACTION);
   return `récompense : ${choix.nom}`;
+}
+
+/** Un achat en boutique s'il en vaut la peine (note des objets, prix compris), sinon null. */
+function choisirAchat(scene: ScenePokerogue, e: Ecran, etat: EtatPilote): string | null {
+  // L'argent n'a pas bougé depuis le dernier achat tenté : le jeu l'a refusé, on n'y revient pas.
+  if (etat.dernierAchat && scene.money >= etat.dernierAchat.argent) {
+    etat.achatsRefuses.add(etat.dernierAchat.index);
+  }
+  etat.dernierAchat = null;
+  if (etat.achats >= ACHATS_MAX) {
+    return null;
+  }
+  const notes = (optionsBoutiqueAffichees(scene) ?? []).filter(o => !etat.achatsRefuses.has(o.index));
+  const choix = meilleurAchat(notes);
+  if (!choix || !e.setRowCursor) {
+    return null;
+  }
+  const article = notes.find(o => o.index === choix.index)!;
+  etat.achats++;
+  etat.dernierAchat = { index: choix.index, argent: scene.money };
+  etat.essaisCible = 0;
+  etat.receveur = choix.cible;
+  e.setRowCursor(article.rangee);
+  e.setCursor(article.colonne);
+  e.processInput(BOUTON.ACTION);
+  return `achat : ${choix.nom}`;
 }
 
 /**

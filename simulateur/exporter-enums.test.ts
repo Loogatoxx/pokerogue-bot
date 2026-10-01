@@ -9,6 +9,7 @@ import { getTypeDamageMultiplier } from "#data/type";
 import { BattleType } from "#enums/battle-type";
 import { BattlerIndex } from "#enums/battler-index";
 import { Button } from "#enums/buttons";
+import { ClassicFixedBossWaves } from "#enums/fixed-boss-waves";
 import { Command } from "#enums/command";
 import { BiomeId } from "#enums/biome-id";
 import { MoveCategory } from "#enums/move-category";
@@ -35,6 +36,7 @@ it("exporte les énumérations", () => {
     BattleType: paires(BattleType),
     BattlerIndex: paires(BattlerIndex),
     Button: paires(Button),
+    ClassicFixedBossWaves: paires(ClassicFixedBossWaves),
     Command: paires(Command),
     BiomeId: paires(BiomeId),
     MoveCategory: paires(MoveCategory),

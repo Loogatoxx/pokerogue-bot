@@ -19,8 +19,8 @@
  * et ceux du panneau ne se mélangent pas.
  */
 import { type Cerveau, lireCerveau, meilleureAction, penser, type Reponse } from "../../cerveau/cerveau";
-import { decrireAction } from "../../observateur/actions";
-import { encoder, TAILLE_OBSERVATION, VERSION_ENCODAGE } from "../../observateur/encodeur";
+import { decrireAction, NOMBRE_ACTIONS } from "../../observateur/actions";
+import { encoder, TAILLES_ENCODAGE, VERSION_ENCODAGE } from "../../observateur/encodeur";
 import { PokeballType, PokemonType } from "../../observateur/noms";
 import {
   type Decision,
@@ -258,7 +258,11 @@ function texteDecision(d: Decision, obs: Observation): string {
 }
 
 function enteteChoix(obs: Observation): string {
-  return `<div class="quoi">V${obs.partie.vague} · ${echapper(texteDecision(obs.decision, obs))}</div>`;
+  // Le prochain combat important, comme un joueur le garde en tête (« le rival arrive »).
+  const c = obs.partie.prochainCombat;
+  const quand = c.dans === 0 ? "maintenant" : c.dans === 1 ? "à la prochaine vague" : `dans ${c.dans} vagues`;
+  const prochain = c.dans <= 3 ? ` · <span class="discret">${echapper(c.nom)} ${quand}</span>` : "";
+  return `<div class="quoi">V${obs.partie.vague} · ${echapper(texteDecision(obs.decision, obs))}${prochain}</div>`;
 }
 
 /** Décisions laissées au pilote (récompenses, équipe pleine…) : son option recommandée en gros. */
@@ -332,11 +336,19 @@ const NOMS_VITESSES: Record<string, string> = { lente: "LENT", normale: "NORMAL"
 /** Pourquoi ce cerveau ne peut pas lire les observations de cette version de l'extension. */
 function incompatibilite(cerveau: Cerveau): string | null {
   const e = cerveau.entete;
-  if (e.versionObservation !== VERSION_OBSERVATION || e.versionEncodage !== VERSION_ENCODAGE || e.tailleEntree !== TAILLE_OBSERVATION) {
+  // Les encodages ne font qu'ajouter des nombres à la fin : un cerveau plus ancien (ex. la v2,
+  // encodage v2) lit simplement le début de l'observation, qui n'a pas changé de sens.
+  const lisible = e.versionEncodage <= VERSION_ENCODAGE && TAILLES_ENCODAGE[e.versionEncodage] === e.tailleEntree;
+  if (!lisible || e.nombreActions !== NOMBRE_ACTIONS) {
     return `Ce cerveau a appris avec une autre version des observations (obs. v${e.versionObservation}, `
       + `encodage v${e.versionEncodage}) que l'extension (obs. v${VERSION_OBSERVATION}, encodage v${VERSION_ENCODAGE}).`;
   }
   return null;
+}
+
+/** Les nombres que ce cerveau sait lire : toute l'observation, ou son début pour un cerveau plus ancien. */
+function entreeDe(cerveau: Cerveau, obs: Observation): Float32Array {
+  return encoder(obs).subarray(0, cerveau.entete.tailleEntree);
 }
 
 function libelleAction(index: number, obs: Observation): string {
@@ -571,7 +583,7 @@ function demarrer(): void {
     const cle = cleDecision(obs);
     const interdites = refusees.get(cle) ?? new Set<number>();
     const masque = obs.decision.masque.map((permise, i) => permise && !interdites.has(i));
-    const reponse = penser(cerveau, encoder(obs), masque);
+    const reponse = penser(cerveau, entreeDe(cerveau, obs), masque);
     const choisie = meilleureAction(reponse);
     derniereReponse = reponse;
     afficherChoix(afficherReflexion({ ...obs, decision: { ...obs.decision, masque } }, reponse, choisie));
@@ -730,7 +742,7 @@ function demarrer(): void {
           const choisie = cleEnvoyee === cle ? derniereObservation : null;
           if (choisie) {
             const interdites = refusees.get(cle) ?? new Set<number>();
-            const reponse = cerveau ? penser(cerveau, encoder(choisie), choisie.decision.masque!.map((p, i) => p && !interdites.has(i))) : null;
+            const reponse = cerveau ? penser(cerveau, entreeDe(cerveau, choisie), choisie.decision.masque!.map((p, i) => p && !interdites.has(i))) : null;
             if (reponse) {
               interdites.add(meilleureAction(reponse));
               refusees.set(cle, interdites);

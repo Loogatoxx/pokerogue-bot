@@ -9,11 +9,15 @@
  *   - un objet de type (Charbon…) vaut selon qui porte des attaques de ce type ;
  *   - une Poké Ball vaut plus quand l'équipe n'est pas pleine et que le stock est bas ;
  *   - un objet refusé par le jeu (aucun Pokémon compatible) est écarté : fini les « bonus
- *     inutilisables » essayés en boucle.
+ *     inutilisables » essayés en boucle ;
+ *   - soins et Rappels valent plus juste avant un combat important (rival, champion…) : un humain
+ *     se soigne avant le boss. L'analyse des défaites l'a confirmé : au boss de la vague 20, les
+ *     équipes qui perdent arrivent avec 62 % de PV, celles qui gagnent avec 86 %.
  * Le meilleur receveur est désigné parmi ceux que le jeu accepte (filtre du jeu), en privilégiant
  * les membres les plus avancés. Les valeurs de base (VALEURS) sont un point de départ réglable.
  * Une formule lisible, en attendant que le cerveau apprenne lui-même à choisir ses récompenses.
  */
+import type { CombatImportant } from "./combats";
 import type { Membre } from "./equipe";
 import { PokeballType, PokemonType } from "./noms";
 import { type AttaqueNotee, evaluerApprentissage, meilleureOption, noterJeu } from "./synergie";
@@ -50,7 +54,17 @@ export interface ContexteObjets {
   equipe: MembreObjets[];
   /** Balls en stock, par type (Poké, Super, Hyper, Rogue, Master). */
   balls: number[];
+  /** Le prochain combat important, compté depuis la vague qui suit ces récompenses. */
+  prochainCombat?: CombatImportant;
 }
+
+/** Combien un soin compte de plus avant un combat important : la vague suivante, ou celle d'après. */
+export function urgenceSoin(combat: CombatImportant | undefined): number {
+  return combat?.dans === 0 ? 1.8 : combat?.dans === 1 ? 1.4 : 1;
+}
+
+const avant = (combat: CombatImportant | undefined) =>
+  combat && urgenceSoin(combat) > 1 ? [`avant : ${combat.nom} (vague ${combat.vague})`] : [];
 
 export interface OptionObjet {
   /** Position de l'objet parmi ceux proposés. */
@@ -147,7 +161,12 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
       return rien("tout le monde est en pleine forme");
     }
     const m = equipe[r.place]!;
-    return { note: r.valeur, cible: r.place, pour: [`soigne ${m.nom} (${m.pv}/${m.pvMax} PV)`], contre: [] };
+    return {
+      note: r.valeur * urgenceSoin(ctx.prochainCombat),
+      cible: r.place,
+      pour: [`soigne ${m.nom} (${m.pv}/${m.pvMax} PV)`, ...avant(ctx.prochainCombat)],
+      contre: [],
+    };
   }
 
   if (RAPPELS.has(objet.id) || objet.id === "SACRED_ASH") {
@@ -155,11 +174,17 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
     if (!ko.length) {
       return rien("personne n'est K.O.");
     }
+    const urgence = urgenceSoin(ctx.prochainCombat);
     if (objet.id === "SACRED_ASH") {
-      return { note: ko.reduce((n, m) => n + 60 * importance(m, equipe), 0), cible: null, pour: [`ranime ${ko.map(m => m.nom).join(", ")}`], contre: [] };
+      return {
+        note: ko.reduce((n, m) => n + 60 * importance(m, equipe), 0) * urgence,
+        cible: null,
+        pour: [`ranime ${ko.map(m => m.nom).join(", ")}`, ...avant(ctx.prochainCombat)],
+        contre: [],
+      };
     }
     const r = meilleurReceveur(objet, ctx, m => (m.ko ? 60 * importance(m, equipe) : 0))!;
-    return { note: r.valeur, cible: r.place, pour: [`ranime ${equipe[r.place]!.nom}`], contre: [] };
+    return { note: r.valeur * urgence, cible: r.place, pour: [`ranime ${equipe[r.place]!.nom}`, ...avant(ctx.prochainCombat)], contre: [] };
   }
 
   if (PP.has(objet.id)) {
@@ -276,4 +301,43 @@ export function evaluerObjets(objets: ObjetPropose[], ctx: ContexteObjets): Opti
 export function meilleurObjet(options: OptionObjet[]): OptionObjet | null {
   const meilleure = options.reduce<OptionObjet | null>((m, o) => (!m || o.note > m.note ? o : m), null);
   return meilleure && meilleure.note > 0 ? meilleure : null;
+}
+
+// ─── Boutique ─────────────────────────────────────────────────────────────────────────────────
+
+/** Ce que la boutique vend d'utile pour l'équipe : soins, Rappels, PP. */
+const ACHETABLES = new Set([...SOINS, ...RAPPELS, ...PP, "SACRED_ASH"]);
+/** Note minimale (une fois le prix déduit) pour qu'un achat vaille la peine. */
+export const SEUIL_ACHAT = 8;
+
+/**
+ * Les articles de la boutique, notés comme les récompenses, moins leur prix rapporté à l'argent
+ * disponible. Un humain achète des Potions quand un membre important est blessé, surtout juste
+ * avant le rival ou un champion ; il ne gaspille pas son argent quand tout le monde va bien.
+ */
+export function evaluerAchats(objets: ObjetPropose[], ctx: ContexteObjets, argent: number): OptionObjet[] {
+  return objets.map((objet, index) => {
+    if (!ACHETABLES.has(objet.id)) {
+      return { index, nom: objet.nom, note: 0, cible: null, pour: [], contre: ["pas utile à acheter ici"] };
+    }
+    if (objet.cout > argent) {
+      return { index, nom: objet.nom, note: -1, cible: null, pour: [], contre: [`trop cher (${objet.cout} ₽, il reste ${argent} ₽)`] };
+    }
+    const j = juger(objet, ctx);
+    const note = j.note - 4 * (objet.cout / Math.max(argent, 1));
+    return {
+      index,
+      nom: objet.nom,
+      note: Math.round(note * 10) / 10,
+      cible: j.cible,
+      pour: j.pour,
+      contre: [...j.contre, `coûte ${objet.cout} ₽ sur ${argent}`],
+    };
+  });
+}
+
+/** Le meilleur achat, ou null si aucun ne vaut son prix. */
+export function meilleurAchat(options: OptionObjet[]): OptionObjet | null {
+  const meilleure = options.reduce<OptionObjet | null>((m, o) => (!m || o.note > m.note ? o : m), null);
+  return meilleure && meilleure.note >= SEUIL_ACHAT ? meilleure : null;
 }

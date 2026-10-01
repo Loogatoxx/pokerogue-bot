@@ -81,6 +81,30 @@ export const Button: Readonly<Record<number, Nom>> = {
   17: { cle: "DEV_CUSTOM", fr: "DEV_CUSTOM" },
 };
 
+export const ClassicFixedBossWaves: Readonly<Record<number, Nom>> = {
+  5: { cle: "TOWN_YOUNGSTER", fr: "Gamin" },
+  8: { cle: "RIVAL_1", fr: "Rival" },
+  25: { cle: "RIVAL_2", fr: "Rival" },
+  35: { cle: "EVIL_GRUNT_1", fr: "Sbire de la Team" },
+  55: { cle: "RIVAL_3", fr: "Rival" },
+  62: { cle: "EVIL_GRUNT_2", fr: "Sbire de la Team" },
+  64: { cle: "EVIL_GRUNT_3", fr: "Sbire de la Team" },
+  66: { cle: "EVIL_ADMIN_1", fr: "Admin de la Team" },
+  95: { cle: "RIVAL_4", fr: "Rival" },
+  112: { cle: "EVIL_GRUNT_4", fr: "Sbire de la Team" },
+  114: { cle: "EVIL_ADMIN_2", fr: "Admin de la Team" },
+  115: { cle: "EVIL_BOSS_1", fr: "Boss de la Team" },
+  145: { cle: "RIVAL_5", fr: "Rival" },
+  164: { cle: "EVIL_ADMIN_3", fr: "Admin de la Team" },
+  165: { cle: "EVIL_BOSS_2", fr: "Boss de la Team" },
+  182: { cle: "ELITE_FOUR_1", fr: "Conseil 4" },
+  184: { cle: "ELITE_FOUR_2", fr: "Conseil 4" },
+  186: { cle: "ELITE_FOUR_3", fr: "Conseil 4" },
+  188: { cle: "ELITE_FOUR_4", fr: "Conseil 4" },
+  190: { cle: "CHAMPION", fr: "Maître de la Ligue" },
+  195: { cle: "RIVAL_6", fr: "Rival" },
+};
+
 export const Command: Readonly<Record<number, Nom>> = {
   0: { cle: "FIGHT", fr: "FIGHT" },
   1: { cle: "BALL", fr: "BALL" },

@@ -17,11 +17,13 @@
  * Règle : on n'ajoute qu'À LA FIN. Les nombres existants gardent leur place et leur sens, ce qui
  * permet de « greffer » un cerveau existant (entraineur/greffe.py) au lieu de repartir de zéro.
  *
- * Historique : v1 = 1 290 nombres ; v2 = + 9 pour la capture (Poké Balls, équipe, déjà capturé).
+ * Historique : v1 = 1 290 nombres ; v2 = + 9 pour la capture (Poké Balls, équipe, déjà capturé) ;
+ * v3 = + 5 pour le prochain combat important (dans combien de vagues, rival / dresseur / boss, et
+ * « c'est maintenant »). Un cerveau v2 lit les 1 299 premiers nombres, qui n'ont pas changé.
  */
 import type { AttaqueVue, Libelle, Observation, PokemonAdverse, PokemonAllie } from "./types";
 
-export const VERSION_ENCODAGE = 2;
+export const VERSION_ENCODAGE = 3;
 
 const NB_TYPES = 19; // Normal (0) → Stellaire (18) ; « inconnu » (-1) n'allume aucune case
 const NB_STATUTS = 8;
@@ -41,8 +43,17 @@ const TAILLE_ADVERSAIRE = 2 + 2 + 2 + NB_STATUTS + NB_TYPES + 2 + 6 + 7 + 1 + NB
 const NB_BALLS = 5;
 const TAILLE_CAPTURE = NB_BALLS + 2 + NB_ADVERSAIRES; // Balls en stock, taille de l'équipe, déjà capturés
 
-export const TAILLE_OBSERVATION =
-  TAILLE_PARTIE + NB_ALLIES * TAILLE_ALLIE + NB_ADVERSAIRES * TAILLE_ADVERSAIRE + TAILLE_CAPTURE;
+const GENRES_COMBAT = ["rival", "dresseur", "boss"] as const;
+const TAILLE_PROCHAIN_COMBAT = 1 + GENRES_COMBAT.length + 1; // dans combien de vagues, genre, maintenant
+
+/** Taille de l'observation de chaque version de l'encodage (les versions ne font qu'ajouter à la fin). */
+export const TAILLES_ENCODAGE: Readonly<Record<number, number>> = {
+  1: TAILLE_PARTIE + NB_ALLIES * TAILLE_ALLIE + NB_ADVERSAIRES * TAILLE_ADVERSAIRE,
+  2: TAILLE_PARTIE + NB_ALLIES * TAILLE_ALLIE + NB_ADVERSAIRES * TAILLE_ADVERSAIRE + TAILLE_CAPTURE,
+  3: TAILLE_PARTIE + NB_ALLIES * TAILLE_ALLIE + NB_ADVERSAIRES * TAILLE_ADVERSAIRE + TAILLE_CAPTURE + TAILLE_PROCHAIN_COMBAT,
+};
+
+export const TAILLE_OBSERVATION = TAILLES_ENCODAGE[VERSION_ENCODAGE]!;
 
 /** Écrit dans un tableau en avançant une position, et vérifie qu'on remplit exactement chaque bloc. */
 class Ecrivain {
@@ -188,6 +199,14 @@ export function encoder(obs: Observation): Float32Array {
     for (let place = 0; place < NB_ADVERSAIRES; place++) {
       e.booleen(!!obs.adversaires.find(a => a.position === place)?.dejaCapture);
     }
+  });
+
+  // v3 — le prochain combat important : un joueur sait que le rival arrive à la vague 8.
+  e.bloc(TAILLE_PROCHAIN_COMBAT, () => {
+    const combat = p.prochainCombat;
+    e.nombre(Math.min(combat.dans, 10) / 10);
+    e.oneHot(GENRES_COMBAT.indexOf(combat.genre), GENRES_COMBAT.length);
+    e.booleen(combat.dans === 0);
   });
 
   if (e.position !== TAILLE_OBSERVATION) {

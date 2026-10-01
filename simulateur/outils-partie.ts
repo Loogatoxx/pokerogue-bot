@@ -3,6 +3,17 @@
  * Tirés du banc de vitesse (voir docs/etape-0-vitesse.md pour le pourquoi de chaque piège).
  */
 import { BattleScene } from "#app/battle-scene";
+import { Battle } from "#app/battle";
+import { Phase } from "#app/phase";
+import { Arena } from "#field/arena";
+import { Pokemon } from "#field/pokemon";
+import { Trainer } from "#field/trainer";
+import { Modifier } from "#modifiers/modifier";
+import { MockContainer } from "#test/mocks/mocks-container/mock-container";
+import { MockSprite } from "#test/mocks/mocks-container/mock-sprite";
+import { MockText } from "#test/mocks/mocks-container/mock-text";
+import { Session } from "node:inspector/promises";
+import Phaser from "phaser";
 import { getGameMode } from "#app/game-mode";
 import { speciesDataRegistry } from "#app/global-species-data-registry";
 import { GameModes } from "#enums/game-modes";
@@ -68,4 +79,85 @@ export function minuteriesEnAttente(game: GameManager): boolean {
   };
   const evenements = [...(horloge._active ?? []), ...(horloge._pendingInsertion ?? [])];
   return evenements.some(e => !e.loop && e.repeatCount <= 0 && !e.hasDispatched && !e.paused);
+}
+
+// ─── Diagnostic de mémoire : combien d'objets de chaque classe sont encore en vie ? ──────────────
+
+let session: Session | null = null;
+
+/** Les classes suivies : une qui grimpe de partie en partie sans redescendre est une fuite. */
+const CLASSES_SUIVIES: Record<string, { prototype: object }> = {
+  Pokemon, Battle, Trainer, Arena, Phase, Modifier, MockSprite, MockContainer, MockText,
+  "Phaser.Sprite": Phaser.GameObjects.Sprite,
+  "Phaser.Container": Phaser.GameObjects.Container,
+  "Phaser.GameObject": Phaser.GameObjects.GameObject,
+  "Phaser.Tween": Phaser.Tweens.Tween,
+  "Phaser.TimerEvent": Phaser.Time.TimerEvent,
+  "Phaser.Animation": Phaser.Animations.Animation,
+};
+
+/**
+ * Compte les objets vivants de chaque classe suivie, avec l'inspecteur de Node (la même
+ * fonction que « Memory » dans les outils de développement du navigateur ; elle fait passer le
+ * ramasse-miettes avant de compter). Lent : seulement pour le diagnostic (PONT_COMPTAGE=1).
+ */
+export async function compterInstances(): Promise<Record<string, number>> {
+  if (!session) {
+    session = new Session();
+    session.connect();
+  }
+  const comptes: Record<string, number> = {};
+  const global = globalThis as { __aCompter?: object };
+  for (const [nom, classe] of Object.entries(CLASSES_SUIVIES)) {
+    global.__aCompter = classe.prototype;
+    const { result } = await session.post("Runtime.evaluate", { expression: "globalThis.__aCompter" });
+    const { objects } = await session.post("Runtime.queryObjects", { prototypeObjectId: result.objectId! });
+    const { result: nombre } = await session.post("Runtime.callFunctionOn", {
+      objectId: objects.objectId!,
+      functionDeclaration: "function () { return this.length; }",
+      returnByValue: true,
+    });
+    comptes[nom] = nombre.value as number;
+    await session.post("Runtime.releaseObject", { objectId: objects.objectId! });
+    await session.post("Runtime.releaseObject", { objectId: result.objectId! });
+  }
+  delete global.__aCompter;
+  return comptes;
+}
+
+/**
+ * Les collections (tableaux, listes de conteneurs, Map, Set) accessibles depuis la scène sur deux
+ * niveaux, avec leur taille : celle qui grandit à chaque partie retient les objets qui fuient.
+ */
+export function taillesCollections(racine: object): Record<string, number> {
+  const tailles: Record<string, number> = {};
+  const taille = (v: unknown): number | null =>
+    Array.isArray(v) ? v.length
+    : v instanceof Map || v instanceof Set ? v.size
+    : v && typeof v === "object" && Array.isArray((v as { list?: unknown }).list) ? (v as { list: unknown[] }).list.length
+    : null;
+  const vus = new Set<object>();
+  const parcourir = (objet: object, chemin: string, profondeur: number) => {
+    if (vus.has(objet) || profondeur > 2) {
+      return;
+    }
+    vus.add(objet);
+    for (const cle of Object.keys(objet)) {
+      let v: unknown;
+      try {
+        v = (objet as Record<string, unknown>)[cle];
+      } catch {
+        continue;
+      }
+      const n = taille(v);
+      if (n !== null && n >= 20) {
+        tailles[`${chemin}.${cle}`] = n;
+      }
+      if (v && typeof v === "object" && !Array.isArray(v)) {
+        parcourir(v, `${chemin}.${cle}`, profondeur + 1);
+      }
+    }
+  };
+  parcourir(racine, "scene", 0);
+  return tailles;
 }

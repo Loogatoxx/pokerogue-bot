@@ -2,7 +2,16 @@
  * Note des objets : chaque récompense est jugée d'après l'état de l'équipe.
  */
 import { describe, expect, it } from "vitest";
-import { type ContexteObjets, evaluerObjets, type MembreObjets, meilleurObjet, type ObjetPropose } from "../observateur/objets";
+import { prochainCombatImportant } from "../observateur/combats";
+import {
+  type ContexteObjets,
+  evaluerAchats,
+  evaluerObjets,
+  type MembreObjets,
+  meilleurAchat,
+  meilleurObjet,
+  type ObjetPropose,
+} from "../observateur/objets";
 
 const membre = (nom: string, niveau: number, types: number[], pv: number, pvMax: number, extra: Partial<MembreObjets> = {}): MembreObjets => ({
   nom, espece: 1, niveau, types, stats: [pvMax, 30, 25, 20, 25, 30], pv, pvMax, ko: pv === 0, statut: false,
@@ -50,5 +59,25 @@ describe("Note des objets", () => {
     const options = evaluerObjets([refusee], ctx);
     expect(options[0]!.note).toBeLessThan(0);
     expect(meilleurObjet(options)).toBeNull(); // mieux vaut passer que s'entêter
+  });
+
+  it("soigne plutôt juste avant le rival", () => {
+    const equipe = [membre("Kaiminus", 8, [10], 14, 26)];
+    const exp: ObjetPropose = { id: "EXP_CHARM", nom: "Charme Exp", cout: 0 };
+    const loin = { equipe, balls: [5, 0, 0, 0, 0], prochainCombat: prochainCombatImportant(3) };
+    const proche = { ...loin, prochainCombat: prochainCombatImportant(8) };
+    expect(meilleurObjet(evaluerObjets([potion, exp], loin))!.nom).toBe("Charme Exp");
+    const choix = meilleurObjet(evaluerObjets([potion, exp], proche))!;
+    expect(choix.nom).toBe("Potion");
+    expect(choix.pour.join(" ")).toMatch(/avant : Rival/);
+  });
+
+  it("achète une Potion pour un membre blessé, pas pour une équipe en forme", () => {
+    const enBoutique = { ...potion, cout: 50 };
+    const blesse: ContexteObjets = { equipe: [membre("Kaiminus", 8, [10], 8, 26)], balls: [5, 0, 0, 0, 0] };
+    const enForme: ContexteObjets = { equipe: [membre("Kaiminus", 8, [10], 26, 26)], balls: [5, 0, 0, 0, 0] };
+    expect(meilleurAchat(evaluerAchats([enBoutique], blesse, 500))?.cible).toBe(0);
+    expect(meilleurAchat(evaluerAchats([enBoutique], enForme, 500))).toBeNull();
+    expect(meilleurAchat(evaluerAchats([enBoutique], blesse, 30))).toBeNull(); // trop cher
   });
 });

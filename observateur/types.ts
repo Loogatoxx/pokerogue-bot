@@ -7,7 +7,9 @@
  * Toute modification de cette forme doit incrémenter VERSION_OBSERVATION : un cerveau
  * entraîné sur une version ne sait pas lire une autre.
  */
-export const VERSION_OBSERVATION = 3;
+import type { CombatImportant } from "./combats";
+
+export const VERSION_OBSERVATION = 4;
 
 /** Un identifiant du jeu et son nom lisible. */
 export interface Libelle {
@@ -161,6 +163,8 @@ export interface Observation {
     balls: (Libelle & { quantite: number })[];
     /** Le joueur voit le nombre de Poké Balls restantes du dresseur, pas ses Pokémon. */
     dresseur: { nom: string; pokemonRestants: number } | null;
+    /** v4 — le prochain combat important (rival, champion, boss…) : un joueur le voit venir. */
+    prochainCombat: CombatImportant;
   };
   equipe: PokemonAllie[];
   adversaires: PokemonAdverse[];

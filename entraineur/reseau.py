@@ -28,7 +28,9 @@ class Cerveau(nn.Module):
         self.valeur = nn.Linear(entree, 1)
 
     def forward(self, observation: torch.Tensor, masque: torch.Tensor | None = None) -> tuple[torch.Tensor, torch.Tensor]:
-        commun = self.tronc(observation)
+        # Un cerveau plus ancien que l'encodage lit le début de l'observation : les nouveaux nombres
+        # sont toujours ajoutés à la fin (observateur/encodeur.ts), le début garde son sens.
+        commun = self.tronc(observation[..., : self.taille_entree])
         scores = self.politique(commun)
         if masque is not None:
             # Un très grand nombre négatif plutôt que -infini : même probabilité nulle, mais

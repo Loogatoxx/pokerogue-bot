@@ -12,17 +12,20 @@
  */
 import { BattleScene } from "#app/battle-scene";
 import { BattleStyle } from "#enums/battle-style";
+import { MoveCategory } from "#enums/move-category";
 import { SpeciesId } from "#enums/species-id";
+import { TrainerType } from "#enums/trainer-type";
 import { UiMode } from "#enums/ui-mode";
 import { GameManager } from "#test/framework/game-manager";
 import { PromptHandler } from "#test/helpers/prompt-handler";
 import net from "node:net";
+import { writeHeapSnapshot } from "node:v8";
 import Phaser from "phaser";
 import { describe, it, vi } from "vitest";
-import { NOMBRE_ACTIONS } from "../../../observateur/actions";
+import { decrireAction, NOMBRE_ACTIONS } from "../../../observateur/actions";
 import { Carnet } from "../../../observateur/carnet";
 import { encoder, TAILLE_OBSERVATION, VERSION_ENCODAGE } from "../../../observateur/encodeur";
-import type { ScenePokerogue } from "../../../observateur/jeu";
+import type { PokemonJeu, ScenePokerogue } from "../../../observateur/jeu";
 import { observer } from "../../../observateur/observateur";
 import { type Observation, VERSION_OBSERVATION } from "../../../observateur/types";
 import {
@@ -31,7 +34,7 @@ import {
   nouvelEtatPilote,
   repondreParRegles,
 } from "../../../pilote/pilote";
-import { demarrerPartie, minuteriesEnAttente, vraiHasard } from "./outils-partie";
+import { compterInstances, demarrerPartie, minuteriesEnAttente, taillesCollections, vraiHasard } from "./outils-partie";
 
 const PORT = Number(process.env.PONT_PORT);
 const ID = Number(process.env.PONT_ID ?? 0);
@@ -47,16 +50,16 @@ const ATTENTE_MAX_MS = 30 * 60_000;
 const BLOCAGE_MS = 60_000;
 const DECISIONS_MAX = 20_000;
 
-// Le jeu écrit dans la console à chaque phase, message et attaque (des milliers de lignes par
-// partie). Toute la simulation est un seul long test vitest lancé avec --silent=passed-only : vitest
-// garde donc tout en mémoire jusqu'à la fin, au cas où le test échouerait. On coupe ces écritures ;
-// les avertissements et les erreurs, eux, restent visibles dans le journal de la copie.
-for (const niveau of ["log", "info", "debug"] as const) {
-  console[niveau] = () => {};
-}
-
 type MessagePython =
-  | { type: "nouvelle-partie"; graine?: string; especes?: number[]; styleCombat?: "fixe" | "changer"; vagueMax?: number }
+  | {
+      type: "nouvelle-partie";
+      graine?: string;
+      especes?: number[];
+      styleCombat?: "fixe" | "changer";
+      vagueMax?: number;
+      /** Renvoyer aussi le récit de la partie (analyse des défaites) ; ~1 Ko de plus par partie. */
+      recit?: boolean;
+    }
   | { type: "action"; action: number }
   | { type: "fin" };
 
@@ -131,10 +134,145 @@ function infoPartie(obs: Observation) {
   };
 }
 
+// ─── Récit d'une partie (pour l'analyse des défaites, pas pour le cerveau) ──────────────────────
+
+interface PokemonRecit {
+  name: string;
+  level: number;
+  hp: number;
+  getMaxHp(): number;
+  isFainted(): boolean;
+  getMoveset(): { getName(): string }[];
+}
+
+/** Ce qu'on retient de chaque vague : les forces en présence au moment où elle commence. */
+interface EtapeRecit {
+  vague: number;
+  /** Type de dresseur (ex. RIVAL), ou null pour un Pokémon sauvage. */
+  dresseur: string | null;
+  /** Niveaux de l'équipe, et ses PV restants en % du total. */
+  equipe: number[];
+  pvEquipe: number;
+  adversaires: number[];
+  /** Nombre d'objets portés par l'équipe (piles comprises). */
+  objets: number;
+  /** Attaques choisies pendant la vague alors qu'une attaque offensive était utilisable :
+   * de statut (Rugissement, Mimi-Queue…) ou offensives. */
+  attaquesStatut: number;
+  attaquesOffensives: number;
+}
+
+const resumer = (p: PokemonRecit) => ({
+  nom: p.name,
+  niveau: p.level,
+  pv: Math.round((100 * p.hp) / Math.max(p.getMaxHp(), 1)),
+  attaques: p.getMoveset().map(a => a.getName()),
+});
+
+type SceneRecit = {
+  currentBattle?: { waveIndex: number; turn: number; double: boolean; trainer?: { config: { trainerType: number } } | null };
+  getPlayerParty(): PokemonRecit[];
+  getEnemyParty(): PokemonRecit[];
+  modifiers: { type: { id: string }; getStackCount(): number }[];
+};
+
+function dresseurDe(scene: SceneRecit): string | null {
+  const type = scene.currentBattle?.trainer?.config.trainerType;
+  return type === undefined ? null : (TrainerType[type] ?? String(type));
+}
+
+function objetsPortes(scene: SceneRecit): Record<string, number> {
+  const objets: Record<string, number> = {};
+  for (const m of scene.modifiers) {
+    objets[m.type.id] = (objets[m.type.id] ?? 0) + m.getStackCount();
+  }
+  return objets;
+}
+
+/**
+ * Un objet graphique détruit ? Phaser efface `scene` d'un objet qu'il détruit ; un faux sprite de
+ * l'outil de test enveloppe un vrai sprite Phaser. Les autres faux objets (textes, rectangles…) ne
+ * disent pas s'ils sont détruits : on les garde (le jeu en cherche parfois un par sa position).
+ */
+function estDetruit(objet: unknown): boolean {
+  if (objet instanceof Phaser.GameObjects.GameObject) {
+    return objet.scene === undefined;
+  }
+  const faux = objet as { phaserSprite?: Phaser.GameObjects.Sprite } | null;
+  return faux?.phaserSprite !== undefined && faux.phaserSprite.scene === undefined;
+}
+
+/** Retire les objets détruits de ce conteneur et, récursivement, de ses sous-conteneurs. */
+function retirerDetruits(conteneur: unknown, vus = new Set<unknown>()): void {
+  const liste = (conteneur as { list?: unknown } | null)?.list;
+  if (!Array.isArray(liste) || vus.has(conteneur)) {
+    return;
+  }
+  vus.add(conteneur);
+  const vivants = liste.filter(o => !estDetruit(o));
+  if (vivants.length !== liste.length) {
+    liste.splice(0, liste.length, ...vivants);
+  }
+  for (const enfant of liste) {
+    retirerDetruits(enfant, vus);
+  }
+}
+
+/**
+ * Ménage entre deux parties d'un même processus. L'outil de test du jeu est fait pour des tests
+ * courts : ici, des milliers de parties s'enchaînent dans la même scène, et tout ce qu'il garde
+ * s'accumulait (mémoire ×5, copie 7 fois plus lente en 40 parties). Chaque point a été trouvé en
+ * mesurant (PONT_COMPTAGE=1 : objets vivants par classe ; PONT_INSTANTANE : photo de la mémoire,
+ * puis plus court chemin des racines jusqu'aux Pokémon des parties finies).
+ * Appelé en fin de partie, et au début de la suivante, une fois la scène remise à zéro (c'est là
+ * que l'ancienne équipe est détruite).
+ */
+function menageEntreParties(game: GameManager): void {
+  // Plus aucune minuterie n'a de raison de continuer (voir retirerMinuteriesVides).
+  (game.scene.time as unknown as Horloge).removeAllEvents();
+  // L'outil range dans une liste chaque objet graphique simulé qu'il crée (sprites, textes,
+  // conteneurs…), même détruit, et ne la lit jamais. Même chose pour l'historique des appels des
+  // fonctions espionnes (vi.fn), sans toucher à ce qu'elles renvoient.
+  (game.scene.textures as unknown as { list: unknown[] }).list.length = 0;
+  vi.clearAllMocks();
+  // Chaque sprite s'inscrit auprès du gestionnaire d'animations global (événement « remove », pour
+  // s'arrêter si on supprime l'animation qu'il joue) et ne s'en désinscrit qu'à sa destruction, que
+  // le jeu n'appelle pas toujours (+500 écouteurs par courte partie). Inutile sans écran.
+  (game.scene.sys as unknown as { anims: { removeAllListeners(nom: string): void } }).anims.removeAllListeners("remove");
+  // Le terrain, les cadres d'info et toute l'interface sont rangés dans des conteneurs simulés : un
+  // faux sprite détruit ne s'en retire pas, et un vrai objet Phaser (dresseur, Pokémon, option de
+  // récompense…) ne sait pas qu'il y est rangé. L'écran des récompenses, par exemple, gardait les
+  // options de chaque vague (+850). On retire, partout, les objets détruits.
+  for (const racine of [game.scene.field, game.scene.fieldUI, game.scene.ui]) {
+    retirerDetruits(racine);
+  }
+  // Le gestionnaire des étincelles (Pokémon chromatiques) garde chaque sprite de Pokémon, et les
+  // écrans (équipe…) une table d'animation de chaque icône de Pokémon affichée (+1 000 en quelques
+  // parties) : ils retenaient les Pokémon de toutes les parties.
+  (game.scene as unknown as { spriteSparkleHandler: { sprites: Set<unknown> } }).spriteSparkleHandler.sprites.clear();
+  for (const ecran of (game.scene.ui as unknown as { handlers: ({ iconAnimHandler?: { icons?: Map<unknown, unknown> } } | undefined)[] }).handlers) {
+    ecran?.iconAnimHandler?.icons?.clear();
+  }
+  // Sans écran, la boucle d'affichage de Phaser ne tourne jamais : les objets à animer s'empilent
+  // dans sa file d'attente sans jamais être traités.
+  const aAnimer = game.scene.sys.updateList as unknown as { _pending: unknown[]; _destroy: unknown[] };
+  aAnimer._pending.length = 0;
+  aAnimer._destroy.length = 0;
+  // Les journaux de l'outil (phases jouées, textes affichés, touches) grossissent aussi.
+  game.phaseInterceptor.clearLogs();
+  game.textInterceptor.clearLogs();
+  // (le gestionnaire de touches n'existe pas toujours : `?.`)
+  game.inputsHandler?.log.splice(0);
+  game.inputsHandler?.logUp.splice(0);
+}
+
+/** Parties jouées par ce processus (pour la photo de la mémoire du diagnostic). */
+let partiesJouees = 0;
+
 async function jouerPartie(
   phaserGame: Phaser.Game,
   canal: Canal,
-  demande: { graine?: string; especes?: number[]; styleCombat?: "fixe" | "changer"; vagueMax?: number },
+  demande: { graine?: string; especes?: number[]; styleCombat?: "fixe" | "changer"; vagueMax?: number; recit?: boolean },
 ) {
   // Nettoyage entre deux parties d'un même processus (normalement fait par l'outil de test
   // entre deux tests) : sans lui, les « espions » de l'outil s'empileraient partie après partie.
@@ -142,11 +280,18 @@ async function jouerPartie(
   // à chaque partie) ; restoreAllMocks remet les fonctions d'origine.
   vi.clearAllMocks();
   vi.restoreAllMocks();
+  // Diagnostic : photo de la mémoire au début de la partie n° PONT_INSTANTANE_PARTIE. À ce moment,
+  // tout Pokémon encore en mémoire appartient à une partie finie, donc fuit.
+  if (process.env.PONT_INSTANTANE && ++partiesJouees === Number(process.env.PONT_INSTANTANE_PARTIE ?? 6)) {
+    writeHeapSnapshot(process.env.PONT_INSTANTANE);
+  }
   if (PromptHandler.runInterval) {
     clearInterval(PromptHandler.runInterval);
     PromptHandler.runInterval = undefined;
   }
   const game = new GameManager(phaserGame);
+  // La scène vient d'être remise à zéro (l'équipe de la partie précédente est détruite) : ménage.
+  menageEntreParties(game);
   BattleScene.prototype.randBattleSeedInt = vraiHasard;
   game.override.normalizeIVs = false;
   game.override.normalizeNatures = false;
@@ -174,6 +319,9 @@ async function jouerPartie(
   let tronquee = false;
   /** Combien de fois chaque règle du pilote a servi (ex. « récompense », « ne change pas »). */
   const regles: Record<string, number> = {};
+  const sceneRecit = game.scene as unknown as SceneRecit;
+  const recit: EtapeRecit[] = [];
+  let defaite: Record<string, unknown> | undefined;
   // Actions refusées par le jeu pour la décision en cours (ex. changement alors qu'on est piégé).
   let cleDecision = "";
   const refusees = new Set<number>();
@@ -187,6 +335,29 @@ async function jouerPartie(
       erreur = `bloqué ${BLOCAGE_MS / 1000} s sur ${game.scene.phaseManager.getCurrentPhase()?.phaseName} / ${ecran}`;
     }
     return !!erreur;
+  };
+
+  /** Récit : l'attaque choisie était-elle de statut alors qu'il pouvait frapper ? */
+  const noterAttaque = (action: number) => {
+    const decrite = decrireAction(action);
+    const etape = recit.at(-1);
+    const phase = game.scene.phaseManager.getCurrentPhase() as unknown as { getPokemon?(): PokemonJeu };
+    const pokemon = phase.getPokemon?.();
+    if (decrite.type !== "attaque" || !etape || !pokemon) {
+      return;
+    }
+    const attaques = pokemon.getMoveset();
+    const offensivePossible = attaques.some(
+      a => a.getMove().category !== MoveCategory.STATUS && a.isUsable(pokemon, false, true)[0],
+    );
+    const choisie = attaques[decrite.attaque]?.getMove();
+    if (offensivePossible && choisie) {
+      if (choisie.category === MoveCategory.STATUS) {
+        etape.attaquesStatut++;
+      } else {
+        etape.attaquesOffensives++;
+      }
+    }
   };
 
   const minuteur = setInterval(() => {
@@ -222,6 +393,11 @@ async function jouerPartie(
         erreur = `plus de ${DECISIONS_MAX} décisions`;
         return;
       }
+      const etape = recit.at(-1);
+      if (demande.recit && etape && etape.adversaires.length === 0) {
+        etape.adversaires = sceneRecit.getEnemyParty().map(p => p.level);
+        etape.dresseur = dresseurDe(sceneRecit);
+      }
       const masque = obs.decision.masque.map((permise, i) => permise && !refusees.has(i));
       if (!masque.some(Boolean)) {
         erreur = "aucune action permise";
@@ -240,6 +416,9 @@ async function jouerPartie(
         if (message.type !== "action") {
           erreur = message.type === "fin" ? "arrêt demandé" : `message inattendu : ${message.type}`;
         } else {
+          if (demande.recit) {
+            noterAttaque(message.action);
+          }
           if (!executerAction(scene, message.action, etat)) {
             refusees.add(message.action);
           }
@@ -274,6 +453,17 @@ async function jouerPartie(
       const phase = game.scene.phaseManager.getCurrentPhase();
       if (phase.is("GameOverPhase")) {
         victoire = !!(phase as unknown as { isVictory?: boolean }).isVictory;
+        if (demande.recit && !victoire) {
+          defaite = {
+            vague: sceneRecit.currentBattle?.waveIndex ?? 0,
+            dresseur: dresseurDe(sceneRecit),
+            double: sceneRecit.currentBattle?.double ?? false,
+            tours: sceneRecit.currentBattle?.turn ?? 0,
+            equipe: sceneRecit.getPlayerParty().map(resumer),
+            adversaires: sceneRecit.getEnemyParty().map(resumer),
+            objets: objetsPortes(sceneRecit),
+          };
+        }
         break;
       }
       if (phase.is("ScanIvsPhase")) {
@@ -290,6 +480,21 @@ async function jouerPartie(
       if (vague !== vagueSuivie) {
         vagueSuivie = vague;
         phasesDansLaVague = 0;
+        if (demande.recit) {
+          const equipe = sceneRecit.getPlayerParty();
+          const pv = equipe.reduce((n, p) => n + p.hp, 0);
+          const pvMax = equipe.reduce((n, p) => n + p.getMaxHp(), 0);
+          recit.push({
+            vague,
+            dresseur: null,
+            equipe: equipe.map(p => p.level),
+            pvEquipe: Math.round((100 * pv) / Math.max(pvMax, 1)),
+            adversaires: [],
+            objets: Object.values(objetsPortes(sceneRecit)).reduce((a, b) => a + b, 0),
+            attaquesStatut: 0,
+            attaquesOffensives: 0,
+          });
+        }
         retirerMinuteriesVides(game.scene.time as unknown as Horloge);
       }
       if (++phasesDansLaVague > 5000 || decisions > DECISIONS_MAX) {
@@ -306,42 +511,33 @@ async function jouerPartie(
   } finally {
     clearInterval(minuteur);
   }
-  const objetsGraphiques = (game.scene.textures as unknown as { list: unknown[] }).list;
   type Emetteur = { eventNames(): (string | symbol)[]; listenerCount(nom: string | symbol): number };
   const ecouteurs = (e: Emetteur | undefined) =>
     Object.fromEntries((e?.eventNames() ?? []).map(n => [String(n), e!.listenerCount(n)]).filter(([, c]) => (c as number) > 5));
   const systemes = game.scene.sys as unknown as { events?: Emetteur; displayList?: { length: number }; updateList?: { length: number } };
   const diagnostic = {
     minuteries: (game.scene.time as unknown as Horloge)._active?.length ?? 0,
-    objetsGraphiques: objetsGraphiques.length,
+    objetsGraphiques: (game.scene.textures as unknown as { list: unknown[] }).list.length,
     affiches: systemes.displayList?.length ?? 0,
     misAJour: systemes.updateList?.length ?? 0,
     ecouteursScene: ecouteurs(systemes.events),
     ecouteursJeu: ecouteurs((game.scene as unknown as { game?: { events?: Emetteur } }).game?.events),
     ecouteursAnimations: ecouteurs((game.scene.sys as unknown as { anims?: Emetteur }).anims),
     memoireMo: Math.round(process.memoryUsage().heapUsed / 1e6),
+    // Objets vivants par classe (lent, seulement pour chercher une fuite : PONT_COMPTAGE=1).
+    ...(process.env.PONT_COMPTAGE
+      ? {
+          instances: await compterInstances(),
+          collections: taillesCollections(game.scene),
+          terrain: (game.scene.field as unknown as { list: object[] }).list.reduce<Record<string, number>>((n, o) => {
+            const nom = o.constructor.name;
+            n[nom] = (n[nom] ?? 0) + 1;
+            return n;
+          }, {}),
+        }
+      : {}),
   };
-  // Partie finie : plus aucune minuterie n'a de raison de continuer (voir retirerMinuteriesVides).
-  (game.scene.time as unknown as Horloge).removeAllEvents();
-  // L'outil de test range dans une liste chaque objet graphique simulé qu'il crée (sprites,
-  // textes, conteneurs…), même une fois détruit, et ne la lit jamais : 15 à 25 Mo de plus par
-  // partie, et une copie du jeu 7 fois plus lente au bout de 40 parties (essai-async-8). On la
-  // vide ; les objets encore affichés restent tenus par la scène. Même chose pour l'historique
-  // des appels des fonctions espionnes (vi.fn), sans toucher à ce qu'elles renvoient.
-  objetsGraphiques.length = 0;
-  vi.clearAllMocks();
-  // LA fuite principale : chaque sprite créé s'inscrit auprès du gestionnaire d'animations global
-  // (événement « remove », pour s'arrêter si on supprime l'animation qu'il joue) et ne s'en
-  // désinscrit qu'à sa destruction, que le jeu n'appelle pas toujours. Les sprites de toutes les
-  // parties restaient en mémoire (+500 écouteurs par courte partie), et chaque retrait d'animation
-  // parcourait cette liste sans fin. Sans écran, cet écouteur ne sert à rien : on les retire tous.
-  (game.scene.sys as unknown as { anims: { removeAllListeners(nom: string): void } }).anims.removeAllListeners("remove");
-  // Les journaux de l'outil de test (phases jouées, textes affichés, touches) grossissent aussi.
-  game.phaseInterceptor.clearLogs();
-  game.textInterceptor.clearLogs();
-  // (le gestionnaire de touches n'existe pas toujours : `?.`)
-  game.inputsHandler?.log.splice(0);
-  game.inputsHandler?.logUp.splice(0);
+  menageEntreParties(game);
 
   return {
     vague: game.scene.currentBattle?.waveIndex ?? 0,
@@ -355,6 +551,7 @@ async function jouerPartie(
     regles,
     // Ce qui pourrait s'accumuler d'une partie à l'autre dans ce processus (à surveiller).
     diagnostic,
+    ...(demande.recit ? { recit, defaite } : {}),
     ...(erreur ? { erreur, phase: game.scene.phaseManager.getCurrentPhase()?.phaseName, ecran: UiMode[game.scene.ui.getMode()] } : {}),
   };
 }

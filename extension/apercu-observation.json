@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "partie": {
     "vague": 1,
     "tour": 2,
@@ -48,11 +48,17 @@
         "quantite": 0
       }
     ],
-    "dresseur": null
+    "dresseur": null,
+    "prochainCombat": {
+      "vague": 5,
+      "genre": "dresseur",
+      "nom": "Gamin",
+      "dans": 4
+    }
   },
   "equipe": [
     {
-      "uid": 2183186297,
+      "uid": 637862270,
       "espece": 1,
       "nom": "Bulbasaur",
       "niveau": 12,
@@ -187,7 +193,7 @@
       "shiny": false
     },
     {
-      "uid": 579241012,
+      "uid": 410242462,
       "espece": 4,
       "nom": "Charmander",
       "niveau": 12,
@@ -318,7 +324,7 @@
       "shiny": false
     },
     {
-      "uid": 2436226011,
+      "uid": 3343433322,
       "espece": 7,
       "nom": "Squirtle",
       "niveau": 12,
@@ -574,7 +580,7 @@
   "decision": {
     "phase": "CommandPhase",
     "type": "combat",
-    "acteur": 2183186297,
+    "acteur": 637862270,
     "positionActeur": 0,
     "masque": [
       true,

@@ -50,6 +50,14 @@ CATEGORIE = {"PHYSICAL": "Physique", "SPECIAL": "Spéciale", "STATUS": "Statut"}
 BALLS = {"POKEBALL": "pokeBall"}  # seule clé qui ne suit pas la règle camelCase
 
 
+def combat_fixe(cle: str) -> str:
+    """Nom d'un combat fixe du Classique (la valeur de l'énumération est la vague)."""
+    noms = {"TOWN_YOUNGSTER": "Gamin", "RIVAL": "Rival", "EVIL_GRUNT": "Sbire de la Team",
+            "EVIL_ADMIN": "Admin de la Team", "EVIL_BOSS": "Boss de la Team", "ELITE_FOUR": "Conseil 4",
+            "CHAMPION": "Maître de la Ligue"}
+    return noms[re.sub(r"_\d+$", "", cle)]
+
+
 def main() -> None:
     export = exporter_enums()
     enums, efficacite = export["enums"], export["efficaciteTypes"]
@@ -66,6 +74,7 @@ def main() -> None:
         "WeatherType": lambda k: METEO[k],
         "BattleType": lambda k: COMBAT[k],
         "MoveCategory": lambda k: CATEGORIE[k],
+        "ClassicFixedBossWaves": combat_fixe,
         "PokeballType": lambda k: balls[BALLS.get(k, camel(k))],
         # Valeurs techniques utilisées par le pilote (pas de nom français à afficher).
         "BattlerIndex": lambda k: k,

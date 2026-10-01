@@ -7,6 +7,7 @@
  */
 import { masqueCombat, masqueRemplacement } from "./actions";
 import { attaqueVue, type Carnet } from "./carnet";
+import { prochainCombatImportant } from "./combats";
 import { optionsEquipePleineAffichees, optionsRecompensesAffichees } from "./decisions-jeu";
 import { meilleureOptionEquipe } from "./equipe";
 import { meilleurObjet } from "./objets";
@@ -235,6 +236,7 @@ export function observer(scene: ScenePokerogue, carnet: Carnet): Observation | n
         quantite,
       })),
       dresseur,
+      prochainCombat: prochainCombatImportant(combat.waveIndex),
     },
     equipe: scene.getPlayerParty().map(allie),
     adversaires: adversairesSurTerrain.map(p => adversaire(p, carnet, scene)),

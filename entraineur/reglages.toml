@@ -13,7 +13,7 @@ defaite = 0.0            # partie perdue (en plus de ne plus gagner de vagues)
 [partie]
 # Programme progressif : au-delà de cette vague, la partie s'arrête (comme un élève à qui on
 # ne donne d'abord que les premiers exercices). À relever quand il y arrive souvent.
-vague_max = 50
+vague_max = 75               # 50 → 75 le 01/10 : 22 % des parties y arrivaient (rival n° 3 à la vague 55)
 # « fixe » ou « changer » (le jeu propose de changer de Pokémon après chaque K.O. adverse).
 style_combat = "fixe"
 # « hasard » : trois des 27 starters d'un compte neuf, tirés à chaque partie (comme un humain qui
