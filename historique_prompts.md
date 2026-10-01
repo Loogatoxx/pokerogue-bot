@@ -490,8 +490,12 @@ plus de décisions.
   par niveau, talents possibles dont le caché, immunités, potentiel de la forme finale) dans
   l'observation (encodage v4) et dans le panneau (« À craindre pour X : … ») ; la note d'équipe
   tient compte du potentiel ; chaque capture gardée est récompensée, même équipe pleine.
-- Entraînement 5 (2 h prévues, arrêté à 1 h 50, plateau) : pas mieux que le 4 → pas de v3.
-  Entraînement 6 lancé avec la connaissance.
+- Entraînement 5 (arrêté à 1 h 50, plateau) : au-dessus de la v2 (27,3 contre 25,1 dans les mêmes
+  conditions) → publié **v3** (27,17 à l'évaluation officielle, record 95).
+- Entraînement 6 (connaissance, recrues) : moins bon (24-25) ; ni les Balls ni la note d'équipe
+  n'en sont la cause, c'est le combat qui s'est dégradé. L'apprentissage plafonne vers la vague
+  27 : les gains viennent des règles de joueur. Pistes notées dans docs/etape-5-rival.md.
+- Productivité : une copie figée bloquait la collecte 10 min → délai de silence 2 min.
 
 **Modifications**
 - Nouveaux : `entraineur/analyse_defaites.py`, `observateur/combats.ts`, `observateur/especes.ts`,
