@@ -19,6 +19,11 @@ style_combat = "fixe"
 # « hasard » : trois des 27 starters d'un compte neuf, tirés à chaque partie (comme un humain qui
 # choisit les siens) ; « kanto » : toujours Bulbizarre, Salamèche et Carapuce (entraînements 1 à 3).
 starters = "hasard"
+# Entraînement ciblé (01/10) : part des parties qui repartent d'une photo prise au début d'un combat
+# qui bloque, plutôt que de la vague 1. 55 % des défaites avaient lieu contre le rival (vagues 8 et
+# 25) : on s'y exerce bien plus souvent. Les photos viennent des parties elles-mêmes (vraies équipes).
+entrainement_cible = 0.5
+photos_vagues = [8, 20, 25, 30, 40, 50, 55]
 
 [apprentissage]
 simulateurs = 8                 # copies du jeu en parallèle

@@ -60,7 +60,9 @@ def detail(nom: str) -> dict:
     dossier = LEXAR / "entrainements" / nom
     if not dossier.is_dir() or "/" in nom:
         raise FileNotFoundError(nom)
-    recentes = lire_jsonl(dossier / "parties.jsonl", 500)
+    # Les parties d'exercice (reparties d'une photo d'un combat qui bloque) fausseraient les défaites
+    # par vague : on ne garde que les vraies parties, parties de la vague 1.
+    recentes = [p for p in lire_jsonl(dossier / "parties.jsonl", 1000) if p.get("depart") is None][-500:]
     parties = recentes[-40:]
     # Défaites par vague sur les 500 dernières parties (hors parties arrêtées à la vague max).
     defaites = Counter(p["vague"] for p in recentes if not p.get("tronquee") and not p.get("victoire"))

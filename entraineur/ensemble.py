@@ -7,6 +7,8 @@ Une partie terminée est aussitôt remplacée par une nouvelle : l'apprentissage
 from __future__ import annotations
 
 import random
+import threading
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
@@ -34,6 +36,15 @@ class Ensemble:
         self.parties_finies: list[dict] = []
         self.hasard = random.Random()
         self.starters: list[list[int] | None] = [None] * self.nombre
+        # Entraînement ciblé : une part des parties repart d'une photo prise au début d'un combat
+        # qui bloque (rival, boss…), pour s'y exercer bien plus souvent qu'en partant de la vague 1.
+        self.part_exercices = float(self.partie.get("entrainement_cible", 0))
+        self.vagues_photos = list(self.partie.get("photos_vagues", []))
+        self.photos: dict[int, list[str]] = {}
+        self.verrou_photos = threading.Lock()
+        self.depart: list[int | None] = [None] * self.nombre
+        # Réussite des 100 derniers exercices de chaque combat : on travaille d'abord ce qui coince.
+        self.resultats_exercices: dict[int, deque] = {}
         self.etats: list[Etat] = list(self.fils.map(self._nouvelle_partie, range(self.nombre)))
 
     # ─── Récompenses : ce que le cerveau cherche à maximiser ─────────────────────────────────
@@ -67,18 +78,61 @@ class Ensemble:
 
     # ─── Déroulement ─────────────────────────────────────────────────────────────────────────
 
+    # ─── Photos (entraînement ciblé) ──────────────────────────────────────────────────────────
+
+    PHOTOS_MAX = 200  # par vague : les plus anciennes sont remplacées au hasard
+
+    def _garder_photos(self, info: dict) -> None:
+        """Range les photos renvoyées par une partie (et les retire de son info, trop lourdes)."""
+        photos = info.pop("photos", None) or {}
+        with self.verrou_photos:
+            for vague, texte in photos.items():
+                reserve = self.photos.setdefault(int(vague), [])
+                if len(reserve) < self.PHOTOS_MAX:
+                    reserve.append(texte)
+                else:
+                    reserve[self.hasard.randrange(self.PHOTOS_MAX)] = texte
+
+    def reussite_exercices(self, vague: int) -> float | None:
+        """Part des derniers exercices de ce combat qui l'ont passé (None sans exercice encore)."""
+        resultats = self.resultats_exercices.get(vague)
+        return sum(resultats) / len(resultats) if resultats else None
+
+    def _choisir_depart(self) -> tuple[int, str] | None:
+        """Une photo, ou None pour une partie normale. Le combat est tiré d'autant plus souvent
+        qu'il est raté à l'exercice (un combat jamais essayé compte pour moitié réussi)."""
+        with self.verrou_photos:
+            if not self.photos or self.hasard.random() >= self.part_exercices:
+                return None
+            vagues = sorted(self.photos)
+            poids = [0.1 + 1 - (self.reussite_exercices(v) if self.reussite_exercices(v) is not None else 0.5)
+                     for v in vagues]
+            vague = self.hasard.choices(vagues, weights=poids)[0]
+            return vague, self.hasard.choice(self.photos[vague])
+
+    def _noter_exercice(self, i: int, info: dict) -> None:
+        if self.depart[i] is not None and "erreur" not in info:
+            self.resultats_exercices.setdefault(self.depart[i], deque(maxlen=100)).append(info["vague"] > self.depart[i])
+
     def _nouvelle_partie(self, i: int) -> Etat:
         simulateur: Simulateur = self.pont.entretenir(i)
         while True:
+            depart = self._choisir_depart()
+            self.depart[i] = depart[0] if depart else None
             # « hasard » : trois starters différents d'un compte neuf ; sinon ceux du simulateur.
-            especes = self.hasard.sample(STARTERS_COMPTE_NEUF, 3) if self.partie.get("starters") == "hasard" else None
+            especes = None
+            if not depart and self.partie.get("starters") == "hasard":
+                especes = self.hasard.sample(STARTERS_COMPTE_NEUF, 3)
             self.starters[i] = especes
             etat = simulateur.nouvelle_partie(especes=especes, style_combat=self.partie["style_combat"],
-                                              vague_max=self.partie["vague_max"])
+                                              vague_max=self.partie["vague_max"],
+                                              depart=depart[1] if depart else None,
+                                              photos=self.vagues_photos or None)
             if isinstance(etat, Etat):
                 return etat
             # Partie finie avant la moindre décision (rarissime) : on la note et on recommence.
-            self.parties_finies.append({**etat.info, "starters": especes, "recompense": 0.0})
+            self._garder_photos(etat.info)
+            self.parties_finies.append({**etat.info, "starters": especes, "depart": self.depart[i], "recompense": 0.0})
 
     def jouer(self, i: int, action: int) -> tuple[float, bool]:
         """Joue l'action dans la copie n° i ; renvoie (récompense gagnée, partie terminée)."""
@@ -89,7 +143,8 @@ class Ensemble:
             # Copie du jeu figée ou tombée : on la remplace et on compte la partie comme perdue,
             # plutôt que de bloquer tout l'entraînement.
             self.parties_finies.append({**avant.info, "decisions": 0, "phases": 0, "secondes": 0,
-                                        "starters": self.starters[i], "recompense": round(self.cumul[i], 3),
+                                        "starters": self.starters[i], "depart": self.depart[i],
+                                        "recompense": round(self.cumul[i], 3),
                                         "erreur": f"simulateur n° {i} muet ou tombé ({type(erreur).__name__}), redémarré"})
             self.cumul[i] = 0.0
             self.pont.redemarrer(i)
@@ -101,7 +156,9 @@ class Ensemble:
             self.etats[i] = apres
             return points, False
         points = self.recompense_fin(avant.info, apres.info)
-        self.parties_finies.append({**apres.info, "starters": self.starters[i],
+        self._garder_photos(apres.info)
+        self._noter_exercice(i, apres.info)
+        self.parties_finies.append({**apres.info, "starters": self.starters[i], "depart": self.depart[i],
                                     "recompense": round(self.cumul[i] + points, 3)})
         self.cumul[i] = 0.0
         self.etats[i] = self._nouvelle_partie(i)

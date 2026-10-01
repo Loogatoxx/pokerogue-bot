@@ -219,6 +219,9 @@ def main() -> None:
         debut = time.time()
         fin = debut + args.minutes * 60
         parties_recentes: list[dict] = []
+        # Parties d'exercice (reparties d'une photo d'un combat qui bloque) : suivies à part, pour
+        # que la vague moyenne reste celle de vraies parties, comparable d'un entraînement à l'autre.
+        exercices_recents: list[dict] = []
         # Ctrl+C (ou arrêt du système) : on termine la mise à jour en cours, puis on sauvegarde
         # et on ferme les copies du jeu proprement, au lieu de s'interrompre n'importe où.
         arret = {"demande": False}
@@ -242,8 +245,12 @@ def main() -> None:
             entrainement.parties += len(finies)
             for partie in finies:
                 entrainement.noter("parties.jsonl", {"miseAJour": entrainement.mises_a_jour, **partie})
-            parties_recentes = (parties_recentes + finies)[-200:]
+            parties_recentes = (parties_recentes + [p for p in finies if p.get("depart") is None])[-200:]
+            exercices_recents = (exercices_recents + [p for p in finies if p.get("depart") is not None])[-200:]
             vagues = [p["vague"] for p in parties_recentes] or [0]
+            # Un exercice est réussi quand la partie dépasse la vague photographiée (le combat est gagné).
+            reussite = (round(float(np.mean([p["vague"] > p["depart"] for p in exercices_recents])), 3)
+                        if exercices_recents else None)
             ligne = {
                 "miseAJour": entrainement.mises_a_jour, "date": datetime.now().isoformat(timespec="seconds"),
                 "decisions": entrainement.decisions, "parties": entrainement.parties,
@@ -252,12 +259,20 @@ def main() -> None:
                 "recompenseMoyenne": round(float(np.mean([p["recompense"] for p in parties_recentes] or [0])), 3),
                 "capturesMoyennes": round(float(np.mean([p.get("recrues", p.get("captures", 0)) for p in parties_recentes] or [0])), 3),
                 "decisionsParSeconde": round(lot[0].shape[0] / t_collecte, 1),
+                "exercices": len([p for p in finies if p.get("depart") is not None]),
+                "reussiteExercices": reussite,
+                "photos": {v: len(r) for v, r in sorted(ensemble.photos.items())},
+                "reussiteParCombat": {v: round(r, 3) for v in sorted(ensemble.resultats_exercices)
+                                      if (r := ensemble.reussite_exercices(v)) is not None},
                 **mesures,
             }
             entrainement.noter("journal.jsonl", ligne)
             print(f"maj {ligne['miseAJour']:4d} · {ligne['parties']:6d} parties · vague moy. {ligne['vagueMoyenne']:5.2f} "
                   f"(max {ligne['vagueMax']:3d}) · récompense {ligne['recompenseMoyenne']:6.2f} · "
-                  f"entropie {mesures['entropie']:.3f} · {ligne['decisionsParSeconde']:.0f} déc/s", flush=True)
+                  f"entropie {mesures['entropie']:.3f} · {ligne['decisionsParSeconde']:.0f} déc/s"
+                  + (f" · exercices réussis {100 * reussite:.0f} %" if reussite is not None else "")
+                  + "".join(f" · v{v} {100 * r:.0f} %" for v, r in ligne["reussiteParCombat"].items() if v in (8, 20, 25)),
+                  flush=True)
             if entrainement.mises_a_jour % reglages["sauvegarde"]["cerveau_toutes_les"] == 0:
                 entrainement.sauvegarder(pont.versions)
         chemin = entrainement.sauvegarder(pont.versions)

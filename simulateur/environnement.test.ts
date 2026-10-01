@@ -34,7 +34,15 @@ import {
   nouvelEtatPilote,
   repondreParRegles,
 } from "../../../pilote/pilote";
-import { compterInstances, demarrerPartie, minuteriesEnAttente, taillesCollections, vraiHasard } from "./outils-partie";
+import {
+  compterInstances,
+  demarrerPartie,
+  minuteriesEnAttente,
+  photoDeLaVague,
+  reprendrePartie,
+  taillesCollections,
+  vraiHasard,
+} from "./outils-partie";
 
 const PORT = Number(process.env.PONT_PORT);
 const ID = Number(process.env.PONT_ID ?? 0);
@@ -59,6 +67,10 @@ type MessagePython =
       vagueMax?: number;
       /** Renvoyer aussi le récit de la partie (analyse des défaites) ; ~1 Ko de plus par partie. */
       recit?: boolean;
+      /** Repartir d'une photo (sauvegarde du début d'une vague) au lieu d'une nouvelle partie. */
+      depart?: string;
+      /** Vagues dont on veut la photo du début (pour s'entraîner ensuite sur ces combats). */
+      photos?: number[];
     }
   | { type: "action"; action: number }
   | { type: "fin" };
@@ -272,7 +284,15 @@ let partiesJouees = 0;
 async function jouerPartie(
   phaserGame: Phaser.Game,
   canal: Canal,
-  demande: { graine?: string; especes?: number[]; styleCombat?: "fixe" | "changer"; vagueMax?: number; recit?: boolean },
+  demande: {
+    graine?: string;
+    especes?: number[];
+    styleCombat?: "fixe" | "changer";
+    vagueMax?: number;
+    recit?: boolean;
+    depart?: string;
+    photos?: number[];
+  },
 ) {
   // Nettoyage entre deux parties d'un même processus (normalement fait par l'outil de test
   // entre deux tests) : sans lui, les « espions » de l'outil s'empileraient partie après partie.
@@ -338,6 +358,8 @@ async function jouerPartie(
   const regles: Record<string, number> = {};
   const sceneRecit = game.scene as unknown as SceneRecit;
   const recit: EtapeRecit[] = [];
+  /** Photos du début des vagues demandées (texte de la sauvegarde du jeu). */
+  const photos: Record<number, string> = {};
   let defaite: Record<string, unknown> | undefined;
   // Actions refusées par le jeu pour la décision en cours (ex. changement alors qu'on est piégé).
   let cleDecision = "";
@@ -450,7 +472,11 @@ async function jouerPartie(
   }, 0);
 
   try {
-    await demarrerPartie(game, (demande.especes ?? STARTERS_PAR_DEFAUT) as SpeciesId[], graine, IVS_COMPTE_NEUF);
+    if (demande.depart) {
+      await reprendrePartie(game, demande.depart, graine);
+    } else {
+      await demarrerPartie(game, (demande.especes ?? STARTERS_PAR_DEFAUT) as SpeciesId[], graine, IVS_COMPTE_NEUF);
+    }
     let vagueSuivie = -1;
     let phasesDansLaVague = 0;
     for (;;) {
@@ -490,6 +516,12 @@ async function jouerPartie(
         continue;
       }
       const vague = game.scene.currentBattle?.waveIndex ?? 0;
+      if (demande.photos?.includes(vague) && !(vague in photos)) {
+        const photo = photoDeLaVague(game);
+        if (photo?.vague === vague) {
+          photos[vague] = photo.texte;
+        }
+      }
       if (demande.vagueMax && vague > demande.vagueMax) {
         tronquee = true;
         break;
@@ -570,6 +602,7 @@ async function jouerPartie(
     // Ce qui pourrait s'accumuler d'une partie à l'autre dans ce processus (à surveiller).
     diagnostic,
     ...(demande.recit ? { recit, defaite } : {}),
+    ...(demande.photos ? { photos } : {}),
     ...(erreur ? { erreur, phase: game.scene.phaseManager.getCurrentPhase()?.phaseName, ecran: UiMode[game.scene.ui.getMode()] } : {}),
   };
 }

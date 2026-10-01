@@ -22,7 +22,8 @@ import { UiMode } from "#enums/ui-mode";
 import { SelectStarterPhase } from "#phases/select-starter-phase";
 import type { GameManager } from "#test/framework/game-manager";
 import { generateStarters } from "#test/utils/game-manager-utils";
-import type { StarterMoveset } from "#types/save-data";
+import type { SessionSaveData, StarterMoveset } from "#types/save-data";
+import { vi } from "vitest";
 
 /**
  * L'outil de test remplace le hasard par « toujours le jet maximum » : on garde la vraie
@@ -65,6 +66,43 @@ export async function demarrerPartie(
     selection.initBattle(starters);
   });
   await game.phaseInterceptor.to("EncounterPhase");
+}
+
+// ─── Photos de partie : s'entraîner sur les combats qui bloquent ──────────────────────────────
+
+/** Le texte d'une sauvegarde, comme le jeu l'écrit (les grands entiers en texte). */
+const enTexte = (session: SessionSaveData) =>
+  JSON.stringify(session, (_, v: unknown) => (typeof v === "bigint" ? v.toString() : v));
+
+/**
+ * La photo du début de la vague en cours : le jeu sauvegarde la partie juste avant chaque
+ * rencontre (EncounterPhase), et l'outil de test garde cette sauvegarde (ReloadHelper). Équipe,
+ * objets, argent, Balls, arène, dresseur adverse : tout ce qu'il faut pour rejouer cette vague.
+ */
+export function photoDeLaVague(game: GameManager): { vague: number; texte: string } | null {
+  const session = (game.reload as unknown as { sessionData?: SessionSaveData }).sessionData;
+  return session ? { vague: session.waveIndex, texte: enTexte(session) } : null;
+}
+
+/**
+ * Reprend une partie depuis une photo, exactement comme le bouton « Continuer » de l'écran titre
+ * (TitlePhase.loadSaveSlot → gameData.loadSession). La partie repart au début de cette vague,
+ * avec l'équipe, les objets et l'adversaire qu'elle avait.
+ */
+export async function reprendrePartie(game: GameManager, texte: string, graine: string): Promise<void> {
+  await game.runToTitle();
+  const session = game.scene.gameData.parseSessionData(texte);
+  vi.spyOn(game.scene.gameData, "getSession").mockResolvedValue(session);
+  // Comme l'outil de test (ReloadHelper) : des objets de la partie précédente peuvent rester.
+  game.scene.modifiers = [];
+  game.onNextPrompt("TitlePhase", UiMode.TITLE, () => {
+    const titre = game.scene.phaseManager.getCurrentPhase() as unknown as { loadSaveSlot(place: number): Promise<void> };
+    void titre.loadSaveSlot(0);
+  });
+  await game.phaseInterceptor.to("EncounterPhase");
+  // Graine neuve : le combat photographié ne change pas (l'adversaire est dans la sauvegarde), mais
+  // les vagues suivantes ne sont plus toujours les mêmes d'une reprise à l'autre.
+  game.scene.setSeed(graine);
 }
 
 /**
