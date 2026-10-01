@@ -578,3 +578,44 @@ chose que gagner.
 
 **Objectif**
 Jouer comme un humain qui voit un coup d'avance, et suivre ce que font les meilleurs joueurs.
+
+---
+
+## 19. Captures, rencontres mystères, rapport du rival, préparation — 01/10/2026
+
+**Prompts**
+> je vien de voir l ia en action et sur les premiere vague, l ia va toujours essayer de çapturer les pokemon […] si un pokemon est rancunier ils rentre pas et finira par mettre ko les pokemon et peut tu remettre le http://localhost:8766/
+>
+> le mode auto c'est arreter ici je sais pas si c'est parce que il a jamais vu ça en partie local mais la il bloque (capture : rencontre mystère « Promos au Centre Commercial »)
+>
+> les 10 minutes sont passer ça fait 25 min on fait quoi maintenant ?
+>
+> on voit que l ia meurt le plus souvent face au rival faut faire en sorte que il capture et aprennent des attaque counter de ceux du rival surtout sur le pokemon carry
+>
+> faut aussi que on puisse avoir des rapport avec une reproduction de la partie pour pouvoir analyser pourquoi encore il arrive pas a passer le rival de vague 8 […] il devrais avoir 0 defaite avant la vague 10
+
+**Réponse**
+- Tableau de bord relancé.
+- Captures : chance de capture par la formule du jeu (affichée dans le panneau). Mesuré : laisser
+  le planificateur juger les Balls fait perdre (35,3 et 31,9 contre 37,1) → les Balls restent au
+  cerveau ; les captures fréquentes rapportent plus qu'elles ne coûtent.
+- Rencontres mystères : le pilote choisit une option, choisit un Pokémon, passe les éclosions,
+  revient au menu de combat ; testé (rencontres forcées puis au rythme du jeu) : aucun blocage.
+- Entraînement 9 : 35,1 contre 37,1 (v4) → pas de v5.
+- Rapport des défaites contre le rival avec reproduction tour par tour (`entraineur/rapport_rival.py`) :
+  porteur faible face au starter du rival (tiré au hasard), banc en retard, combat perdu dès le
+  premier tour → préparation au rival dans les notes d'attaques et d'équipe : rival 2 65 % → 80 %,
+  rival 1 90 → 91 % (défaites serrées, en partie dues aux starters tirés au hasard).
+
+**Modifications**
+- Nouveaux : `observateur/capture.ts`, `entraineur/rapport_rival.py`.
+- Modifiés : `pilote/pilote.ts` (rencontres mystères, équipe, éclosions, menu d'attaque),
+  `observateur/valeurs.ts`, `observateur/planificateur.ts` (option capture), `observateur/combats.ts`
+  (prochainRival, typesAPreparer), `observateur/synergie.ts`, `observateur/equipe.ts`,
+  `observateur/objets.ts`, `observateur/decisions-jeu.ts`, `observateur/especes.ts` (taux de capture),
+  `simulateur/environnement.test.ts` (mysteres, journal de combat), `entraineur/pont.py`,
+  `entraineur/analyse_defaites.py`, `extension/src/panneau.ts` (0.9.3).
+
+**Objectif**
+Que le mode auto ne bloque plus dans le vrai jeu, voir précisément pourquoi le bot perd contre le
+rival, et le préparer comme un joueur prépare ce combat.
