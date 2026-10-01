@@ -57,7 +57,24 @@ class Entrainement:
 
     # ─── Sauvegardes ────────────────────────────────────────────────────────────────────────
 
+    @staticmethod
+    def patienter_disque(action):
+        """Le Lexar peut disparaître quelques secondes (arrêt de l'entraînement 9 le 01/10 à 20 h 15,
+        « fichier introuvable » sur un dossier pourtant intact) : on réessaie pendant 2 minutes
+        avant d'abandonner, au lieu d'arrêter tout l'entraînement."""
+        for essai in range(24):
+            try:
+                return action()
+            except OSError as erreur:
+                if essai == 23:
+                    raise
+                print(f"Disque injoignable ({erreur.strerror}) : nouvel essai dans 5 s.", flush=True)
+                time.sleep(5)
+
     def sauvegarder(self, versions: dict, evaluation: dict | None = None) -> Path:
+        return self.patienter_disque(lambda: self._sauvegarder(versions, evaluation))
+
+    def _sauvegarder(self, versions: dict, evaluation: dict | None = None) -> Path:
         chemin = self.dossier / "cerveaux" / f"mise-a-jour-{self.mises_a_jour:05d}.cerveau"
         ecrire(chemin, self.cerveau, nom=f"{self.dossier.name} · mise à jour {self.mises_a_jour}",
                description=f"Entraîné par PPO à partir de {self.origine}.", versions=versions,
@@ -71,8 +88,10 @@ class Entrainement:
         return chemin
 
     def noter(self, fichier: str, ligne: dict) -> None:
-        with open(self.dossier / fichier, "a", encoding="utf-8") as f:
-            f.write(json.dumps(ligne, ensure_ascii=False) + "\n")
+        def ecrire_ligne() -> None:
+            with open(self.dossier / fichier, "a", encoding="utf-8") as f:
+                f.write(json.dumps(ligne, ensure_ascii=False) + "\n")
+        self.patienter_disque(ecrire_ligne)
 
     # ─── Un cycle collecte → bilan → apprentissage ──────────────────────────────────────────
 
