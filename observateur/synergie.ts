@@ -17,6 +17,7 @@
  * Ce n'est pas encore le cerveau qui juge : c'est une formule lisible. Plus tard, le cerveau
  * pourra décider lui-même, en recevant cette note comme un avis parmi d'autres.
  */
+import { typesAPreparer } from "./combats";
 import type { MoveJeu, PokemonJeu, ScenePokerogue } from "./jeu";
 import { EFFICACITE_TYPES, MoveCategory, PokemonType } from "./noms";
 import { ECRAN } from "./valeurs";
@@ -54,6 +55,8 @@ const VALEUR_STATUT = [15, 5];
 const POIDS_EQUIPE = 0.25;
 /** Bonus par type d'attaque offensive différent. */
 const BONUS_VARIETE = 3;
+/** Poids de la préparation au rival : la puissance contre les types qu'il alignera. */
+const POIDS_PREPARATION = 0.5;
 
 const moyenne = (valeurs: number[]) => valeurs.reduce((a, b) => a + b, 0) / Math.max(valeurs.length, 1);
 const nomType = (t: number) => PokemonType[t]?.fr ?? `type ${t}`;
@@ -85,7 +88,7 @@ export function meilleurParType(jeu: AttaqueNotee[], porteur: Porteur): number[]
  * Note d'un jeu d'attaques. `coequipiers` : pour chaque type, la meilleure puissance du reste de
  * l'équipe (voir couvertureEquipe) ; sans elle, on ne note que le Pokémon seul.
  */
-export function noterJeu(jeu: AttaqueNotee[], porteur: Porteur, coequipiers?: number[]): number {
+export function noterJeu(jeu: AttaqueNotee[], porteur: Porteur, coequipiers?: number[], cibles?: number[]): number {
   const meilleurs = meilleurParType(jeu, porteur);
   const statuts = jeu.filter(estStatut).length;
   const bonusStatut = VALEUR_STATUT.slice(0, statuts).reduce((a, b) => a + b, 0);
@@ -93,7 +96,9 @@ export function noterJeu(jeu: AttaqueNotee[], porteur: Porteur, coequipiers?: nu
     ? POIDS_EQUIPE * moyenne(meilleurs.map((m, t) => Math.max(0, m - (coequipiers[t] ?? 0))))
     : 0;
   const bonusVariete = BONUS_VARIETE * typesOffensifs(jeu).size;
-  return moyenne(meilleurs) + bonusStatut + bonusEquipe + bonusVariete;
+  // Préparation au rival (combats.ts, typesAPreparer) : frapper fort les types qu'il alignera.
+  const bonusPreparation = cibles?.length ? POIDS_PREPARATION * moyenne(cibles.map(t => meilleurs[t] ?? 0)) : 0;
+  return moyenne(meilleurs) + bonusStatut + bonusEquipe + bonusVariete + bonusPreparation;
 }
 
 /** Pour chaque type, la meilleure puissance parmi plusieurs Pokémon (le reste de l'équipe). */
@@ -172,12 +177,13 @@ export function evaluerApprentissage(
   actuelles: AttaqueNotee[],
   nouvelle: AttaqueNotee,
   coequipiers?: number[],
+  cibles?: number[],
 ): OptionApprentissage[] {
   const options: OptionApprentissage[] = [
     {
       oublier: null,
       nom: `Ne pas apprendre ${nouvelle.nom}`,
-      note: noterJeu(actuelles, porteur, coequipiers),
+      note: noterJeu(actuelles, porteur, coequipiers, cibles),
       pour: [],
       contre: [],
     },
@@ -187,7 +193,7 @@ export function evaluerApprentissage(
     options.push({
       oublier: place,
       nom: `Oublier ${ancienne.nom}`,
-      note: noterJeu(jeu, porteur, coequipiers),
+      note: noterJeu(jeu, porteur, coequipiers, cibles),
       ...comparer(jeu, actuelles, porteur),
     });
   });
@@ -228,5 +234,6 @@ export function optionsApprentissageAffichees(scene: ScenePokerogue): OptionAppr
     pokemon.getMoveset().map(a => versNotee(a.getMove())),
     versNotee(resume.newMove),
     couvertureEquipe(autres),
+    typesAPreparer(scene.currentBattle?.waveIndex ?? 0),
   );
 }

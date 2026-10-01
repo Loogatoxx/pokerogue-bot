@@ -56,6 +56,8 @@ export interface ContexteObjets {
   balls: number[];
   /** Le prochain combat important, compté depuis la vague qui suit ces récompenses. */
   prochainCombat?: CombatImportant;
+  /** Types à préparer avant le rival (combats.ts, typesAPreparer), ou absent. */
+  typesAPreparer?: number[] | undefined;
 }
 
 /** Combien un soin compte de plus avant un combat important : la vague suivante, ou celle d'après. */
@@ -240,10 +242,11 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
       if (m.attaques.some(a => a.nom === ct.nom)) {
         return 0;
       }
-      const actuelle = noterJeu(m.attaques, porteur);
+      const prep = ctx.typesAPreparer;
+      const actuelle = noterJeu(m.attaques, porteur, undefined, prep);
       const apres = m.attaques.length < 4
-        ? noterJeu([...m.attaques, ct], porteur)
-        : meilleureOption(evaluerApprentissage(porteur, m.attaques, ct)).note;
+        ? noterJeu([...m.attaques, ct], porteur, undefined, prep)
+        : meilleureOption(evaluerApprentissage(porteur, m.attaques, ct, undefined, prep)).note;
       return Math.max(0, apres - actuelle) * 0.8 * importance(m, equipe);
     });
     if (!r || r.valeur <= 0) {

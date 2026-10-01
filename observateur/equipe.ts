@@ -16,7 +16,9 @@
  *   - la solidité : PV, Défense et Défense Spé. moyennes (valeurs réelles, donc selon le niveau) ;
  *   - le potentiel (idée de Carlos) : le total de statistiques de la forme finale de chaque espèce
  *     (observateur/especes.ts). Un Embrylex niveau 10 a l'air faible ; un joueur sait qu'il
- *     deviendra Tyranocif, et qu'il vaut mieux qu'un Rattata.
+ *     deviendra Tyranocif, et qu'il vaut mieux qu'un Rattata ;
+ *   - la préparation au rival (idée de Carlos), quand il approche : frapper fort et encaisser les
+ *     types qu'il alignera (combats.ts, typesAPreparer), pondéré par les vraies statistiques.
  * Une formule lisible, en attendant que le cerveau décide lui-même (étape 5, team build).
  */
 import { connaissance } from "./especes";
@@ -43,7 +45,10 @@ export interface OptionEquipe {
 }
 
 const NB_TYPES = 18;
-const POIDS = { couverture: 0.5, profondeur: 3, defense: 25, solidite: 5, faiblesses: 6, typesPartages: 5, memeEspece: 25, potentiel: 12 };
+const POIDS = {
+  couverture: 0.5, profondeur: 3, defense: 25, solidite: 5, faiblesses: 6, typesPartages: 5, memeEspece: 25, potentiel: 12,
+  preparationAttaque: 0.5, preparationDefense: 10,
+};
 
 /** Potentiel d'un membre : total de statistiques de sa forme finale, en centaines (6 pour 600). */
 const potentielDe = (m: Membre) => (connaissance(m.espece)?.totalFinal ?? 0) / 100;
@@ -106,14 +111,30 @@ function detailler(equipe: Membre[]): Detail {
   };
 }
 
-export function noterEquipe(equipe: Membre[]): number {
+/**
+ * Préparation au rival : contre chaque type qu'il alignera, notre meilleure attaque (puissance réelle,
+ * donc selon le niveau) et le meilleur membre qui y résiste (pondéré par son niveau).
+ */
+function preparation(equipe: Membre[], cibles: number[]): { attaque: number; defense: number } {
+  const parMembre = equipe.map(offensive);
+  const niveauMax = Math.max(...equipe.map(m => m.niveau), 1);
+  return {
+    attaque: moyenne(cibles.map(t => Math.max(0, ...parMembre.map(m => m[t] ?? 0)))),
+    defense: moyenne(cibles.map(t => Math.max(0, ...equipe.map(m => (subit(t, m) <= 0.5 ? m.niveau / niveauMax : 0))))),
+  };
+}
+
+export function noterEquipe(equipe: Membre[], cibles?: number[]): number {
   const d = detailler(equipe);
+  const prep = cibles?.length ? preparation(equipe, cibles) : { attaque: 0, defense: 0 };
   return (
     POIDS.couverture * d.offensive
     + POIDS.profondeur * d.profondeur
     + POIDS.defense * d.defense
     + POIDS.solidite * d.solidite
     + POIDS.potentiel * d.potentiel
+    + POIDS.preparationAttaque * prep.attaque
+    + POIDS.preparationDefense * prep.defense
     - POIDS.faiblesses * d.faiblesses
     - POIDS.typesPartages * d.typesPartages
     - POIDS.memeEspece * d.memeEspece
@@ -179,16 +200,16 @@ function comparer(nouvelle: Membre[], actuelle: Membre[], arrivant: Membre, part
  * Options quand l'équipe est pleine et que `arrivant` vient d'être capturé : ne pas le garder,
  * ou remplacer l'un des membres. Chacune avec sa note, ses pour et ses contre.
  */
-export function evaluerArrivee(equipe: Membre[], arrivant: Membre): OptionEquipe[] {
+export function evaluerArrivee(equipe: Membre[], arrivant: Membre, cibles?: number[]): OptionEquipe[] {
   const options: OptionEquipe[] = [
-    { remplacer: null, nom: `Ne pas garder ${arrivant.nom}`, note: noterEquipe(equipe), pour: [], contre: [] },
+    { remplacer: null, nom: `Ne pas garder ${arrivant.nom}`, note: noterEquipe(equipe, cibles), pour: [], contre: [] },
   ];
   equipe.forEach((parti, place) => {
     const nouvelle = equipe.map((m, i) => (i === place ? arrivant : m));
     options.push({
       remplacer: place,
       nom: `Remplacer ${parti.nom} par ${arrivant.nom}`,
-      note: noterEquipe(nouvelle),
+      note: noterEquipe(nouvelle, cibles),
       ...comparer(nouvelle, equipe, arrivant, parti),
     });
   });

@@ -384,6 +384,22 @@ async function jouerPartie(
    * donnés, ce qu'il joue vraiment.
    */
   const prediction = { tours: 0, exacts: 0, memeType: 0, probabilite: 0, changements: 0, statut: 0, horsPrevision: 0 };
+  /**
+   * Reproduction des combats contre le rival, décision par décision (demande de Carlos : « des
+   * rapports avec une reproduction de la partie pour analyser pourquoi il n'arrive pas à passer le
+   * rival »). Rempli en trois temps : l'état et les options à la décision, le choix à la réponse
+   * du cerveau, le coup réel du rival quand les ordres sont donnés.
+   */
+  const journalCombat: Record<string, unknown>[] = [];
+  const decrire = (o: Observation, action: number): string => {
+    const a = decrireAction(action);
+    const acteur = o.equipe.find(p => p.uid === o.decision.acteur);
+    if (a.type === "attaque") {
+      const cible = o.partie.double ? ` → ${o.adversaires.find(x => x.position === a.cible)?.nom ?? "?"}` : "";
+      return `${acteur?.attaques[a.attaque]?.nom ?? "attaque"}${cible}`;
+    }
+    return a.type === "envoyer" ? `Envoyer ${o.equipe[a.place]?.nom ?? "?"}` : "Lancer une Ball";
+  };
   // (dans un objet : la minuterie le remplit, la boucle le lit — TypeScript ne suit pas une variable modifiée ailleurs)
   const annonces: { courantes: Map<number, { ids: number[]; probas: number[]; types: number[] }> | null } = { courantes: null };
   // Actions refusées par le jeu pour la décision en cours (ex. changement alors qu'on est piégé).
@@ -483,13 +499,40 @@ async function jouerPartie(
       }
       enAttente = true;
       decisions++;
+      const plan = planifier(obs, { capture: !!demande.planCapture });
+      if (demande.recit && dresseurDe(sceneRecit)?.startsWith("RIVAL")) {
+        const pv = (p: { pv: number; pvMax: number }) => `${Math.round((100 * p.pv) / Math.max(p.pvMax, 1))} %`;
+        const prevu = obs.adversaires.map(a => {
+          const c = prevoir(obs, a)?.coups[0];
+          return c ? `${a.nom} : ${c.attaque.nom} (${Math.round(c.probabilite * 100)} %)` : `${a.nom} : ?`;
+        });
+        journalCombat.push({
+          vague: obs.partie.vague,
+          tour: obs.partie.tour,
+          decision: obs.decision.type,
+          moi: (() => {
+            const m = obs.equipe.find(p => p.uid === obs.decision.acteur) ?? obs.equipe.find(p => p.surTerrain);
+            return m ? `${m.nom} N.${m.niveau} ${pv(m)}` : "?";
+          })(),
+          equipe: obs.equipe.map(p => `${p.nom} N.${p.niveau} ${p.ko ? "K.O." : pv(p)}`),
+          adversaires: obs.adversaires.map(a => `${a.nom} N.${a.niveau} ${a.ko ? "K.O." : `${a.pvPourcent} %`} (${a.types.map(t => t.nom).join("/")})`),
+          prevu,
+          options: masque
+            .map((ok, i) => ({ ok, i }))
+            .filter(x => x.ok)
+            .map(x => ({ action: decrire(obs, x.i), plan: plan ? Math.round(plan[x.i]! * 100) / 100 : null }))
+            .sort((x, y) => (y.plan ?? 0) - (x.plan ?? 0))
+            .slice(0, 5),
+        });
+      }
+      const entreeJournal = journalCombat.at(-1);
       canal.envoyer({
         type: "decision",
         // Les 1 290 nombres en binaire (base64) : plus rapide et plus exact que du texte.
         observation: Buffer.from(encoder(obs).buffer).toString("base64"),
         masque: masque.map(Number),
         // La valeur de chaque action selon le planificateur (observateur/planificateur.ts).
-        plan: planifier(obs, { capture: !!demande.planCapture }),
+        plan,
         info: { ...infoPartie(obs), recrues: compterRecrues(obs) },
       });
       canal.recevoir().then(message => {
@@ -498,6 +541,9 @@ async function jouerPartie(
         } else {
           if (demande.recit) {
             noterAttaque(message.action);
+            if (entreeJournal && entreeJournal.choix === undefined) {
+              entreeJournal.choix = decrire(obs, message.action);
+            }
           }
           if (!executerAction(scene, message.action, etat)) {
             refusees.add(message.action);
@@ -559,6 +605,11 @@ async function jouerPartie(
             continue;
           }
           prediction.tours++;
+          const derniere = journalCombat.at(-1);
+          if (derniere && derniere.tour === game.scene.currentBattle?.turn) {
+            const joue = ordre.command === 2 ? "change de Pokémon" : (allMoves[ordre.move?.move ?? -1]?.name ?? "?");
+            derniere.rivalJoue = [...((derniere.rivalJoue as string[] | undefined) ?? []), joue];
+          }
           if (ordre.command === 2) {
             prediction.changements++; // Command.POKEMON : il change de Pokémon
             continue;
@@ -669,7 +720,7 @@ async function jouerPartie(
     regles,
     // Ce qui pourrait s'accumuler d'une partie à l'autre dans ce processus (à surveiller).
     diagnostic,
-    ...(demande.recit ? { recit, defaite, prediction } : {}),
+    ...(demande.recit ? { recit, defaite, prediction, journalCombat } : {}),
     ...(demande.photos ? { photos } : {}),
     ...(erreur ? { erreur, phase: game.scene.phaseManager.getCurrentPhase()?.phaseName, ecran: UiMode[game.scene.ui.getMode()] } : {}),
   };

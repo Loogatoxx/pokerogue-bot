@@ -6,7 +6,7 @@
  *   accepte (son propre filtre, celui qui affiche « ça n'aura aucun effet ») ; et la boutique.
  * - Capture avec l'équipe pleine : l'équipe actuelle et le Pokémon qui vient d'être capturé.
  */
-import { prochainCombatImportant } from "./combats";
+import { prochainCombatImportant, typesAPreparer } from "./combats";
 import { evaluerArrivee, type OptionEquipe } from "./equipe";
 import type { AttaqueJeu, MoveJeu, PokemonJeu, ScenePokerogue } from "./jeu";
 import {
@@ -57,7 +57,9 @@ export function optionsEquipePleineAffichees(scene: ScenePokerogue): OptionEquip
     return null; // une simple question oui/non, pas le choix de l'équipe pleine
   }
   const arrivant = phase.getPokemon?.();
-  return arrivant ? evaluerArrivee(scene.getPlayerParty().map(membreDe), membreDe(arrivant)) : null;
+  return arrivant
+    ? evaluerArrivee(scene.getPlayerParty().map(membreDe), membreDe(arrivant), typesAPreparer(scene.currentBattle?.waveIndex ?? 0))
+    : null;
 }
 
 // ─── Récompenses après une vague ──────────────────────────────────────────────────────────────
@@ -158,6 +160,7 @@ function contexte(scene: ScenePokerogue): ContexteObjets {
     balls: [0, 1, 2, 3, 4].map(b => scene.pokeballCounts[b] ?? 0),
     // Les récompenses arrivent après la vague gagnée : ce qui compte, c'est la suivante.
     prochainCombat: prochainCombatImportant((scene.currentBattle?.waveIndex ?? 0) + 1),
+    typesAPreparer: typesAPreparer((scene.currentBattle?.waveIndex ?? 0) + 1),
   };
 }
 

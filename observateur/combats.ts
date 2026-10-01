@@ -39,3 +39,26 @@ export function prochainCombatImportant(vague: number): CombatImportant {
     }
   }
 }
+
+/** Le prochain combat contre le rival à partir de `vague` (incluse), ou null au-delà du dernier. */
+export function prochainRival(vague: number): CombatImportant | null {
+  for (let v = Math.max(vague, 1); v <= 200; v++) {
+    const combat = combatDeLaVague(v);
+    if (combat?.genre === "rival") {
+      return { ...combat, dans: v - vague };
+    }
+  }
+  return null;
+}
+
+/**
+ * Les types à préparer avant le rival (idée de Carlos : « capturer et apprendre des attaques qui
+ * contrent celles du rival, surtout sur le porteur »). Son équipe est tirée au hasard, mais dans
+ * des familles connues (jeu : rival-party-config.ts) : un starter (Plante, Feu ou Eau) et un
+ * oiseau (Normal/Vol). Rien à préparer si le rival est à plus de 10 vagues.
+ */
+export function typesAPreparer(vague: number): number[] | undefined {
+  const rival = prochainRival(vague);
+  // Valeurs de PokemonType : Plante 11, Feu 9, Eau 10, Vol 2.
+  return rival && rival.dans <= 10 ? [11, 9, 10, 2] : undefined;
+}
