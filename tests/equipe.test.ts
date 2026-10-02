@@ -47,7 +47,7 @@ describe("Note d'équipe", () => {
     const options = evaluerArrivee(equipe, autreTiplouf);
     const contreRoucool = options.find(o => o.remplacer === 4)!.contre.join(" ");
     expect(contreRoucool).toMatch(/même espèce|en double/);
-    expect(options).toHaveLength(7);
+    expect(options).toHaveLength(6); // « ne pas garder » et 5 remplacements : jamais le porteur (Reptincel, le plus haut niveau)
   });
 });
 

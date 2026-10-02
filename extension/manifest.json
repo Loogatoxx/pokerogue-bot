@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PokeRogue Cerveau",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "description": "Affiche ce que le cerveau voit et pense de ta partie PokeRogue, et peut jouer à ta place.",
   "content_scripts": [
     {

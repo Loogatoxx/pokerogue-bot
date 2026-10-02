@@ -20,7 +20,11 @@ import torch
 
 from .format_cerveau import lire
 from .pont import Etat, Pont
-from .professeur import TEMPERATURES, jouer_essai
+from .professeur import jouer_essai
+
+# Contre un dresseur, les valeurs du combat d'équipe sont amplifiées (× 30, puis × 30 par le poids du
+# plan) : pour varier vraiment les coups, il faut des températures bien plus fortes qu'ailleurs.
+TEMPERATURES_VARIEES = (30.0, 100.0, 300.0)
 
 
 def main() -> None:
@@ -61,7 +65,7 @@ def main() -> None:
                 continue
             # 2. La vague V depuis cette photo : meilleur coup, puis coups variés.
             meilleurs = [jouer_essai(pont.entretenir(i), cerveau, photo, V, 0.0, graine=p["graine"]).gagne for _ in range(args.essais)]
-            varies = [jouer_essai(pont.entretenir(i), cerveau, photo, V, TEMPERATURES[1 + k % 3], graine=p["graine"]).gagne
+            varies = [jouer_essai(pont.entretenir(i), cerveau, photo, V, TEMPERATURES_VARIEES[k % 3], graine=p["graine"]).gagne
                       for k in range(args.essais)]
             ligne = {"graine": p["graine"], "arrive": True, "meilleurCoup": sum(meilleurs), "coupsVaries": sum(varies)}
             with verrou:

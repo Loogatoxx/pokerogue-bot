@@ -13,12 +13,13 @@
  * (ses Poké Balls), et la règle de l'IA adverse (elle frappe fort : le K.O. d'abord, sinon les plus
  * gros dégâts). Les Pokémon pas encore vus sont joués comme des Pokémon de même force, sans type connu.
  *
- * Simplifications : dégâts moyens (tirage 0,925) multipliés par la précision, ordre par la vitesse,
- * pas de statut ni de boost, pas de priorité ; les deux camps frappent avec leur meilleure attaque, et
+ * Simplifications : dégâts moyens (tirage 0,925) multipliés par la précision, ordre par la priorité
+ * puis la vitesse, pas de statut ni de boost ; les deux camps frappent avec leur meilleure attaque, et
  * remplacent un K.O. par leur meilleur Pokémon. Seulement en combat simple (un contre un).
  */
 import { NOMBRE_ACTIONS, PREMIER_CHANGEMENT, PREMIERE_BALL } from "./actions";
 import { candidates, combattantAdverse, combattantAllie, type Combattant, degats } from "./prevision";
+import { PRIORITES } from "./priorites";
 import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
 
 const TOURS_MAX = 40;
@@ -30,7 +31,16 @@ interface Coup {
   puissance: number;
   /** De 0 à 1 (1 : touche toujours). */
   precision: number;
+  /** Priorité (Vive-Attaque : +1) : frappe avant les autres, quelle que soit la vitesse. */
+  priorite: number;
+  /** Bluff, Escarmouche : ne marchent qu'au premier tour sur le terrain. */
+  premierTourSeulement: boolean;
 }
+
+const PREMIER_TOUR_SEULEMENT = new Set([252, 660]); // Bluff (Fake Out), Escarmouche (First Impression)
+const coupDe = (id: number, type: number, categorie: number, puissance: number, precision: number): Coup => ({
+  type, categorie, puissance, precision, priorite: PRIORITES[id] ?? 0, premierTourSeulement: PREMIER_TOUR_SEULEMENT.has(id),
+});
 
 interface Acteur {
   c: Combattant;
@@ -81,10 +91,7 @@ function allie(p: PokemonAllie, enJeu: boolean): Acteur {
     c: combattant,
     pv: p.pv / Math.max(p.pvMax, 1),
     // Mêmes indices que les actions du cerveau : une attaque sans PP reste, mais ne fait rien.
-    coups: p.attaques.map(a => ({
-      type: a.type.id, categorie: a.categorie.id, puissance: a.pp > 0 ? a.puissance : 0,
-      precision: a.precision > 0 ? a.precision / 100 : 1,
-    })),
+    coups: p.attaques.map(a => coupDe(a.id, a.type.id, a.categorie.id, a.pp > 0 ? a.puissance : 0, a.precision > 0 ? a.precision / 100 : 1)),
     vitesse: vitesseDe(combattant),
     poids: 1,
     barres: 1,
@@ -96,7 +103,7 @@ function adverse(a: PokemonAdverse): Acteur {
   return {
     c,
     pv: a.pvPourcent / 100,
-    coups: candidates(a).map(x => ({ type: x.type, categorie: x.categorie, puissance: x.puissance, precision: 1 })),
+    coups: candidates(a).map(x => coupDe(x.id, x.type, x.categorie, x.puissance, 1)),
     vitesse: vitesseDe(c),
     poids: 1,
     barres: a.boss ? Math.max(1, a.boss.segments) : 1,
@@ -200,7 +207,14 @@ function simuler(depart: Combat, premier: { attaque: number } | { changement: nu
         infliger(def, attendus(att, def, att.coups[i]!));
       }
     };
-    if (monCoup >= 0 && moi.vitesse >= lui.vitesse) {
+    // Bluff et Escarmouche ratent après le premier tour sur le terrain (simplifié : après le tour 0).
+    if (tour > 0 && monCoup >= 0 && moi.coups[monCoup]!.premierTourSeulement) {
+      monCoup = -1;
+    }
+    const prioMoi = monCoup >= 0 ? moi.coups[monCoup]!.priorite : 0;
+    const prioLui = sonCoup >= 0 ? lui.coups[sonCoup]!.priorite : 0;
+    const moiDAbord = prioMoi !== prioLui ? prioMoi > prioLui : moi.vitesse >= lui.vitesse;
+    if (monCoup >= 0 && moiDAbord) {
       frapper(moi, lui, monCoup);
       frapper(lui, moi, sonCoup);
     } else {
@@ -267,12 +281,14 @@ export function valeursCombatEquipe(obs: Observation): number[] | null {
       }
       const attaque = Math.floor(action / 2);
       if (attaque < nous[actif]!.coups.length) {
-        valeurs[action] = simuler(depart, { attaque });
+        // Départage des égalités (souvent exactes, le calcul étant sans hasard) : les dégâts de ce tour.
+        valeurs[action] = simuler(depart, { attaque }) + 0.001 * Math.min(1, attendus(nous[actif]!, lui, nous[actif]!.coups[attaque]!));
       }
     } else {
       const place = action - PREMIER_CHANGEMENT;
       if (nous[place] && nous[place]!.pv > 0) {
-        valeurs[action] = simuler(depart, remplacement ? { entree: place } : { changement: place });
+        // Départage : le Pokémon qui entre le plus solide (PV restants × niveau).
+        valeurs[action] = simuler(depart, remplacement ? { entree: place } : { changement: place }) + 0.001 * nous[place]!.pv * nous[place]!.poids;
       }
     }
   }

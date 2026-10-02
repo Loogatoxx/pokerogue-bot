@@ -312,7 +312,7 @@ const STARTERS_DU_RIVAL = [11, 9, 10]; // Plante, Feu, Eau (jeu : rival-party-co
 const VAGUE_RIVAL_1 = 8;
 const BONUS_SECOND = 0.6;
 /** Retard toléré du second sur le porteur (en niveaux) avant qu'on le fasse combattre. */
-const RETARD_SECOND = 1; // mesuré : 1 niveau (rival contré : 11 % de défaites) vaut mieux que 2 (13,6 %)
+const RETARD_SECOND = 99; // désactivé (03/10) : avec le moteur d'équipe, le porteur qui garde l'expérience fait mieux (97 %)
 
 /** Ce qui contre le porteur : les types de starter du rival super efficaces contre lui. */
 function menacesDuPorteur(porteur: PokemonAllie): number[] {
@@ -373,6 +373,12 @@ export function changerAuDebut(obs: Observation, position: number): boolean {
   const actuel = obs.equipe.find(p => p.surTerrain && !p.ko && (p.position ?? 0) === position);
   const banc = obs.equipe.filter(p => !p.surTerrain && !p.ko);
   if (!adversaires.length || !actuel || !banc.length) {
+    return false;
+  }
+  // Avant le rival 1 : le porteur garde l'expérience tant qu'il gagne son duel.
+  const porteur = Math.max(...obs.equipe.map(m => m.niveau));
+  if (obs.partie.vague < VAGUE_RIVAL_1 && actuel.niveau >= porteur
+      && Math.min(...adversaires.map(lui => valeurDuel(duel(obs, actuel, actuel.pv / Math.max(actuel.pvMax, 1), lui, lui.pvPourcent / 100)))) > 0) {
     return false;
   }
   const meilleur = Math.max(...banc.map(m => valeurEntree(obs, m, adversaires)));

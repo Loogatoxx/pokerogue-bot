@@ -59,8 +59,11 @@ const POIDS = {
  */
 const STARTERS_DU_RIVAL = [11, 9, 10];
 
-function couvertureStarters(equipe: Membre[]): number {
-  const niveauMax = Math.max(...equipe.map(m => m.niveau), 1);
+function couvertureStarters(equipe: Membre[], niveauReference?: number): number {
+  // Niveau de référence fixe (l'équipe d'avant la décision) : rapporté au plus haut de l'équipe jugée,
+  // relâcher le porteur faisait paraître les autres « au niveau » et montait la note (02/10 : le
+  // porteur disparaissait avant le rival dans 5 à 10 % des parties).
+  const niveauMax = niveauReference ?? Math.max(...equipe.map(m => m.niveau), 1);
   return STARTERS_DU_RIVAL.reduce((total, t) => total + Math.max(0, ...equipe.map(m => {
     const efficaces = m.attaques.filter(a => a.categorie !== 2 && a.puissance > 0 && (EFFICACITE_TYPES[a.type]?.[t] ?? 1) > 1);
     if (!efficaces.length) {
@@ -145,11 +148,11 @@ function preparation(equipe: Membre[], cibles: number[]): { attaque: number; def
   };
 }
 
-export function noterEquipe(equipe: Membre[], cibles?: number[]): number {
+export function noterEquipe(equipe: Membre[], cibles?: number[], niveauReference?: number): number {
   const d = detailler(equipe);
   const prep = cibles?.length ? preparation(equipe, cibles) : { attaque: 0, defense: 0 };
   // Seulement quand un rival approche (cibles = types à préparer, combats.ts).
-  const starters = cibles?.length ? couvertureStarters(equipe) : 0;
+  const starters = cibles?.length ? couvertureStarters(equipe, niveauReference) : 0;
   return (
     POIDS.couverture * d.offensive
     + POIDS.profondeur * d.profondeur
@@ -224,17 +227,30 @@ function comparer(nouvelle: Membre[], actuelle: Membre[], arrivant: Membre, part
  * Options quand l'équipe est pleine et que `arrivant` vient d'être capturé : ne pas le garder,
  * ou remplacer l'un des membres. Chacune avec sa note, ses pour et ses contre.
  */
+/** À l'approche d'un rival, chaque niveau perdu en remplaçant un membre par un arrivant plus bas coûte
+ * autant (au rival 1, un niveau de porteur en moins triple presque le risque) ; ailleurs, le potentiel
+ * de l'espèce prime (un Embrylex niveau 12 pour un Salamèche niveau 15, les niveaux se rattrapent). */
+const COUT_NIVEAU_PERDU = 3;
+
 export function evaluerArrivee(equipe: Membre[], arrivant: Membre, cibles?: number[]): OptionEquipe[] {
+  const reference = Math.max(...equipe.map(m => m.niveau), 1);
   const options: OptionEquipe[] = [
-    { remplacer: null, nom: `Ne pas garder ${arrivant.nom}`, note: noterEquipe(equipe, cibles), pour: [], contre: [] },
+    { remplacer: null, nom: `Ne pas garder ${arrivant.nom}`, note: noterEquipe(equipe, cibles, reference), pour: [], contre: [] },
   ];
   equipe.forEach((parti, place) => {
+    // Jamais le porteur (le plus haut niveau) : bug du 02/10, il était relâché avant le rival.
+    if (parti.niveau >= reference) {
+      return;
+    }
     const nouvelle = equipe.map((m, i) => (i === place ? arrivant : m));
+    const perdus = cibles?.length ? Math.max(0, parti.niveau - arrivant.niveau) : 0;
+    const detail = comparer(nouvelle, equipe, arrivant, parti);
     options.push({
       remplacer: place,
       nom: `Remplacer ${parti.nom} par ${arrivant.nom}`,
-      note: noterEquipe(nouvelle, cibles),
-      ...comparer(nouvelle, equipe, arrivant, parti),
+      note: noterEquipe(nouvelle, cibles, reference) - COUT_NIVEAU_PERDU * perdus,
+      pour: detail.pour,
+      contre: perdus > 0 ? [...detail.contre, `${perdus} niveau${perdus > 1 ? "x" : ""} de moins`] : detail.contre,
     });
   });
   return options.map(o => ({ ...o, note: Math.round(o.note * 10) / 10 }));

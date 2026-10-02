@@ -227,11 +227,16 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
     // Pokémon jusqu'au niveau 40, il fait l'essentiel du travail ; ensuite, aider ceux en retard.
     const porteur = equipe.reduce((a, b) => (b.niveau > a.niveau && !b.ko ? b : a), equipe[0]!);
     const tempsDuPorteur = porteur.niveau < NIVEAU_PORTEUR;
+    // Un rival dans 8 vagues ou moins : chaque niveau du porteur compte énormément. Mesuré au rival 1
+    // (02/10, 1 919 parties) : porteur niveau 6 → 15 % de défaites, 7 → 5 %, 8 → 2 %, 9 → 1 %. Le
+    // bot préférait 5 Poké Balls (note 30 à 45) au Super Bonbon (18).
+    const rivalProche = ctx.prochainCombat?.genre === "rival" && ctx.prochainCombat.dans <= 8;
+    const noteBonbonPorteur = rivalProche ? 50 : 18;
     const r = meilleurReceveur(objet, ctx, m => {
       if (m.ko) {
         return 0;
       }
-      return tempsDuPorteur ? (m === porteur ? 18 : 4) : 14 * (1.5 - importance(m, equipe));
+      return tempsDuPorteur ? (m === porteur ? noteBonbonPorteur : 4) : 14 * (1.5 - importance(m, equipe));
     })!;
     const pourquoi = tempsDuPorteur && equipe[r.place] === porteur ? " (le porteur de l'équipe)" : "";
     return { note: r.valeur, cible: r.place, pour: [`+1 niveau pour ${equipe[r.place]!.nom}${pourquoi}`], contre: [] };
