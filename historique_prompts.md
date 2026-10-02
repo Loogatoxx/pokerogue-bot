@@ -715,3 +715,28 @@ mesure si en tenir compte fait gagner.
 
 **Objectif**
 Corriger ce que Carlos voit en regardant jouer le bot, en vérifiant chaque correction par la mesure.
+
+## 23. Le professeur qui triche, et les rencontres qui bloquaient — 02/10/2026
+
+**Prompts**
+> pour la prochaine etañe tu peu faire les 2 en meme temps ya pas de soucis
+>
+> hesite pas non plus a la fin donner les chiffre quel vague moyenne ça fait et les rivaux
+
+**Réponse**
+- Rencontres mystères : trace + garde-fou contre les boucles du pilote ; Delibird-y (filtre de
+  l'écran), Zone Safari (équipe pleine), Fun and Games (menu d'attaques imposé) corrigés ;
+  30 rencontres sur 31 passent (Delibird-y : seulement le cas impossible forcé par le test).
+- Professeur : rejoue chaque vague 8 fois (température pour varier les décisions), garde le
+  meilleur essai, recule face à un mur ; 7 parties d'essai sur 7 au bout de la vague 60.
+- Élève : imitation supervisée des choix du professeur.
+
+**Modifications**
+- `pilote/pilote.ts`, `observateur/decisions-jeu.ts`, `simulateur/environnement.test.ts` (trace,
+  garde-fou, bilan, photo de la vague suivante), `entraineur/pont.py`, nouveaux
+  `entraineur/professeur.py` et `entraineur/imitation.py`, `docs/etape-11-professeur.md`,
+  extension 0.9.6.
+
+**Objectif**
+Que le mode auto ne bloque plus sur aucune rencontre, et donner au cerveau des parties
+quasi parfaites à imiter (triche permise par Carlos à l'entraînement seulement).

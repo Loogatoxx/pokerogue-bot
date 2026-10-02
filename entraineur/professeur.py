@@ -7,8 +7,8 @@ qu'un humain voit.
 
 Comment : le simulateur photographie le début de chaque vague (la sauvegarde du jeu) et sait en
 repartir. Pour chaque vague, le professeur la rejoue `--essais` fois depuis sa photo — un essai
-avec le meilleur coup du cerveau (guidé par le planificateur), les autres en tirant au sort selon
-ses probabilités — puis garde le meilleur (vague gagnée, avec le plus de PV et de niveaux) et repart
+avec le meilleur coup du cerveau (guidé par le planificateur), les autres en tirant au sort parmi
+les coups proches du meilleur (température 3, 5 ou 10) — puis garde le meilleur (vague gagnée, avec le plus de PV et de niveaux) et repart
 de là. Les décisions de l'essai gardé sont enregistrées : ce sont les exemples à imiter
 (observation → action), pour entraineur/imitation.py.
 
@@ -75,12 +75,26 @@ class Essai:
         self.info: dict = {}
 
 
-def jouer_essai(simulateur, cerveau, depart: str | None, vague: int, tirage: bool, **partie) -> Essai:
+def choisir(cerveau, etat: Etat, temperature: float) -> int:
+    """Le meilleur coup (température 0), ou un tirage parmi des coups proches du meilleur. Le
+    planificateur pèse 30 fois ses valeurs : sans température, le tirage reprendrait presque
+    toujours le même coup, et les essais ne différeraient que par la chance."""
+    plan = None if etat.plan is None else torch.from_numpy(etat.plan).unsqueeze(0)
+    with torch.no_grad():
+        scores, _ = cerveau(torch.from_numpy(etat.observation).unsqueeze(0), torch.from_numpy(etat.masque).unsqueeze(0), plan)
+    if temperature <= 0:
+        return int(scores[0].argmax())
+    return int(torch.multinomial(torch.softmax(scores[0] / temperature, dim=-1), 1).item())
+
+
+TEMPERATURES = (0.0, 3.0, 5.0, 10.0)  # essai 1 : meilleur coup ; puis de plus en plus d'audace
+
+
+def jouer_essai(simulateur, cerveau, depart: str | None, vague: int, temperature: float, **partie) -> Essai:
     essai = Essai()
     etat = simulateur.nouvelle_partie(depart=depart, photos=[vague, vague + 1], vague_max=vague, style_combat="changer", **partie)
     while isinstance(etat, Etat):
-        plan = None if etat.plan is None else torch.from_numpy(etat.plan)
-        action, _ = cerveau.choisir(torch.from_numpy(etat.observation), torch.from_numpy(etat.masque), tirage=tirage, plan=plan)
+        action = choisir(cerveau, etat, temperature)
         essai.observations.append(etat.observation.astype(np.float16))
         essai.masques.append(etat.masque.copy())
         essai.plans.append(None if etat.plan is None else etat.plan.astype(np.float16))
@@ -94,44 +108,85 @@ def jouer_essai(simulateur, cerveau, depart: str | None, vague: int, tirage: boo
     return essai
 
 
+CANDIDATS_GARDES = 3   # essais gagnants gardés par vague, pour pouvoir y revenir
+RECUL_MAX = 6          # face à un mur, on peut revenir jusqu'à 6 vagues en arrière
+RETOURS_MAX = 12       # retours en arrière au plus, par partie
+
+
+def jouer_vague(pont: Pont, i: int, cerveau, essais: int, vague: int, depart: str | None,
+                partie: dict) -> tuple[list[Essai], list[dict], str | None]:
+    """Joue la vague `essais` fois ; renvoie les essais gagnants (du meilleur au moins bon), un
+    résumé des échecs, et la photo du début de la vague (utile pour la vague 1)."""
+    gagnants: list[Essai] = []
+    echecs: list[dict] = []
+    for k in range(essais):
+        simulateur = pont.entretenir(i)
+        try:
+            essai = jouer_essai(simulateur, cerveau, depart, vague, TEMPERATURES[k % len(TEMPERATURES)] if k else 0.0,
+                                **(partie if depart is None else {"graine": partie["graine"]}))
+        except (TimeoutError, ConnectionError, OSError):
+            pont.redemarrer(i)
+            continue
+        if depart is None:
+            # Vague 1 : la photo de son début ; les essais suivants repartent de là.
+            depart = essai.info.get("photos", {}).get(str(vague)) or depart
+        if essai.gagne:
+            gagnants.append(essai)
+        else:
+            echecs.append({"vague": essai.info.get("vague"), "victoire": essai.info.get("victoire"), "erreur": essai.info.get("erreur")})
+    gagnants.sort(key=lambda e: e.note, reverse=True)
+    return gagnants[:CANDIDATS_GARDES], echecs, depart
+
+
 def partie_du_professeur(pont: Pont, i: int, cerveau, essais: int, vague_max: int, especes: list[int], graine: str) -> dict:
-    """Une partie entière, vague par vague, en gardant à chaque fois le meilleur des essais."""
-    exemples: dict[str, list] = {"observations": [], "masques": [], "plans": [], "aPlan": [], "actions": [], "vagues": []}
-    reussites: list[int] = []
+    """Une partie entière, vague par vague, en gardant le meilleur des essais. Face à un mur (tous
+    les essais perdent), on revient en arrière comme un joueur qui recharge une sauvegarde plus
+    ancienne : la vague d'avant avec son 2e ou 3e meilleur essai, puis encore avant si besoin."""
+    partie = {"especes": especes, "graine": graine}
+    # Le chemin suivi : pour chaque vague jouée, ses candidats gagnants et celui qu'on a pris.
+    chemin: list[dict] = []
     depart: str | None = None
     vague = 1
+    retours = 0
+    murs: list[int] = []
+    reussites: dict[int, int] = {}
     while vague <= vague_max:
-        meilleur: Essai | None = None
-        gagnes = 0
-        for k in range(essais):
-            simulateur = pont.entretenir(i)
-            try:
-                essai = jouer_essai(simulateur, cerveau, depart, vague, tirage=k > 0,
-                                    **({"especes": especes, "graine": graine} if depart is None else {"graine": graine}))
-            except (TimeoutError, ConnectionError, OSError):
-                pont.redemarrer(i)
-                continue
-            if depart is None and vague == 1:
-                # La photo du début de la vague 1 : les essais suivants repartent de là.
-                depart_v1 = essai.info.get("photos", {}).get("1")
-                if depart_v1:
-                    depart = depart_v1
-            gagnes += essai.gagne
-            if essai.gagne and (meilleur is None or essai.note > meilleur.note):
-                meilleur = essai
-        reussites.append(gagnes)
-        if meilleur is None:
-            return {"vague": vague, "mur": vague, "reussitesParVague": reussites, "exemples": exemples}
-        n = len(meilleur.actions)
-        exemples["observations"] += meilleur.observations
-        exemples["masques"] += meilleur.masques
-        exemples["plans"] += [p if p is not None else np.zeros(len(meilleur.masques[0]), np.float16) for p in meilleur.plans]
-        exemples["aPlan"] += [p is not None for p in meilleur.plans]
-        exemples["actions"] += meilleur.actions
-        exemples["vagues"] += [vague] * n
-        depart = meilleur.photo_suivante
-        vague += 1
-    return {"vague": vague, "mur": None, "reussitesParVague": reussites, "exemples": exemples}
+        gagnants, echecs, photo_depart = jouer_vague(pont, i, cerveau, essais, vague, depart, partie)
+        reussites[vague] = len(gagnants)
+        if gagnants:
+            chemin.append({"vague": vague, "depart": photo_depart, "candidats": gagnants, "choisi": 0})
+            depart = gagnants[0].photo_suivante
+            vague += 1
+            continue
+        # Un mur : revenir en arrière vers une vague qui a encore un autre candidat.
+        murs.append(vague)
+        mur = vague
+        repris = False
+        while retours < RETOURS_MAX and chemin and chemin[-1]["vague"] >= mur - RECUL_MAX:
+            etape = chemin[-1]
+            if etape["choisi"] + 1 < len(etape["candidats"]):
+                etape["choisi"] += 1
+                retours += 1
+                depart = etape["candidats"][etape["choisi"]].photo_suivante
+                vague = etape["vague"] + 1
+                repris = True
+                break
+            chemin.pop()  # plus d'autre candidat ici : on recule encore
+        if not repris:
+            break
+    exemples: dict[str, list] = {"observations": [], "masques": [], "plans": [], "aPlan": [], "actions": [], "vagues": []}
+    for etape in chemin:
+        essai = etape["candidats"][etape["choisi"]]
+        n = len(essai.actions)
+        exemples["observations"] += essai.observations
+        exemples["masques"] += essai.masques
+        exemples["plans"] += [p if p is not None else np.zeros(len(essai.masques[0]), np.float16) for p in essai.plans]
+        exemples["aPlan"] += [p is not None for p in essai.plans]
+        exemples["actions"] += essai.actions
+        exemples["vagues"] += [etape["vague"]] * n
+    arrivee = vague if vague > vague_max else (chemin[-1]["vague"] + 1 if chemin else 1)
+    return {"vague": arrivee, "mur": None if vague > vague_max else vague, "murs": murs, "retours": retours,
+            "reussitesParVague": [reussites.get(v, 0) for v in range(1, arrivee + 1)], "exemples": exemples}
 
 
 def main() -> None:
