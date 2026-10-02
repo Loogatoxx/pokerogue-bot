@@ -46,19 +46,25 @@ def empiler(parties: list[dict[str, np.ndarray]]) -> dict[str, torch.Tensor]:
         "masques": torch.from_numpy(np.concatenate([p["masques"] for p in parties])),
         "plans": torch.from_numpy(np.concatenate([p["plans"] for p in parties]).astype(np.float32)),
         "actions": torch.from_numpy(np.concatenate([p["actions"] for p in parties]).astype(np.int64)),
+        # Poids de chaque exemple (professeur.py) : 1 = décision qui a fait gagner, 0,1 = le coup
+        # que le cerveau aurait joué de toute façon. Absent (anciens fichiers) : 1 partout.
+        "poids": torch.from_numpy(np.concatenate([p.get("poids", np.ones(len(p["actions"]), np.float32)) for p in parties])),
     }
 
 
 @torch.no_grad()
-def accord(cerveau, donnees: dict[str, torch.Tensor], taille: int = 4096) -> float:
-    """Part des situations où le meilleur coup du cerveau est celui du professeur."""
-    justes = 0
+def accord(cerveau, donnees: dict[str, torch.Tensor], taille: int = 4096, decisifs: bool = False) -> float:
+    """Part des situations où le meilleur coup du cerveau est celui du professeur (seulement les
+    décisions décisives, poids ≥ 0,5, si `decisifs`)."""
+    justes, total = 0, 0
     n = len(donnees["actions"])
     for debut in range(0, n, taille):
         tranche = slice(debut, debut + taille)
+        garder = donnees["poids"][tranche] >= 0.5 if decisifs else torch.ones_like(donnees["poids"][tranche], dtype=torch.bool)
         scores, _ = cerveau(donnees["observations"][tranche], donnees["masques"][tranche], donnees["plans"][tranche])
-        justes += int((scores.argmax(-1) == donnees["actions"][tranche]).sum())
-    return justes / max(n, 1)
+        justes += int(((scores.argmax(-1) == donnees["actions"][tranche]) & garder).sum())
+        total += int(garder.sum())
+    return justes / max(total, 1)
 
 
 def main() -> None:
@@ -79,7 +85,9 @@ def main() -> None:
     print(f"Départ : {entete['nom']} · {len(parties)} parties du professeur · {n} exemples à apprendre, "
           f"{len(test['actions'])} mis de côté")
     cerveau.eval()
-    print(f"Accord avec le professeur avant : {100 * accord(cerveau, test):.1f} % (parties mises de côté)")
+    print(f"Exemples décisifs (poids ≥ 0,5) : {int((appris['poids'] >= 0.5).sum())} à apprendre")
+    print(f"Accord avec le professeur avant : {100 * accord(cerveau, test):.1f} % ; sur les coups décisifs "
+          f"{100 * accord(cerveau, test, decisifs=True):.1f} % (parties mises de côté)")
     optimiseur = torch.optim.Adam(cerveau.parameters(), lr=args.taux)
     for epoque in range(1, args.epoques + 1):
         cerveau.train()
@@ -88,14 +96,16 @@ def main() -> None:
         for debut in range(0, n, args.lot):
             lot = ordre[debut:debut + args.lot]
             scores, _ = cerveau(appris["observations"][lot], appris["masques"][lot], appris["plans"][lot])
-            perte = torch.nn.functional.cross_entropy(scores, appris["actions"][lot])
+            poids = appris["poids"][lot]
+            perte = (torch.nn.functional.cross_entropy(scores, appris["actions"][lot], reduction="none") * poids).sum() / poids.sum()
             optimiseur.zero_grad()
             perte.backward()
             torch.nn.utils.clip_grad_norm_(cerveau.parameters(), 0.5)
             optimiseur.step()
             pertes.append(float(perte))
         cerveau.eval()
-        print(f"  époque {epoque} : perte {np.mean(pertes):.3f} · accord {100 * accord(cerveau, test):.1f} %", flush=True)
+        print(f"  époque {epoque} : perte {np.mean(pertes):.3f} · accord {100 * accord(cerveau, test):.1f} % · "
+              f"coups décisifs {100 * accord(cerveau, test, decisifs=True):.1f} %", flush=True)
     dossier = LEXAR / "entrainements" / f"imitation-{datetime.now():%Y-%m-%d-%Hh%M}" / "cerveaux"
     dossier.mkdir(parents=True, exist_ok=True)
     chemin = ecrire(

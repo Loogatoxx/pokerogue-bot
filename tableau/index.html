@@ -138,6 +138,15 @@
     </section>
   </div>
 
+  <section class="carte" id="carte-professeur" hidden>
+    <h2>Le professeur</h2>
+    <p class="aide">Il rejoue chaque vague plusieurs fois depuis sa sauvegarde, garde le meilleur essai et recule
+      face à un mur : des parties quasi parfaites, que le cerveau apprend ensuite à imiter (la triche ne sert qu'à
+      l'entraînement). Les « murs » sont les vagues où même lui a fini par perdre.</p>
+    <div id="tuiles-professeur" class="tuiles"></div>
+    <p id="murs-professeur" class="aide"></p>
+  </section>
+
   <section class="carte">
     <h2>Vague moyenne, au fil des parties</h2>
     <p class="aide">Si la courbe monte, il apprend. Les repères : la v0 (le point zéro, qui joue au hasard)
@@ -510,6 +519,31 @@ async function chargerPlusFort() {
   }
 }
 chargerPlusFort();
+
+/** Le dernier passage du professeur, s'il y en a un. */
+async function chargerProfesseur() {
+  try {
+    const p = await (await fetch("/api/professeur")).json();
+    const carte = $("carte-professeur");
+    if (!p || !p.parties) { carte.hidden = true; return; }
+    carte.hidden = false;
+    $("tuiles-professeur").replaceChildren(
+      tuile("Parties", nombre(p.parties)),
+      tuile("Vague moyenne", nombre(p.vagueMoyenne, 1)),
+      tuile("Rival 1 passé", `${p.rival1} %`),
+      tuile("Rival 2 passé", `${p.rival2} %`),
+      tuile("Au bout (200)", nombre(p.auBout)),
+      tuile("Exemples à imiter", nombre(p.exemples)),
+    );
+    $("murs-professeur").textContent = p.murs.length
+      ? "Murs les plus fréquents : " + p.murs.map(([v, n]) => `vague ${v} (${n})`).join(", ") + "."
+      : "Aucun mur pour l'instant.";
+  } catch {
+    $("carte-professeur").hidden = true;
+  }
+}
+chargerProfesseur();
+setInterval(chargerProfesseur, 30000);
 
 let actuel = null;
 async function charger() {

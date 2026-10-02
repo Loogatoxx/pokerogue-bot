@@ -74,6 +74,26 @@ def cerveaux() -> dict:
     return {"plusFort": plus_fort, "officiels": officiels}
 
 
+def professeur() -> dict | None:
+    """Le dernier passage du professeur (entraineur/professeur.py) : parties finies, vagues, murs."""
+    dossiers = sorted(d for d in (LEXAR / "professeur").glob("*") if d.is_dir() and not d.name.startswith("._"))
+    if not dossiers:
+        return None
+    parties = lire_jsonl(dossiers[-1] / "parties.jsonl")
+    vagues = [p["vague"] for p in parties]
+    murs = Counter(p["mur"] for p in parties if p.get("mur"))
+    return {
+        "dossier": dossiers[-1].name,
+        "parties": len(parties),
+        "vagueMoyenne": round(sum(vagues) / len(vagues), 1) if vagues else None,
+        "rival1": round(100 * sum(v > 8 for v in vagues) / len(vagues)) if vagues else None,
+        "rival2": round(100 * sum(v > 25 for v in vagues) / len(vagues)) if vagues else None,
+        "auBout": sum(v > 200 for v in vagues),
+        "exemples": sum(p.get("exemples", 0) for p in parties),
+        "murs": murs.most_common(8),
+    }
+
+
 def entrainements() -> list[dict]:
     resultats = []
     for dossier in sorted((LEXAR / "entrainements").glob("*"), key=lambda d: d.stat().st_mtime, reverse=True):
@@ -146,6 +166,8 @@ class Serveur(SimpleHTTPRequestHandler):
             self.envoyer_json({"erreur": "Le Lexar n'est pas branché."}, 503)
         elif chemin == "/api/entrainements":
             self.envoyer_json(entrainements())
+        elif chemin == "/api/professeur":
+            self.envoyer_json(professeur())
         elif chemin == "/api/cerveaux":
             self.envoyer_json(cerveaux())
         elif chemin.startswith("/telecharger/"):

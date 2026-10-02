@@ -73,6 +73,10 @@ class Essai:
         self.photo_suivante: str | None = None
         self.note = float("-inf")
         self.info: dict = {}
+        self.temperature = 0.0
+        # Ce que ses décisions valent comme exemples : 1 = décisives (le meilleur coup du cerveau
+        # perdait, ou il a fallu reculer), 0,1 = le meilleur coup du cerveau, gardé tel quel.
+        self.poids = 0.1
 
 
 def choisir(cerveau, etat: Etat, temperature: float) -> int:
@@ -92,6 +96,7 @@ TEMPERATURES = (0.0, 3.0, 5.0, 10.0)  # essai 1 : meilleur coup ; puis de plus e
 
 def jouer_essai(simulateur, cerveau, depart: str | None, vague: int, temperature: float, **partie) -> Essai:
     essai = Essai()
+    essai.temperature = temperature
     etat = simulateur.nouvelle_partie(depart=depart, photos=[vague, vague + 1], vague_max=vague, style_combat="changer", **partie)
     while isinstance(etat, Etat):
         action = choisir(cerveau, etat, temperature)
@@ -116,10 +121,12 @@ ESSAIS_MUR = 2         # sur une vague qui vient de faire mur, deux fois plus d'
 
 
 def jouer_vague(pont: Pont, i: int, cerveau, essais: int, vague: int, depart: str | None,
-                partie: dict) -> tuple[list[Essai], list[dict], str | None]:
-    """Joue la vague `essais` fois ; renvoie les essais gagnants (du meilleur au moins bon), un
-    résumé des échecs, et la photo du début de la vague (utile pour la vague 1)."""
+                partie: dict) -> tuple[list[Essai], list[dict], str | None, int]:
+    """Joue la vague `essais` fois ; renvoie les essais gagnants gardés (du meilleur au moins bon),
+    un résumé des échecs, la photo du début de la vague (utile pour la vague 1) et le nombre
+    d'essais gagnants."""
     gagnants: list[Essai] = []
+    reference: float | None = None  # note du meilleur coup du cerveau (essai sans température), s'il gagne
     echecs: list[dict] = []
     for k in range(essais):
         simulateur = pont.entretenir(i)
@@ -134,10 +141,19 @@ def jouer_vague(pont: Pont, i: int, cerveau, essais: int, vague: int, depart: st
             depart = essai.info.get("photos", {}).get(str(vague)) or depart
         if essai.gagne:
             gagnants.append(essai)
+            if essai.temperature == 0:
+                reference = essai.note
         else:
             echecs.append({"vague": essai.info.get("vague"), "victoire": essai.info.get("victoire"), "erreur": essai.info.get("erreur")})
     gagnants.sort(key=lambda e: e.note, reverse=True)
-    return gagnants[:CANDIDATS_GARDES], echecs, depart
+    for essai in gagnants:
+        if essai.temperature == 0:
+            essai.poids = 0.1
+        elif reference is None:
+            essai.poids = 1.0  # le meilleur coup du cerveau perdait cette vague : celui-ci la gagne
+        else:
+            essai.poids = min(1.0, max(0.1, (essai.note - reference) / 0.5))
+    return gagnants[:CANDIDATS_GARDES], echecs, depart, len(gagnants)
 
 
 def partie_du_professeur(pont: Pont, i: int, cerveau, essais: int, vague_max: int, especes: list[int], graine: str) -> dict:
@@ -156,8 +172,8 @@ def partie_du_professeur(pont: Pont, i: int, cerveau, essais: int, vague_max: in
     reussites: dict[int, int] = {}
     while vague <= vague_max:
         essais_ici = essais * (ESSAIS_MUR if vague == mur_actuel else 1)
-        gagnants, echecs, photo_depart = jouer_vague(pont, i, cerveau, essais_ici, vague, depart, partie)
-        reussites[vague] = len(gagnants)
+        gagnants, echecs, photo_depart, nb_gagnants = jouer_vague(pont, i, cerveau, essais_ici, vague, depart, partie)
+        reussites[vague] = nb_gagnants
         if gagnants:
             chemin.append({"vague": vague, "depart": photo_depart, "candidats": gagnants, "choisi": 0})
             depart = gagnants[0].photo_suivante
@@ -174,6 +190,7 @@ def partie_du_professeur(pont: Pont, i: int, cerveau, essais: int, vague_max: in
             etape = chemin[-1]
             if etape["choisi"] + 1 < len(etape["candidats"]):
                 etape["choisi"] += 1
+                etape["decisif"] = True  # ce choix-là a servi à franchir un mur
                 retours += 1
                 depart = etape["candidats"][etape["choisi"]].photo_suivante
                 vague = etape["vague"] + 1
@@ -182,10 +199,11 @@ def partie_du_professeur(pont: Pont, i: int, cerveau, essais: int, vague_max: in
             chemin.pop()  # plus d'autre candidat ici : on recule encore
         if not repris:
             break
-    exemples: dict[str, list] = {"observations": [], "masques": [], "plans": [], "aPlan": [], "actions": [], "vagues": []}
+    exemples: dict[str, list] = {"observations": [], "masques": [], "plans": [], "aPlan": [], "actions": [], "vagues": [], "poids": []}
     for etape in chemin:
         essai = etape["candidats"][etape["choisi"]]
         n = len(essai.actions)
+        exemples["poids"] += [1.0 if etape.get("decisif") else essai.poids] * n
         exemples["observations"] += essai.observations
         exemples["masques"] += essai.masques
         exemples["plans"] += [p if p is not None else np.zeros(len(essai.masques[0]), np.float16) for p in essai.plans]
@@ -236,7 +254,7 @@ def main() -> None:
                 np.savez_compressed(
                     fichier, observations=np.stack(ex["observations"]), masques=np.stack(ex["masques"]),
                     plans=np.stack(ex["plans"]), aPlan=np.array(ex["aPlan"]), actions=np.array(ex["actions"], np.int16),
-                    vagues=np.array(ex["vagues"], np.int16))
+                    vagues=np.array(ex["vagues"], np.int16), poids=np.array(ex["poids"], np.float32))
             ligne = {"partie": numero, "starters": especes, "graine": graine, **resultat, "exemples": len(ex["actions"]),
                      "minutes": round((time.time() - debut) / 60, 1)}
             with verrou:
