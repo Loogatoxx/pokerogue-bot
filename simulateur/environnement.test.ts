@@ -62,6 +62,8 @@ const ATTENTE_MAX_MS = 30 * 60_000;
  * attend une touche que le pilote ne sait pas donner : la partie s'arrête en le signalant.
  */
 const BLOCAGE_MS = 60_000;
+/** Le tirage du combat du jeu lui-même (graine de la vague), avant notre remplacement par vraiHasard. */
+const RAND_BATTLE_DU_JEU = BattleScene.prototype.randBattleSeedInt;
 /** Actions du pilote d'affilée sans décision du cerveau, au-delà desquelles on crie à la boucle. */
 const ACTIONS_PILOTE_MAX = 3_000;
 const DECISIONS_MAX = 20_000;
@@ -94,8 +96,12 @@ type MessagePython =
       /** Fichier où écrire, au fil de l'eau, chaque phase, écran et règle du pilote (débogage d'un
        * blocage : écrit même si la copie du jeu se fige ensuite). */
       trace?: string;
+      /** Garder le hasard du jeu (graine de la vague) : mêmes coups, même résultat. */
+      hasardDuJeu?: boolean;
     }
-  | { type: "action"; action: number }
+  /** `hasard` : changer la graine du combat juste avant cette action (la suite de la vague tire
+   * d'autres nombres, depuis exactement la même situation : professeur.py, jugement d'un coup). */
+  | { type: "action"; action: number; hasard?: string }
   | { type: "fin" };
 
 /** Connexion au Python : messages JSON, un par ligne. */
@@ -166,6 +172,8 @@ function infoPartie(obs: Observation) {
     koEquipe: obs.equipe.filter(p => p.ko).length,
     tailleEquipe: obs.equipe.length,
     pvAdversaires: obs.adversaires.reduce((s, a) => s + a.pvPourcent / 100, 0) / Math.max(obs.adversaires.length, 1),
+    // Combat contre un dresseur ou un boss : les décisions qui comptent le plus (juge.py).
+    important: !!obs.partie.dresseur || obs.adversaires.some(a => a.boss),
   };
 }
 
@@ -322,6 +330,7 @@ async function jouerPartie(
     mysteres?: "jeu" | number;
     mystere?: string;
     trace?: string;
+    hasardDuJeu?: boolean;
   },
 ) {
   // Nettoyage entre deux parties d'un même processus (normalement fait par l'outil de test
@@ -342,7 +351,10 @@ async function jouerPartie(
   const game = new GameManager(phaserGame);
   // La scène vient d'être remise à zéro (l'équipe de la partie précédente est détruite) : ménage.
   menageEntreParties(game);
-  BattleScene.prototype.randBattleSeedInt = vraiHasard;
+  // Le combat tire d'habitude ses nombres d'une graine propre à la vague (le même coup rejoué donne
+  // le même résultat) ; le simulateur les tire au vrai hasard, sauf demande contraire (hasardDuJeu :
+  // rejouer une vague à l'identique, pour le professeur).
+  BattleScene.prototype.randBattleSeedInt = demande.hasardDuJeu ? RAND_BATTLE_DU_JEU : vraiHasard;
   game.override.normalizeIVs = false;
   game.override.normalizeNatures = false;
   game.override.disableShinies = false;
@@ -625,6 +637,11 @@ async function jouerPartie(
             if (entreeJournal && entreeJournal.choix === undefined) {
               entreeJournal.choix = decrire(obs, message.action);
             }
+          }
+          if (message.hasard && game.scene.currentBattle) {
+            const combat = game.scene.currentBattle as unknown as { battleSeed: string; battleSeedState: string | null };
+            combat.battleSeed = message.hasard;
+            combat.battleSeedState = null;
           }
           if (!executerAction(scene, message.action, etat)) {
             refusees.add(message.action);

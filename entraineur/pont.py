@@ -95,7 +95,7 @@ class Simulateur:
                         plan_capture: bool = False, mysteres: str | int | None = None,
                         plan_scenarios: bool = False, plan_prudence: float = 0.0,
                         plan_changements: bool = False, mystere: str | None = None,
-                        trace: str | None = None) -> Etat | Fin:
+                        trace: str | None = None, hasard_du_jeu: bool = False) -> Etat | Fin:
         """style_combat : « fixe » ou « changer » (le jeu propose alors de changer après chaque K.O.).
         vague_max : la partie s'arrête au-delà (info « tronquee »), pour le programme progressif.
         recit : la fin de partie contient aussi le récit (forces en présence à chaque vague, et l'état
@@ -122,6 +122,8 @@ class Simulateur:
             demande["mysteres"] = mysteres
         if mystere:
             demande["mystere"] = mystere  # une rencontre mystère précise, forcée (MysteryEncounterType)
+        if hasard_du_jeu:
+            demande["hasardDuJeu"] = True  # mêmes coups → même résultat (graine de la vague)
         if trace:
             demande["trace"] = trace  # fichier : phases, écrans et règles du pilote, au fil de l'eau
         if plan_scenarios:
@@ -132,8 +134,9 @@ class Simulateur:
         self._envoyer(demande)
         return self._recevoir()
 
-    def agir(self, action: int) -> Etat | Fin:
-        self._envoyer({"type": "action", "action": int(action)})
+    def agir(self, action: int, hasard: str | None = None) -> Etat | Fin:
+        """hasard : nouvelle graine du combat juste avant cette action (même situation, autre avenir)."""
+        self._envoyer({"type": "action", "action": int(action), **({"hasard": hasard} if hasard else {})})
         return self._recevoir()
 
     def fermer(self) -> None:
