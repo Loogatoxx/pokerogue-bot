@@ -211,8 +211,11 @@ def partie_du_professeur(pont: Pont, i: int, cerveau, essais: int, vague_max: in
         exemples["actions"] += essai.actions
         exemples["vagues"] += [etape["vague"]] * n
     arrivee = vague if vague > vague_max else (chemin[-1]["vague"] + 1 if chemin else 1)
+    # L'équipe au début de chaque vague du chemin gardé (pour comparer avec celle du cerveau seul).
+    equipes = {etape["vague"] + 1: etape["candidats"][etape["choisi"]].info.get("bilan", {}).get("equipe", []) for etape in chemin}
     return {"vague": arrivee, "mur": None if vague > vague_max else vague, "murs": murs, "retours": retours,
-            "reussitesParVague": [reussites.get(v, 0) for v in range(1, arrivee + 1)], "exemples": exemples}
+            "reussitesParVague": [reussites.get(v, 0) for v in range(1, arrivee + 1)], "equipes": equipes,
+            "exemples": exemples}
 
 
 def main() -> None:
@@ -249,6 +252,7 @@ def main() -> None:
             debut = time.time()
             resultat = partie_du_professeur(pont, i, cerveau, args.essais, args.vague_max, especes, graine)
             ex = resultat.pop("exemples")
+            resultat.pop("equipes", None)
             fichier = sortie / f"partie-{numero:04d}.npz"
             if ex["actions"]:
                 np.savez_compressed(

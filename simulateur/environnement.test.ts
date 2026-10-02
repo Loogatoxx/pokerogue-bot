@@ -28,7 +28,7 @@ import Phaser from "phaser";
 import { describe, it, vi } from "vitest";
 import { decrireAction, NOMBRE_ACTIONS } from "../../../observateur/actions";
 import { planifier } from "../../../observateur/planificateur";
-import { prevoir, prevoirChangement, scoresChangement, type ScoresChangement } from "../../../observateur/prevision";
+import { cibleDe, efficacite, prevoir, prevoirChangement, scoresChangement, type ScoresChangement } from "../../../observateur/prevision";
 import { Carnet } from "../../../observateur/carnet";
 import { encoder, TAILLE_OBSERVATION, VERSION_ENCODAGE } from "../../../observateur/encodeur";
 import type { PokemonJeu, ScenePokerogue } from "../../../observateur/jeu";
@@ -88,6 +88,8 @@ type MessagePython =
       planPrudence?: number;
       /** Le planificateur prévoit les changements de Pokémon adverses. */
       planChangements?: boolean;
+      /** Contre un dresseur : le combat d'équipe simulé juge attaques et changements (par défaut ; false pour couper). */
+      planEquipe?: boolean;
       /** Rencontres mystères : « jeu » = au rythme du vrai jeu ; un nombre = % de chance par vague.
        * Absent : aucune (réglage par défaut de l'outil de test). */
       mysteres?: "jeu" | number;
@@ -163,6 +165,32 @@ function retirerMinuteriesVides(horloge: Horloge): void {
 }
 
 /** Ce que le Python reçoit à chaque décision pour calculer la récompense. */
+/** Chaque action permise : attaque (nom, type, puissance, efficacité sur la cible), changement, Ball. */
+function decrireCoups(obs: Observation, masque: boolean[]) {
+  const moi = cibleDe(obs);
+  return masque.map((permis, i) => {
+    if (!permis) {
+      return null;
+    }
+    const a = decrireAction(i);
+    if (a.type === "attaque" && moi) {
+      const x = moi.attaques[a.attaque];
+      const cible = obs.adversaires.find(c => c.position === a.cible) ?? obs.adversaires[0];
+      if (!x || !cible) {
+        return null;
+      }
+      const memeType = moi.types.some(t => t.id === x.type.id);
+      return { genre: "attaque", nom: x.nom, type: x.type.id, puissance: x.puissance, statut: x.categorie.id === 2,
+        efficacite: efficacite(x.type.id, cible.types.map(t => t.id)), memeType };
+    }
+    if (a.type === "envoyer") {
+      const m = obs.equipe[a.place];
+      return { genre: "changement", nom: m?.nom ?? "?", niveau: m?.niveau ?? 0 };
+    }
+    return { genre: "ball" };
+  });
+}
+
 function infoPartie(obs: Observation) {
   const pvEquipe = obs.equipe.reduce((s, p) => s + p.pv, 0) / Math.max(obs.equipe.reduce((s, p) => s + p.pvMax, 0), 1);
   return {
@@ -327,6 +355,7 @@ async function jouerPartie(
     planScenarios?: boolean;
     planPrudence?: number;
     planChangements?: boolean;
+    planEquipe?: boolean;
     mysteres?: "jeu" | number;
     mystere?: string;
     trace?: string;
@@ -592,6 +621,7 @@ async function jouerPartie(
         scenarios: !!demande.planScenarios,
         prudence: demande.planPrudence ?? 0,
         changements: !!demande.planChangements,
+        combatEquipe: demande.planEquipe !== false, // par défaut (02/10 : rival 1 de 94 à 96 %)
       });
       if (demande.recit && dresseurDe(sceneRecit)?.startsWith("RIVAL")) {
         const pv = (p: { pv: number; pvMax: number }) => `${Math.round((100 * p.pv) / Math.max(p.pvMax, 1))} %`;
@@ -626,7 +656,12 @@ async function jouerPartie(
         masque: masque.map(Number),
         // La valeur de chaque action selon le planificateur (observateur/planificateur.ts).
         plan,
-        info: { ...infoPartie(obs), recrues: compterRecrues(obs) },
+        info: {
+          ...infoPartie(obs),
+          recrues: compterRecrues(obs),
+          // En mode récit, ce que chaque action permise ferait (pour classer les erreurs : juge ciblé).
+          ...(demande.recit ? { coups: decrireCoups(obs, masque) } : {}),
+        },
       });
       canal.recevoir().then(message => {
         if (message.type !== "action") {

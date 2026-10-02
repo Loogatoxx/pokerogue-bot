@@ -26,19 +26,36 @@ function situation(pvAdverse = 100): Observation {
 const meilleure = (valeurs: number[], masque: boolean[]) =>
   valeurs.reduce((m, v, i) => (masque[i] && v > valeurs[m]! ? i : m), masque.indexOf(true));
 
-describe("Planificateur", () => {
+describe("Planificateur par duels (sans le combat d'équipe)", () => {
+  const duels = { combatEquipe: false };
   it("change pour Carapuce, qui résiste au Feu prévu, plutôt que de laisser tomber Bulbizarre", () => {
     const obs = situation();
-    const valeurs = planifier(obs)!;
+    const valeurs = planifier(obs, duels)!;
     expect(meilleure(valeurs, obs.decision.masque!)).toBe(10);
     expect(valeurs[10]!).toBeGreaterThan(valeurs[9]!); // Salamèche, lui, ne résiste pas mieux
   });
 
   it("achève un adversaire qui tombe ce tour-ci", () => {
     const obs = situation(5);
-    const valeurs = planifier(obs)!;
+    const valeurs = planifier(obs, duels)!;
     expect(meilleure(valeurs, obs.decision.masque!)).toBeLessThan(8); // une attaque, pas un changement
     expect(Math.max(...valeurs.slice(0, 8))).toBeGreaterThanOrEqual(1.5);
+  });
+});
+
+describe("Combat d'équipe (contre un dresseur)", () => {
+  it("Bulbizarre, plus lent, prendrait la Flammèche : il change pour un Pokémon qui résiste au Feu", () => {
+    const obs = situation();
+    const valeurs = planifier(obs)!;
+    expect([9, 10]).toContain(meilleure(valeurs, obs.decision.masque!)); // Salamèche ou Carapuce
+    expect(valeurs[10]!).toBeGreaterThan(Math.max(valeurs[0]!, valeurs[2]!, valeurs[4]!, valeurs[6]!));
+  });
+
+  it("plus rapide, il achève l'adversaire au lieu de changer", () => {
+    const obs = situation(5);
+    obs.equipe[0]!.stats[5] = 99;
+    const valeurs = planifier(obs)!;
+    expect(meilleure(valeurs, obs.decision.masque!)).toBeLessThan(8);
   });
 });
 

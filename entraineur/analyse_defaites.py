@@ -39,7 +39,7 @@ def type_action(action: int) -> str:
 
 def jouer(pont: Pont, cerveau, nombre: int, sans_balls: bool = False, plan: float = 0.0, vague_max: int = 50,
           plan_capture: bool = False, scenarios: bool = False, prudence: float = 0.0,
-          changements: bool = False, style: str = "fixe") -> list[dict]:
+          changements: bool = False, style: str = "fixe", equipe: bool = True) -> list[dict]:
     """Joue `nombre` parties ; chacune renvoie sa fin (avec le récit) et ses actions par vague."""
     parties: list[dict] = []
     verrou = threading.Lock()
@@ -61,7 +61,7 @@ def jouer(pont: Pont, cerveau, nombre: int, sans_balls: bool = False, plan: floa
             try:
                 etat = simulateur.nouvelle_partie(especes=especes, vague_max=vague_max, recit=True, plan_capture=plan_capture,
                                                   plan_scenarios=scenarios, plan_prudence=prudence,
-                                                  plan_changements=changements, style_combat=style)
+                                                  plan_changements=changements, style_combat=style, plan_equipe=equipe)
                 while isinstance(etat, Etat):
                     masque = etat.masque.copy()
                     if sans_balls and masque[:PREMIERE_BALL].any():
@@ -215,6 +215,7 @@ def main() -> None:
     parametres.add_argument("--scenarios", action="store_true", help="le planificateur joue chaque coup possible de l'adversaire")
     parametres.add_argument("--prudence", type=float, default=0.0, help="avec --scenarios : poids du pire scénario (0 à 1)")
     parametres.add_argument("--changements", action="store_true", help="le planificateur prévoit les changements adverses")
+    parametres.add_argument("--sans-equipe", action="store_true", help="couper le combat d'équipe simulé contre les dresseurs")
     parametres.add_argument("--style", choices=["fixe", "changer"], default="fixe",
                             help="style de combat du jeu : « changer » propose un changement gratuit au début des vagues sauvages")
     args = parametres.parse_args()
@@ -231,7 +232,7 @@ def main() -> None:
     with Pont(args.processus) as pont:
         poids = args.plan if args.plan is not None else cerveau.poids_plan
         parties = jouer(pont, cerveau, args.parties, args.sans_balls, poids, args.vague_max, args.plan_capture,
-                        args.scenarios, args.prudence, args.changements, args.style)
+                        args.scenarios, args.prudence, args.changements, args.style, not args.sans_equipe)
     dossier = LEXAR / "analyses"
     dossier.mkdir(exist_ok=True)
     fichier = dossier / f"defaites-{datetime.now():%Y-%m-%d-%Hh%M}{'-sans-balls' if args.sans_balls else ''}{f'-plan{args.plan:g}' if args.plan else ''}.json"

@@ -21,11 +21,18 @@
  */
 import { NOMBRE_ACTIONS, PREMIER_CHANGEMENT, PREMIERE_BALL } from "./actions";
 import { chanceCapture } from "./capture";
+import { valeursCombatEquipe } from "./combat-equipe";
 import { connaissance } from "./especes";
-import { cibleDe, combattantAdverse, combattantAllie, type Combattant, degats, prevoir, prevoirChangement } from "./prevision";
+import { cibleDe, combattantAdverse, combattantAllie, type Combattant, degats, efficacite, prevoir, prevoirChangement } from "./prevision";
 import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
 
 const TOURS_MAX = 8;
+/** Amplification des valeurs du combat d'équipe (× poids du plan 30 : le cerveau ne fait que départager). */
+const ECHELLE_COMBAT_EQUIPE = 30;
+/** Poids des dégâts infligés dans un duel perdu (voir valeurDuel). */
+const POIDS_DEGATS_PERDU = 1;
+/** Coût d'une attaque plus faible que la meilleure ce tour-ci (à 0,1, le cerveau passait outre). */
+const PENALITE_PLUS_FAIBLE = 0.5;
 
 interface Duel {
   /** Tours qu'il me faut pour le mettre K.O. (avec ma meilleure attaque). */
@@ -91,7 +98,10 @@ function valeurDuel(d: Duel): number {
     return 1 + 0.5 * Math.max(0, 1 - coupsRecus * d.parTourLui);
   }
   const coupsDonnes = d.plusRapide ? d.sesTours : d.sesTours - 1;
-  return -1 + 0.5 * Math.min(1, coupsDonnes * d.parTourMoi);
+  // Duel perdu : les dégâts infligés restent acquis pour le Pokémon suivant (combat d'équipe). Avec
+  // un poids 0,5, toutes les options d'un duel perdu valaient environ −1 et le cerveau tranchait seul :
+  // attaque du même type que lui, même résistée (Flammèche sur Salamèche…), au lieu de la plus forte.
+  return -1 + POIDS_DEGATS_PERDU * Math.min(1, coupsDonnes * d.parTourMoi);
 }
 
 /**
@@ -129,12 +139,12 @@ function valeurAttaqueSelon(obs: Observation, moi: PokemonAllie, lui: PokemonAdv
     return -1; // il me met K.O. avant que je frappe
   }
   if (d.plusRapide && recu >= 1) {
-    return -1 + 0.5 * Math.min(1, ceTour); // je frappe, puis je tombe
+    return -1 + POIDS_DEGATS_PERDU * Math.min(1, ceTour); // je frappe, puis je tombe
   }
   // Les deux encaissent ; la suite est une course au K.O. avec ma meilleure attaque.
   const pvLuiApres = pvLui * (1 - ceTour);
   const pvMoiApres = pvMoi * (1 - recu);
-  return valeurDuel(duel(obs, moi, pvMoiApres, lui, pvLuiApres, autres)) - 0.1 * (1 - ceTour / Math.max(d.parTourMoi, 0.01));
+  return valeurDuel(duel(obs, moi, pvMoiApres, lui, pvLuiApres, autres)) - PENALITE_PLUS_FAIBLE * (1 - ceTour / Math.max(d.parTourMoi, 0.01));
 }
 
 /** Attaquer avec l'attaque `i` cet adversaire ce tour-ci, puis jouer au mieux. */
@@ -218,13 +228,27 @@ const MASTER_BALL = 4;
 const CHANCE_SURE = 0.5;          // au-dessus, une Ball termine souvent le combat : toujours permise
 const POTENTIEL_MASTER = 580;     // la Master Ball reste pour les espèces d'exception
 
-/** L'équipe n'est pas pleine, ou l'espèce remplacerait avantageusement la plus faible des six. */
+/** L'équipe n'est pas pleine, ou l'espèce remplacerait avantageusement la plus faible des six, ou
+ * elle comble un trou face aux starters possibles du rival qui approche. */
 function captureUtile(obs: Observation, lui: PokemonAdverse): boolean {
   if (obs.equipe.length < 6) {
     return true;
   }
   const potentiel = (espece: number) => connaissance(espece)?.totalFinal ?? 0;
-  return potentiel(lui.espece) - Math.min(...obs.equipe.map(m => potentiel(m.espece))) >= MARGE_POTENTIEL;
+  return potentiel(lui.espece) - Math.min(...obs.equipe.map(m => potentiel(m.espece))) >= MARGE_POTENTIEL
+    || comblePreparation(obs, lui);
+}
+
+/** Avant un rival (vagues 1 à 25) : ce sauvage frappe-t-il en super efficace (avec son propre type)
+ * un des starters possibles du rival que personne de l'équipe ne frappe ainsi ? */
+function comblePreparation(obs: Observation, lui: PokemonAdverse): boolean {
+  if (obs.partie.vague > 25) {
+    return false;
+  }
+  const niveauMax = Math.max(...obs.equipe.map(m => m.niveau), 1);
+  const couvert = (t: number) => obs.equipe.some(m => m.niveau >= niveauMax - 2
+    && m.attaques.some(a => a.categorie.id !== 2 && a.puissance > 0 && efficacite(a.type.id, [t]) > 1));
+  return STARTERS_DU_RIVAL.some(t => !couvert(t) && lui.types.some(x => efficacite(x.id, [t]) > 1));
 }
 
 /** Lancer une Ball pour rien : on encaisse son coup sans rien lui faire. */
@@ -250,6 +274,9 @@ export interface OptionsPlan {
   prudence?: number;
   /** Prévoir ses changements de Pokémon (dresseurs, banc déjà vu) et en tenir compte. */
   changements?: boolean;
+  /** Contre un dresseur (combat simple) : juger attaques et changements par le combat d'équipe simulé
+   * (par défaut ; false pour revenir aux duels). */
+  combatEquipe?: boolean;
 }
 
 /**
@@ -274,11 +301,61 @@ function inconnuComme(lui: PokemonAdverse): PokemonAdverse {
  */
 const BONUS_PORTEUR = 0.4;
 
+/**
+ * Le rival 1 (vague 8) tire son starter au hasard (Plante, Feu ou Eau) ; mesuré sur 2 074 combats :
+ * quand ce starter bat le type de notre porteur, on perd 15 % du temps (1 % quand c'est l'inverse),
+ * et ce cas fait les trois quarts des défaites — derrière le porteur, personne (2e meilleur niveau :
+ * 5,3). Le « second » : le membre qui bat le mieux ce qui contre le porteur ; avant le rival 1, il
+ * prend des niveaux pendant les vagues sauvages qu'il gagne (changement gratuit de début de vague).
+ */
+const STARTERS_DU_RIVAL = [11, 9, 10]; // Plante, Feu, Eau (jeu : rival-party-config.ts)
+const VAGUE_RIVAL_1 = 8;
+const BONUS_SECOND = 0.6;
+/** Retard toléré du second sur le porteur (en niveaux) avant qu'on le fasse combattre. */
+const RETARD_SECOND = 1; // mesuré : 1 niveau (rival contré : 11 % de défaites) vaut mieux que 2 (13,6 %)
+
+/** Ce qui contre le porteur : les types de starter du rival super efficaces contre lui. */
+function menacesDuPorteur(porteur: PokemonAllie): number[] {
+  const types = porteur.types.map(t => t.id);
+  return STARTERS_DU_RIVAL.filter(t => efficacite(t, types) > 1);
+}
+
+/** Le second combattant à faire monter avant le rival 1, ou null. */
+export function secondCombattant(obs: Observation): PokemonAllie | null {
+  const vivants = obs.equipe.filter(m => !m.ko);
+  const porteur = vivants.reduce<PokemonAllie | undefined>((p, m) => (!p || m.niveau > p.niveau ? m : p), undefined);
+  if (!porteur) {
+    return null;
+  }
+  const menaces = menacesDuPorteur(porteur);
+  if (!menaces.length) {
+    return null;
+  }
+  const note = (m: PokemonAllie) => {
+    const types = m.types.map(t => t.id);
+    return Math.min(...menaces.map(menace => {
+      const attaque = Math.max(0, ...m.attaques.filter(a => a.categorie.id !== 2 && a.puissance > 0)
+        .map(a => efficacite(a.type.id, [menace]) * (types.includes(a.type.id) ? 1.5 : 1)));
+      const defense = 1 / Math.max(efficacite(menace, types), 0.25);
+      return attaque * defense;
+    }));
+  };
+  const candidats = vivants.filter(m => m.uid !== porteur.uid).map(m => ({ m, n: note(m) })).filter(x => x.n >= 2);
+  candidats.sort((x, y) => y.n - x.n || y.m.niveau - x.m.niveau);
+  return candidats[0]?.m ?? null;
+}
+
 /** Entrer en jeu sans recevoir de coup (remplacement, changement gratuit) : le pire de ses duels. */
 function valeurEntree(obs: Observation, m: PokemonAllie, adversaires: PokemonAdverse[]): number {
   const pv = m.pv / Math.max(m.pvMax, 1);
   const v = Math.min(...adversaires.map(lui => valeurDuel(duel(obs, m, pv, lui, lui.pvPourcent / 100, degatsDesAutres(obs, lui, m, adversaires)))));
   const porteur = Math.max(...obs.equipe.map(e => e.niveau));
+  // Avant le rival 1, contre des sauvages, le second passe devant tant qu'il a du retard (et le
+  // porteur perd alors son propre bonus : sinon, plus fort, il gardait toujours la place).
+  const second = !obs.partie.dresseur && obs.partie.vague < VAGUE_RIVAL_1 ? secondCombattant(obs) : null;
+  if (second && second.niveau < porteur - RETARD_SECOND) {
+    return v + (m.uid === second.uid && v > 0 ? BONUS_SECOND : 0);
+  }
   return v + (m.niveau >= porteur && v > 0 ? BONUS_PORTEUR : 0);
 }
 
@@ -313,6 +390,13 @@ export function planifier(obs: Observation, options: OptionsPlan = {}): number[]
     return null;
   }
   const valeurs = new Array<number>(NOMBRE_ACTIONS).fill(0);
+  if (obs.decision.type === "remplacement" && options.combatEquipe !== false) {
+    // Contre un dresseur, le remplaçant aussi est choisi par le combat d'équipe simulé.
+    const equipe = valeursCombatEquipe(obs);
+    if (equipe) {
+      return equipe.map(v => v * ECHELLE_COMBAT_EQUIPE);
+    }
+  }
   if (obs.decision.type === "remplacement") {
     // Après un K.O. (ou un changement gratuit en début de vague) : le remplaçant entre sans
     // recevoir de coup ; seul compte le duel qui suit.
@@ -340,6 +424,16 @@ export function planifier(obs: Observation, options: OptionsPlan = {}): number[]
     // Contre plusieurs adversaires : le pire des duels.
     valeurs[action] = Math.min(...adversaires.map(lui =>
       valeurChangement(obs, moi, remplacant, lui, options, degatsDesAutres(obs, lui, remplacant, adversaires))));
+  }
+  if (options.combatEquipe !== false) {
+    const equipe = valeursCombatEquipe(obs);
+    if (equipe) {
+      // Contre un dresseur, le moteur décide : ses valeurs sont amplifiées pour que le cerveau ne
+      // fasse que départager les égalités. Mesuré (02/10, 960 parties, rival 1) : moteur + cerveau
+      // à poids égal 91 % ; moteur seul 96 % (rival qui contre notre porteur : 5 % de défaites
+      // au lieu de 11-15 %).
+      return equipe.map(v => v * ECHELLE_COMBAT_EQUIPE);
+    }
   }
   const sauvage = adversaires.length === 1 && !obs.partie.dresseur ? adversaires[0]! : null;
   if (!sauvage) {

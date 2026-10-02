@@ -47,8 +47,29 @@ export interface OptionEquipe {
 const NB_TYPES = 18;
 const POIDS = {
   couverture: 0.5, profondeur: 3, defense: 25, solidite: 5, faiblesses: 6, typesPartages: 5, memeEspece: 25, potentiel: 12,
-  preparationAttaque: 0.5, preparationDefense: 10,
+  preparationAttaque: 0.5, preparationDefense: 10, couvertureStarters: 12,
 };
+
+/**
+ * Le rival tire son starter au hasard parmi Plante, Feu et Eau (jeu : rival-party-config.ts).
+ * Mesuré sur 5 758 combats au rival 1 (02/10) : quand son starter bat notre porteur, on perd 7 % du
+ * temps si un membre de niveau 5 ou plus bat son type, 26 % sinon. Pour chacun des trois types,
+ * le membre qui le frappe en super efficace (même type que lui : 1 ; autre type : 0,6), compté
+ * selon son niveau.
+ */
+const STARTERS_DU_RIVAL = [11, 9, 10];
+
+function couvertureStarters(equipe: Membre[]): number {
+  const niveauMax = Math.max(...equipe.map(m => m.niveau), 1);
+  return STARTERS_DU_RIVAL.reduce((total, t) => total + Math.max(0, ...equipe.map(m => {
+    const efficaces = m.attaques.filter(a => a.categorie !== 2 && a.puissance > 0 && (EFFICACITE_TYPES[a.type]?.[t] ?? 1) > 1);
+    if (!efficaces.length) {
+      return 0;
+    }
+    const memeType = efficaces.some(a => m.types.includes(a.type));
+    return (memeType ? 1 : 0.6) * Math.min(1, m.niveau / Math.max(niveauMax - 2, 1));
+  })), 0);
+}
 
 /** Potentiel d'un membre : total de statistiques de sa forme finale, en centaines (6 pour 600). */
 const potentielDe = (m: Membre) => (connaissance(m.espece)?.totalFinal ?? 0) / 100;
@@ -127,6 +148,8 @@ function preparation(equipe: Membre[], cibles: number[]): { attaque: number; def
 export function noterEquipe(equipe: Membre[], cibles?: number[]): number {
   const d = detailler(equipe);
   const prep = cibles?.length ? preparation(equipe, cibles) : { attaque: 0, defense: 0 };
+  // Seulement quand un rival approche (cibles = types à préparer, combats.ts).
+  const starters = cibles?.length ? couvertureStarters(equipe) : 0;
   return (
     POIDS.couverture * d.offensive
     + POIDS.profondeur * d.profondeur
@@ -135,6 +158,7 @@ export function noterEquipe(equipe: Membre[], cibles?: number[]): number {
     + POIDS.potentiel * d.potentiel
     + POIDS.preparationAttaque * prep.attaque
     + POIDS.preparationDefense * prep.defense
+    + POIDS.couvertureStarters * starters
     - POIDS.faiblesses * d.faiblesses
     - POIDS.typesPartages * d.typesPartages
     - POIDS.memeEspece * d.memeEspece

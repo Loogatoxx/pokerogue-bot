@@ -73,13 +73,13 @@ class Parcours:
 
 
 def jouer(simulateur, cerveau, vague: int, graine: str, depart: str | None, especes: list[int] | None,
-          prefixe: list[int] = (), coup: int | None = None, hasard: str | None = None) -> Parcours:
+          prefixe: list[int] = (), coup: int | None = None, hasard: str | None = None, recit: bool = False) -> Parcours:
     """Joue la vague : d'abord les actions du préfixe (rejouées à l'identique), puis `coup` avec la
     graine `hasard` (s'il est donné), puis le meilleur coup du cerveau jusqu'à la fin de la vague."""
     p = Parcours()
     partie = {"depart": depart} if depart else {"especes": especes}
     etat = simulateur.nouvelle_partie(graine=graine, photos=[vague, vague + 1], vague_max=vague, style_combat="changer",
-                                      hasard_du_jeu=True, **partie)
+                                      hasard_du_jeu=True, recit=recit, **partie)
     while isinstance(etat, Etat):
         k = len(p.actions)
         nouvelle_graine = None
