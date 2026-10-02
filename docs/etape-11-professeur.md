@@ -25,7 +25,8 @@ jeu, le cerveau ne voit toujours que ce qu'un humain voit : la triche ne sert qu
    d'un coup (rival 1, boss de la vague 20, rival 2…). Ce sont de vraies défaites : le mur se perd
    avant, dans ce qui a construit l'équipe. Le professeur **recule** alors, comme un joueur qui
    recharge une sauvegarde plus ancienne : la vague d'avant avec son 2e ou 3e meilleur essai, puis
-   encore avant (jusqu'à 6 vagues, 12 retours par partie).
+   encore avant (jusqu'à 8 vagues, 10 retours par mur et 40 par partie), avec deux fois plus
+   d'essais sur la vague du mur.
 5. Les décisions de l'essai gardé à chaque vague sont enregistrées (observation → action), une
    partie par fichier `.npz` sur le Lexar (`professeur/<date>/`).
 
@@ -59,3 +60,10 @@ partie s'arrête en erreur, avec les dernières actions) et une trace au fil de 
 
 Test complet des 31 rencontres : 30 passent ; Delibird-y seulement dans le cas impossible du test.
 Extension 0.9.6.
+
+## Premier grand passage (02/10, interrompu à la demande de Carlos)
+
+10 parties, 8 essais par vague, sans limite : **vague moyenne 109,9**, rival 1 passé à 100 %,
+rival 2 à 90 %, aucune au bout. Murs finaux : 25, 50, 98, 110, 114, 114, 114, 115, 164, 195 — les
+boss des vagues 110-115 surtout. 4 142 exemples enregistrés (`professeur/2026-10-02-08h44/`).
+Pour comparer : la v5 seule fait 35,5 en moyenne avec un arrêt à la vague 50.

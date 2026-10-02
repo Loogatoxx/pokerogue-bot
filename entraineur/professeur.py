@@ -109,8 +109,10 @@ def jouer_essai(simulateur, cerveau, depart: str | None, vague: int, temperature
 
 
 CANDIDATS_GARDES = 3   # essais gagnants gardés par vague, pour pouvoir y revenir
-RECUL_MAX = 6          # face à un mur, on peut revenir jusqu'à 6 vagues en arrière
-RETOURS_MAX = 12       # retours en arrière au plus, par partie
+RECUL_MAX = 8          # face à un mur, on peut revenir jusqu'à 8 vagues en arrière
+RETOURS_PAR_MUR = 10   # retours en arrière au plus pour franchir un même mur…
+RETOURS_MAX = 40       # … et au plus, par partie
+ESSAIS_MUR = 2         # sur une vague qui vient de faire mur, deux fois plus d'essais
 
 
 def jouer_vague(pont: Pont, i: int, cerveau, essais: int, vague: int, depart: str | None,
@@ -149,9 +151,12 @@ def partie_du_professeur(pont: Pont, i: int, cerveau, essais: int, vague_max: in
     vague = 1
     retours = 0
     murs: list[int] = []
+    retours_par_mur: dict[int, int] = {}
+    mur_actuel: int | None = None
     reussites: dict[int, int] = {}
     while vague <= vague_max:
-        gagnants, echecs, photo_depart = jouer_vague(pont, i, cerveau, essais, vague, depart, partie)
+        essais_ici = essais * (ESSAIS_MUR if vague == mur_actuel else 1)
+        gagnants, echecs, photo_depart = jouer_vague(pont, i, cerveau, essais_ici, vague, depart, partie)
         reussites[vague] = len(gagnants)
         if gagnants:
             chemin.append({"vague": vague, "depart": photo_depart, "candidats": gagnants, "choisi": 0})
@@ -161,8 +166,11 @@ def partie_du_professeur(pont: Pont, i: int, cerveau, essais: int, vague_max: in
         # Un mur : revenir en arrière vers une vague qui a encore un autre candidat.
         murs.append(vague)
         mur = vague
+        mur_actuel = mur
+        retours_par_mur[mur] = retours_par_mur.get(mur, 0) + 1
         repris = False
-        while retours < RETOURS_MAX and chemin and chemin[-1]["vague"] >= mur - RECUL_MAX:
+        while (retours < RETOURS_MAX and retours_par_mur[mur] <= RETOURS_PAR_MUR
+               and chemin and chemin[-1]["vague"] >= mur - RECUL_MAX):
             etape = chemin[-1]
             if etape["choisi"] + 1 < len(etape["candidats"]):
                 etape["choisi"] += 1
