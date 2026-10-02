@@ -67,3 +67,33 @@ Extension 0.9.6.
 rival 2 à 90 %, aucune au bout. Murs finaux : 25, 50, 98, 110, 114, 114, 114, 115, 164, 195 — les
 boss des vagues 110-115 surtout. 4 142 exemples enregistrés (`professeur/2026-10-02-08h44/`).
 Pour comparer : la v5 seule fait 35,5 en moyenne avec un arrêt à la vague 50.
+
+## Première imitation : rien de gagné (02/10, soir)
+
+44 parties du professeur (15 761 exemples, dont 5 279 « décisifs » : l'essai gardé battait le
+meilleur coup du cerveau). Élève entraîné 6 passages : l'accord avec le professeur sur les parties
+mises de côté ne monte pas (coups décisifs : 67,7 % → 67,5 %). Mesure, 480 parties, style Changer :
+
+| Cerveau | Vague moy. (arrêt à 50) | Rival 1 | Rival 2 |
+|---|---|---|---|
+| v5 | 37,2 | 95 % | 73 % |
+| Élève v1 | 36,1 | 93 % | 70 % |
+
+**Pourquoi** : dans un essai qui a gagné une vague, quelques coups ont compté, les autres étaient
+tirés au hasard ; en imitant l'essai en bloc, l'élève apprend surtout ce bruit.
+
+## Le juge de coups (`entraineur/juge.py`)
+
+Juger **chaque décision** séparément :
+1. Le simulateur garde le hasard du jeu (`hasardDuJeu`) : une vague rejouée avec les mêmes coups
+   donne exactement les mêmes situations (vérifié) ; et il sait changer la graine du combat en
+   pleine vague (même situation, autre avenir).
+2. Le cerveau joue sa partie. À chaque décision des combats contre un dresseur ou un boss (et une
+   sur quatre ailleurs), ses 3 coups les plus probables sont rejoués à l'identique jusqu'à cette
+   décision, puis la vague est finie sur 3 avenirs différents. Le coup qui laisse en moyenne
+   l'équipe la plus forte devient l'exemple ; son poids dépend de l'écart avec le coup habituel.
+3. Les situations viennent des parties du cerveau lui-même (méthode « DAgger ») : il apprend là
+   où il se trompe vraiment.
+
+Premier essai (4 parties jusqu'à la vague 30) : 25 à 52 décisions jugées par partie, environ un
+quart corrigées.
