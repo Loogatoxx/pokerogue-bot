@@ -763,3 +763,22 @@ quasi parfaites à imiter (triche permise par Carlos à l'entraînement seulemen
 
 **Objectif**
 Donner au cerveau des exemples où l'on sait vraiment quel coup était le meilleur.
+
+## 25. Le plafond de verre — 02/10/2026 (soir)
+
+**Prompt**
+> ou sont passer la moyenne des vague a 50, et demande des hypothese a dautre ia pour voir se quel pense le probleme du plafond de verre […] est ce que on a atteint la vrai limite ? regarde comment se debrouille et le conseil des jouer qui font que avec des starter disponible au debut ou randoms […]
+
+**Réponse**
+- v5 sans limite : 49,1 (les 36-37 étaient des mesures arrêtées à la vague 50).
+- Avis de Sonnet 5.5 et Haiku 4.5 (Fable indisponible, crédits épuisés) ; vérifiés : le plan
+  décide presque tout (le cerveau s'en écarte nettement dans 0,7 à 5,5 % des cas) ; le modèle de
+  nos attaques ignore précision, priorité et barres des boss.
+- Joueurs : défi Fresh Start = nos conditions ; conseils (porteur, argent gardé pour la fin,
+  biomes, boosts, statuts sur les boss).
+
+**Modifications**
+- `docs/etape-12-plafond.md`. Juge en pause (65 parties gardées).
+
+**Objectif**
+Comprendre le plafond avant d'aller plus loin, et choisir la suite sur des faits.
