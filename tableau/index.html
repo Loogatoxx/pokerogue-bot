@@ -147,6 +147,14 @@
     <p id="murs-professeur" class="aide"></p>
   </section>
 
+  <section class="carte" id="carte-juge" hidden>
+    <h2>Le juge de coups</h2>
+    <p class="aide">Le cerveau joue ; à chaque décision importante, ses 3 coups les plus probables sont rejoués à
+      l'identique puis finis sur 3 avenirs différents. Quand un autre coup fait mieux en moyenne, c'est une
+      « correction » : un exemple que le cerveau apprendra à suivre.</p>
+    <div id="tuiles-juge" class="tuiles"></div>
+  </section>
+
   <section class="carte">
     <h2>Vague moyenne, au fil des parties</h2>
     <p class="aide">Si la courbe monte, il apprend. Les repères : la v0 (le point zéro, qui joue au hasard)
@@ -544,6 +552,25 @@ async function chargerProfesseur() {
 }
 chargerProfesseur();
 setInterval(chargerProfesseur, 30000);
+
+async function chargerJuge() {
+  try {
+    const j = await (await fetch("/api/juge")).json();
+    const carte = $("carte-juge");
+    if (!j || !j.parties) { carte.hidden = true; return; }
+    carte.hidden = false;
+    $("tuiles-juge").replaceChildren(
+      tuile("Parties jugées", nombre(j.parties)),
+      tuile("Vague moyenne (cerveau seul)", nombre(j.vagueMoyenne, 1)),
+      tuile("Décisions jugées", nombre(j.jugees)),
+      tuile("Corrections", `${nombre(j.corrigees)} (${Math.round(100 * j.corrigees / Math.max(j.jugees, 1))} %)`),
+    );
+  } catch {
+    $("carte-juge").hidden = true;
+  }
+}
+chargerJuge();
+setInterval(chargerJuge, 30000);
 
 let actuel = null;
 async function charger() {

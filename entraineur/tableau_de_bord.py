@@ -94,6 +94,22 @@ def professeur() -> dict | None:
     }
 
 
+def juge() -> dict | None:
+    """Le dernier passage du juge de coups (entraineur/juge.py) : décisions jugées et corrigées."""
+    dossiers = sorted(d for d in (LEXAR / "juge").glob("*") if d.is_dir() and not d.name.startswith("._"))
+    if not dossiers:
+        return None
+    parties = lire_jsonl(dossiers[-1] / "parties.jsonl")
+    vagues = [p["vague"] for p in parties]
+    return {
+        "dossier": dossiers[-1].name,
+        "parties": len(parties),
+        "vagueMoyenne": round(sum(vagues) / len(vagues), 1) if vagues else None,
+        "jugees": sum(p["jugees"] for p in parties),
+        "corrigees": sum(p["corrigees"] for p in parties),
+    }
+
+
 def entrainements() -> list[dict]:
     resultats = []
     for dossier in sorted((LEXAR / "entrainements").glob("*"), key=lambda d: d.stat().st_mtime, reverse=True):
@@ -168,6 +184,8 @@ class Serveur(SimpleHTTPRequestHandler):
             self.envoyer_json(entrainements())
         elif chemin == "/api/professeur":
             self.envoyer_json(professeur())
+        elif chemin == "/api/juge":
+            self.envoyer_json(juge())
         elif chemin == "/api/cerveaux":
             self.envoyer_json(cerveaux())
         elif chemin.startswith("/telecharger/"):
