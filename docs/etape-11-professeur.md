@@ -97,3 +97,11 @@ Juger **chaque décision** séparément :
 
 Premier essai (4 parties jusqu'à la vague 30) : 25 à 52 décisions jugées par partie, environ un
 quart corrigées.
+
+## Premier élève du juge (02/10, 20 h 45)
+
+40 parties jugées : 4 180 décisions, dont un tiers corrigées (environ 500 corrections nettes).
+L'élève refait 23 % des corrections sur des parties qu'il n'a jamais vues (0 % au départ) : il
+généralise. Mesure, 480 parties, style Changer : **36,7, rival 1 92 %, rival 2 73 %** (v5 :
+37,2 / 95 % / 73 %) — jeu égal. Il faut beaucoup plus d'exemples : le juge tourne en continu
+(`juge/2026-10-02-20h50`), et l'imitation sait doser les confirmations (`--poids-confirmation`).

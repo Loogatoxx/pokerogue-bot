@@ -740,3 +740,26 @@ Corriger ce que Carlos voit en regardant jouer le bot, en vérifiant chaque corr
 **Objectif**
 Que le mode auto ne bloque plus sur aucune rencontre, et donner au cerveau des parties
 quasi parfaites à imiter (triche permise par Carlos à l'entraînement seulement).
+
+## 24. Le juge de coups — 02/10/2026 (soir)
+
+**Prompts**
+> reprend fait tous ce que tu veu
+>
+> attention mon disque dur a ete deconnecter
+
+**Réponse**
+- Imitation du professeur en bloc : rien de gagné (36,1 contre 37,2) ; les exemples sont du bruit.
+- Juge de coups : chaque décision importante rejouée à l'identique (hasard du jeu conservé) avec
+  ses 3 coups les plus probables, finie sur 3 avenirs ; le meilleur en moyenne devient l'exemple.
+- Premier élève du juge (40 parties) : 36,7 / 92 % / 73 % contre 37,2 / 95 % / 73 % pour la v5 —
+  jeu égal ; il généralise (23 % des corrections retrouvées), il faut plus d'exemples.
+- Disque déconnecté : rien d'abîmé (tout relu) ; le juge réessaie ses écritures 2 minutes.
+
+**Modifications**
+- Nouveau `entraineur/juge.py` ; `simulateur/environnement.test.ts` (hasardDuJeu, graine changée
+  en pleine vague, info « important ») ; `entraineur/pont.py` ; `entraineur/imitation.py` (poids,
+  confirmations) ; tableau de bord (sections Professeur et Juge) ; docs.
+
+**Objectif**
+Donner au cerveau des exemples où l'on sait vraiment quel coup était le meilleur.
