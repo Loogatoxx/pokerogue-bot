@@ -94,7 +94,8 @@ class Simulateur:
                         depart: str | None = None, photos: list[int] | None = None,
                         plan_capture: bool = False, mysteres: str | int | None = None,
                         plan_scenarios: bool = False, plan_prudence: float = 0.0,
-                        plan_changements: bool = False, mystere: str | None = None) -> Etat | Fin:
+                        plan_changements: bool = False, mystere: str | None = None,
+                        trace: str | None = None) -> Etat | Fin:
         """style_combat : « fixe » ou « changer » (le jeu propose alors de changer après chaque K.O.).
         vague_max : la partie s'arrête au-delà (info « tronquee »), pour le programme progressif.
         recit : la fin de partie contient aussi le récit (forces en présence à chaque vague, et l'état
@@ -121,6 +122,8 @@ class Simulateur:
             demande["mysteres"] = mysteres
         if mystere:
             demande["mystere"] = mystere  # une rencontre mystère précise, forcée (MysteryEncounterType)
+        if trace:
+            demande["trace"] = trace  # fichier : phases, écrans et règles du pilote, au fil de l'eau
         if plan_scenarios:
             demande["planScenarios"] = True
             demande["planPrudence"] = plan_prudence

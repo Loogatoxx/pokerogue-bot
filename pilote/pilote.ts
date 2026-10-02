@@ -47,6 +47,10 @@ export interface EtatPilote {
   receveur: number | null;
   /** Membre à relâcher pour faire de la place au Pokémon capturé (note d'équipe), ou null. */
   placeARelacher: number | null;
+  /** Le choix « relâcher un membre » est en cours (capture, ou rencontre mystère qui donne un Pokémon). */
+  relacheEnCours: boolean;
+  /** Retours d'affilée du menu des attaques au menu de combat (Fun and Games le rouvre aussitôt). */
+  retoursCombat: number;
   /** Achats en boutique dans la vague (plafonnés), articles refusés, et dernier achat tenté. */
   achats: number;
   achatsRefuses: Set<number>;
@@ -59,7 +63,7 @@ const ACHATS_MAX = 6;
 export function nouvelEtatPilote(): EtatPilote {
   return {
     cible: CIBLE.ENNEMI_1, essaisCible: 0, recompensesEssayees: new Set(), vagueRecompenses: -1,
-    receveur: null, placeARelacher: null, achats: 0, achatsRefuses: new Set(), dernierAchat: null,
+    receveur: null, placeARelacher: null, relacheEnCours: false, retoursCombat: 0, achats: 0, achatsRefuses: new Set(), dernierAchat: null,
   };
 }
 
@@ -139,6 +143,7 @@ function pasDansEquipe(e: Ecran, place: number, optionsVoulues: number[]): EtatE
 export function executerAction(scene: ScenePokerogue, index: number, etat: EtatPilote): boolean {
   const decision = decisionCerveauEnAttente(scene);
   const action = decrireAction(index);
+  etat.retoursCombat = 0;
   const phase = scene.phaseManager.getCurrentPhase();
 
   if (decision === "combat" && phase?.handleCommand) {
@@ -213,11 +218,13 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
     return fait === "options" ? "bonus donné" : "suite";
   }
 
-  if (mode === ECRAN.PARTY && phase === "AttemptCapturePhase") {
+  if (mode === ECRAN.PARTY && (phase === "AttemptCapturePhase" || etat.relacheEnCours)) {
     // Équipe pleine : relâcher le membre désigné par la note d'équipe (option « Relâcher »).
     if (etat.placeARelacher === null) {
       // Déjà relâché (ou rien à relâcher) : on valide le message éventuel, sinon on ressort.
-      e.processInput(etatEquipe(e) === "message" ? BOUTON.ACTION : BOUTON.CANCEL);
+      const message = etatEquipe(e) === "message";
+      e.processInput(message ? BOUTON.ACTION : BOUTON.CANCEL);
+      etat.relacheEnCours = message;
       return "suite";
     }
     const fait = pasDansEquipe(e, etat.placeARelacher, [OPTION_EQUIPE.RELACHER]);
@@ -246,14 +253,30 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
   // Le menu des attaques ouvert alors que le cerveau attend le menu de combat (attaque refusée par
   // le jeu, par exemple) : on revient au menu de combat, où le cerveau choisit de nouveau.
   if (mode === ECRAN.FIGHT) {
+    // Certaines rencontres (Fun and Games) rouvrent aussitôt le menu des attaques : après trois
+    // retours sans effet, on lance la première attaque proposée.
+    if (++etat.retoursCombat > 3) {
+      etat.retoursCombat = 0;
+      e.setCursor(0);
+      e.processInput(BOUTON.ACTION);
+      return "attaque imposée";
+    }
     e.processInput(BOUTON.CANCEL);
     return "revient au menu de combat";
   }
 
   if (mode === ECRAN.PARTY && !["SwitchPhase", "SelectModifierPhase", "AttemptCapturePhase"].includes(phase)) {
-    // Une rencontre mystère (ou un autre écran) demande de choisir un Pokémon : le premier valide,
-    // puis l'option « Choisir » (ou appliquer, envoyer…). Sans option utilisable, on revient.
-    const place = scene.getPlayerParty().findIndex(p => !p.isFainted());
+    // Une rencontre mystère (ou un autre écran) demande de choisir un Pokémon : le premier que
+    // l'écran accepte (son filtre : ex. Delibird-y ne veut qu'un Pokémon qui tient certains objets ;
+    // prendre le premier venu faisait refuser puis reproposer le même à l'infini), puis l'option
+    // « Choisir » (ou appliquer, envoyer…). Sans Pokémon accepté ni option utilisable, on revient.
+    const filtre = (e as unknown as { selectFilter?: (p: unknown) => string | null }).selectFilter;
+    const accepte = (p: { isFainted(): boolean }) => !p.isFainted() && (typeof filtre !== "function" || filtre(p) === null);
+    const place = scene.getPlayerParty().findIndex(accepte);
+    if (place < 0 && etatEquipe(e) === "liste") {
+      e.processInput(BOUTON.CANCEL);
+      return "aucun Pokémon accepté";
+    }
     const fait = pasDansEquipe(e, Math.max(place, 0), [
       OPTION_EQUIPE.CHOISIR, OPTION_EQUIPE.APPLIQUER, OPTION_EQUIPE.ENVOYER, OPTION_EQUIPE.ENSEIGNER,
     ]);
@@ -277,13 +300,15 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
     return choisirAttaqueAOublier(scene, e);
   }
 
-  if (mode === ECRAN.CONFIRM && phase === "AttemptCapturePhase") {
-    // Capture réussie mais équipe pleine : le jeu propose (résumé, Pokédex, relâcher un membre,
-    // ne pas le garder). On suit la note d'équipe (observateur/equipe.ts).
+  if (mode === ECRAN.CONFIRM && (phase === "AttemptCapturePhase" || phase.startsWith("MysteryEncounter"))) {
+    // Capture réussie mais équipe pleine (en combat, ou dans une rencontre comme la Zone Safari) :
+    // le jeu propose (résumé, Pokédex, relâcher un membre, ne pas le garder). On suit la note
+    // d'équipe (observateur/equipe.ts). Valider la 1re option ouvrait le résumé, encore et encore.
     const options = optionsEquipePleineAffichees(scene);
     if (options) {
       const choix = meilleureOptionEquipe(options);
       etat.placeARelacher = choix.remplacer;
+      etat.relacheEnCours = choix.remplacer !== null;
       const nbOptions = (e as Ecran & { config?: { options?: unknown[] } }).config?.options?.length ?? 4;
       e.setCursor(choix.remplacer === null ? nbOptions - 1 : 2); // « ne pas le garder » ou « relâcher un membre »
       e.processInput(BOUTON.ACTION);
@@ -324,7 +349,14 @@ function choisirRencontreMystere(e: Ecran): string | null {
   }
   const nombre = ecranRencontre.encounterOptions?.length ?? 1;
   const possibles = Array.from({ length: nombre }, (_, i) => i).filter(i => ecranRencontre.optionsMeetsReqs?.[i] !== false);
-  const choix = possibles[0] ?? 0;
+  if (!possibles.length) {
+    // Aucune option possible (ex. Delibird-y sans argent ni objet) : le vrai jeu ne propose pas une
+    // telle rencontre (ses conditions d'apparition l'en empêchent) ; seul le simulateur, qui la
+    // force, y arrive. Choisir l'option 1 malgré tout tournait en rond : on tente Annuler.
+    e.processInput(BOUTON.CANCEL);
+    return "rencontre mystère : aucune option possible";
+  }
+  const choix = possibles[0]!;
   e.setCursor(choix);
   e.processInput(BOUTON.ACTION);
   return `rencontre mystère : option ${choix + 1}`;

@@ -21,6 +21,7 @@ import { TrainerType } from "#enums/trainer-type";
 import { UiMode } from "#enums/ui-mode";
 import { GameManager } from "#test/framework/game-manager";
 import { PromptHandler } from "#test/helpers/prompt-handler";
+import { appendFileSync } from "node:fs";
 import net from "node:net";
 import { writeHeapSnapshot } from "node:v8";
 import Phaser from "phaser";
@@ -61,6 +62,8 @@ const ATTENTE_MAX_MS = 30 * 60_000;
  * attend une touche que le pilote ne sait pas donner : la partie s'arrête en le signalant.
  */
 const BLOCAGE_MS = 60_000;
+/** Actions du pilote d'affilée sans décision du cerveau, au-delà desquelles on crie à la boucle. */
+const ACTIONS_PILOTE_MAX = 3_000;
 const DECISIONS_MAX = 20_000;
 
 type MessagePython =
@@ -88,6 +91,9 @@ type MessagePython =
       mysteres?: "jeu" | number;
       /** Forcer une rencontre mystère précise à chaque vague possible (nom de MysteryEncounterType). */
       mystere?: string;
+      /** Fichier où écrire, au fil de l'eau, chaque phase, écran et règle du pilote (débogage d'un
+       * blocage : écrit même si la copie du jeu se fige ensuite). */
+      trace?: string;
     }
   | { type: "action"; action: number }
   | { type: "fin" };
@@ -315,6 +321,7 @@ async function jouerPartie(
     planChangements?: boolean;
     mysteres?: "jeu" | number;
     mystere?: string;
+    trace?: string;
   },
 ) {
   // Nettoyage entre deux parties d'un même processus (normalement fait par l'outil de test
@@ -390,6 +397,13 @@ async function jouerPartie(
   let tronquee = false;
   /** Combien de fois chaque règle du pilote a servi (ex. « récompense », « ne change pas »). */
   const regles: Record<string, number> = {};
+  let derniereTrace = "";
+  let repetitionsTrace = 0;
+  // Garde-fou : un pilote qui tourne en rond (ex. Delibird-y : choisir, refus, choisir…) ne se voit
+  // pas comme un blocage, puisqu'il agit sans cesse. Au-delà de ce nombre d'actions du pilote sans
+  // décision du cerveau, la partie s'arrête en erreur, avec les dernières actions pour comprendre.
+  let actionsPilote = 0;
+  const dernieresActions: string[] = [];
   // Ce que le pilote a acheté ou pris en récompense, par objet (« achat : Total Soin »…), et les
   // Pokémon de l'équipe qui commencent une vague avec un problème de statut (paralysie…).
   const achats: Record<string, number> = {};
@@ -478,6 +492,26 @@ async function jouerPartie(
     try {
       if (!decisionCerveauEnAttente(scene)) {
         const texte = repondreParRegles(scene, etat);
+        const ligne = `${game.scene.currentBattle?.waveIndex} ${game.scene.phaseManager.getCurrentPhase()?.phaseName} ${UiMode[game.scene.ui.getMode()]} → ${texte ?? "rien"}`;
+        if (demande.trace) {
+          if (ligne !== derniereTrace) {
+            appendFileSync(demande.trace, `${repetitionsTrace ? `   (répété ×${repetitionsTrace})\n` : ""}${ligne}\n`);
+            derniereTrace = ligne;
+            repetitionsTrace = 0;
+          } else if (++repetitionsTrace % 500 === 0) {
+            appendFileSync(demande.trace, `   (répété ×${repetitionsTrace})\n`);
+          }
+        }
+        if (texte) {
+          if (dernieresActions.at(-1) !== ligne) {
+            dernieresActions.push(ligne);
+            dernieresActions.splice(0, Math.max(0, dernieresActions.length - 6));
+          }
+          if (++actionsPilote > ACTIONS_PILOTE_MAX) {
+            erreur = `boucle du pilote : ${dernieresActions.join(" | ")}`;
+            return;
+          }
+        }
         const fait = texte?.split(" :")[0];
         const detail = texte?.split(" : ")[1];
         if (detail && fait === "achat") {
@@ -498,6 +532,7 @@ async function jouerPartie(
       if (!obs?.decision.masque) {
         return;
       }
+      actionsPilote = 0;
       const cle = `${obs.partie.vague}:${obs.partie.tour}:${obs.decision.phase}:${obs.decision.positionActeur}`;
       if (cle !== cleDecision) {
         cleDecision = cle;
@@ -705,7 +740,11 @@ async function jouerPartie(
           photos[vague] = photo.texte;
         }
       }
-      if (demande.vagueMax && vague > demande.vagueMax) {
+      // Arrêt au-delà de vagueMax ; mais si on veut la photo de cette vague, on attend d'abord que le
+      // jeu l'ait sauvegardée (quelques phases après le début de la vague : professeur.py en a besoin).
+      const phasesIci = vague === vagueSuivie ? phasesDansLaVague : 0;
+      const photoAttendue = demande.photos?.includes(vague) && !(vague in photos) && phasesIci < 200;
+      if (demande.vagueMax && vague > demande.vagueMax && !photoAttendue) {
         tronquee = true;
         break;
       }
@@ -782,6 +821,13 @@ async function jouerPartie(
     secondes: (performance.now() - debut) / 1000,
     graine,
     regles,
+    // L'équipe et l'argent à la fin (pour noter une vague rejouée : entraineur/professeur.py).
+    bilan: {
+      equipe: game.scene.getPlayerParty().map(p => ({
+        espece: p.species.speciesId, niveau: p.level, pv: p.hp, pvMax: p.getMaxHp(), ko: p.isFainted(),
+      })),
+      argent: game.scene.money,
+    },
     achats,
     recompenses,
     statuts,

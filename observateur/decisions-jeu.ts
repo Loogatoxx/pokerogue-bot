@@ -49,14 +49,16 @@ export function membreDe(p: PokemonJeu): MembreObjets {
  */
 export function optionsEquipePleineAffichees(scene: ScenePokerogue): OptionEquipe[] | null {
   const phase = scene.phaseManager.getCurrentPhase();
-  if (phase?.phaseName !== "AttemptCapturePhase" || scene.ui.getMode() !== ECRAN.CONFIRM) {
+  // Pendant une capture en combat, ou dans une rencontre mystère qui donne un Pokémon (Zone Safari…).
+  const rencontre = phase?.phaseName?.startsWith("MysteryEncounter") ?? false;
+  if ((phase?.phaseName !== "AttemptCapturePhase" && !rencontre) || scene.ui.getMode() !== ECRAN.CONFIRM) {
     return null;
   }
   const ecran = scene.ui.getHandler() as { config?: { options?: unknown[] } } | null;
   if ((ecran?.config?.options?.length ?? 0) <= 2) {
     return null; // une simple question oui/non, pas le choix de l'équipe pleine
   }
-  const arrivant = phase.getPokemon?.();
+  const arrivant = rencontre ? scene.getEnemyField()[0] : phase?.getPokemon?.();
   return arrivant
     ? evaluerArrivee(scene.getPlayerParty().map(membreDe), membreDe(arrivant), typesAPreparer(scene.currentBattle?.waveIndex ?? 0))
     : null;
