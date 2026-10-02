@@ -42,6 +42,7 @@ import torch  # noqa: E402
 from .ensemble import STARTERS_COMPTE_NEUF  # noqa: E402
 from .format_cerveau import lire  # noqa: E402
 from .pont import Etat, Pont  # noqa: E402
+from .entrainer import Entrainement  # noqa: E402
 from .professeur import note_equipe  # noqa: E402
 
 LEXAR = Path("/Volumes/Lexar/pokerogue-bot")
@@ -100,7 +101,7 @@ def jouer(simulateur, cerveau, vague: int, graine: str, depart: str | None, espe
 
 
 def partie_jugee(pont: Pont, i: int, cerveau, vague_max: int, especes: list[int], graine: str) -> dict:
-    exemples: dict[str, list] = {"observations": [], "masques": [], "plans": [], "aPlan": [], "actions": [], "vagues": [], "poids": []}
+    exemples: dict[str, list] = {"observations": [], "masques": [], "plans": [], "aPlan": [], "actions": [], "vagues": [], "poids": [], "habituels": []}
     jugees = corrigees = 0
     tirage = random.Random(graine)
     depart: str | None = None
@@ -141,6 +142,7 @@ def partie_jugee(pont: Pont, i: int, cerveau, vague_max: int, especes: list[int]
                 exemples["aPlan"].append(etat.plan is not None)
                 exemples["actions"].append(meilleur)
                 exemples["vagues"].append(vague)
+                exemples["habituels"].append(habituel)
                 # Un coup qui change le résultat compte beaucoup ; confirmer le coup habituel, peu.
                 exemples["poids"].append(min(1.0, max(0.1, ecart / 0.5)) if meilleur != habituel else 0.1)
         except (TimeoutError, ConnectionError, OSError):
@@ -184,15 +186,19 @@ def main() -> None:
             debut = time.time()
             r = partie_jugee(pont, i, cerveau, args.vague_max, especes, graine)
             ex = r.pop("exemples")
+            # Le Lexar peut se déconnecter un instant (02/10, 20 h 45) : on réessaie au lieu de planter.
             if ex["actions"]:
-                np.savez_compressed(
+                Entrainement.patienter_disque(lambda: np.savez_compressed(
                     sortie / f"partie-{numero:04d}.npz", observations=np.stack(ex["observations"]), masques=np.stack(ex["masques"]),
                     plans=np.stack(ex["plans"]), aPlan=np.array(ex["aPlan"]), actions=np.array(ex["actions"], np.int16),
-                    vagues=np.array(ex["vagues"], np.int16), poids=np.array(ex["poids"], np.float32))
+                    vagues=np.array(ex["vagues"], np.int16), poids=np.array(ex["poids"], np.float32),
+                    habituels=np.array(ex["habituels"], np.int16)))
             ligne = {"partie": numero, "starters": especes, "graine": graine, **r, "minutes": round((time.time() - debut) / 60, 1)}
             with verrou:
-                with open(sortie / "parties.jsonl", "a", encoding="utf-8") as f:
-                    f.write(json.dumps(ligne) + "\n")
+                def noter() -> None:
+                    with open(sortie / "parties.jsonl", "a", encoding="utf-8") as f:
+                        f.write(json.dumps(ligne) + "\n")
+                Entrainement.patienter_disque(noter)
                 print(f"  partie {numero} : vague {r['vague']}, {r['jugees']} décisions jugées, "
                       f"{r['corrigees']} corrigées, {ligne['minutes']} min", flush=True)
 

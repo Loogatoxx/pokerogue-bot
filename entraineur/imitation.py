@@ -74,10 +74,19 @@ def main() -> None:
     parametres.add_argument("--epoques", type=int, default=3, help="passages sur toutes les données")
     parametres.add_argument("--taux", type=float, default=1e-4, help="taux d'apprentissage")
     parametres.add_argument("--lot", type=int, default=512)
+    parametres.add_argument("--poids-confirmation", type=float,
+                            help="poids des exemples qui confirment le coup habituel du cerveau (par défaut : celui du fichier)")
     args = parametres.parse_args()
     torch.manual_seed(0)
     cerveau, entete = lire(args.depart)
     parties = charger(args.dossiers)
+    if args.poids_confirmation is not None:
+        # Confirmer le coup habituel compte autant qu'on le veut : sans ça, l'élève, poussé surtout
+        # par les corrections, change aussi des coups que le juge avait jugés bons.
+        for p in parties:
+            if "habituels" in p:
+                confirme = p["actions"] == p["habituels"]
+                p["poids"] = np.where(confirme, args.poids_confirmation, p["poids"]).astype(np.float32)
     random.Random(0).shuffle(parties)
     nb_test = max(1, len(parties) // 10)
     test, appris = empiler(parties[:nb_test]), empiler(parties[nb_test:])
