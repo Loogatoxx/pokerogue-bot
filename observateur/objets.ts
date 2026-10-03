@@ -79,20 +79,28 @@ export interface OptionObjet {
   contre: string[];
 }
 
-/** Valeurs de base, en points comparables d'un objet à l'autre. Réglables. */
+/**
+ * Valeurs de base, en points comparables d'un objet à l'autre. Réglables.
+ * Revues le 03/10 avec le classement de la communauté (roonby.com, « PokéRogue item tier list ») :
+ * rang S — Pièce Rune, Poche à Baies, Méga-Gourmette (et pierres), Restes, Roche Royale ; rang A —
+ * Lentille Zoom, Ceinture Force, Poing d'Or, Griffe Accroche, Bracelet Dynamax. La Méga-Gourmette et
+ * le Bracelet Dynamax manquaient (valeur par défaut 5) : le bot ne les prenait presque jamais.
+ */
 export const VALEURS: Readonly<Record<string, number>> = {
+  // Évolutions de combat (clés : Méga-Évolution, Gigamax) et leurs pierres
+  MEGA_BRACELET: 35, DYNAMAX_BAND: 25, FORM_CHANGE_ITEM: 30, RARE_FORM_CHANGE_ITEM: 30, TERA_ORB: 10,
   // Expérience (profite à toute la partie)
   EXP_SHARE: 30, EXP_BALANCE: 15, EXP_CHARM: 25, SUPER_EXP_CHARM: 30, GOLDEN_EXP_CHARM: 35,
   LUCKY_EGG: 22, GOLDEN_EGG: 30,
   // Objets tenus
-  LEFTOVERS: 28, SHELL_BELL: 22, REVIVER_SEED: 20, FOCUS_BAND: 15, MULTI_LENS: 15, EVIOLITE: 15,
-  QUICK_CLAW: 12, KINGS_ROCK: 12, SCOPE_LENS: 12, WIDE_LENS: 10, WHITE_HERB: 8, SOUL_DEW: 8,
-  SPECIES_STAT_BOOSTER: 10, RARE_SPECIES_STAT_BOOSTER: 14, MYSTICAL_ROCK: 6, GRIP_CLAW: 5,
+  LEFTOVERS: 28, SHELL_BELL: 22, REVIVER_SEED: 20, FOCUS_BAND: 18, MULTI_LENS: 15, EVIOLITE: 15,
+  QUICK_CLAW: 12, KINGS_ROCK: 20, SCOPE_LENS: 12, WIDE_LENS: 14, WHITE_HERB: 8, SOUL_DEW: 8,
+  SPECIES_STAT_BOOSTER: 10, RARE_SPECIES_STAT_BOOSTER: 14, MYSTICAL_ROCK: 6, GRIP_CLAW: 8,
   SOOTHE_BELL: 3, LEEK: 3, BATON: 3, TOXIC_ORB: 2, FLAME_ORB: 2, BERRY: 10,
   // Toute l'équipe
-  CATCHING_CHARM: 18, HEALING_CHARM: 15, OVAL_CHARM: 10, BERRY_POUCH: 8, CANDY_JAR: 6,
+  CATCHING_CHARM: 18, HEALING_CHARM: 15, OVAL_CHARM: 10, BERRY_POUCH: 20, CANDY_JAR: 6,
   // Argent
-  RELIC_GOLD: 15, AMULET_COIN: 15, BIG_NUGGET: 12, NUGGET: 8, COIN_CASE: 8, GOLDEN_PUNCH: 5,
+  RELIC_GOLD: 15, AMULET_COIN: 20, BIG_NUGGET: 12, NUGGET: 8, COIN_CASE: 8, GOLDEN_PUNCH: 8,
   // Combat en cours
   TEMP_STAT_STAGE_BOOSTER: 6, DIRE_HIT: 6,
   // Divers
@@ -307,6 +315,13 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
       : rien("personne n'a de problème de statut");
   }
 
+  // Objets X (un cran de stat pendant quelques combats) : décisifs contre le Conseil 4, le Maître et
+  // Éthernatos (guides : gameleap, « X items aux vagues 190-200 ») ; peu utiles avant.
+  const combat = ctx.prochainCombat;
+  const vagueCourante = combat ? combat.vague - combat.dans : 0;
+  if ((objet.id === "TEMP_STAT_STAGE_BOOSTER" || objet.id === "DIRE_HIT") && vagueCourante >= 170) {
+    return { note: 20, cible: null, pour: ["fin de partie : un cran de stat pour les derniers combats"], contre: [] };
+  }
   const base = VALEURS[objet.id];
   if (base === undefined) {
     return { note: VALEUR_INCONNUE, cible: null, pour: [], contre: ["effet mal connu du pilote"] };

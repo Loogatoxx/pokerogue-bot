@@ -39,7 +39,8 @@ def type_action(action: int) -> str:
 
 def jouer(pont: Pont, cerveau, nombre: int, sans_balls: bool = False, plan: float = 0.0, vague_max: int = 50,
           plan_capture: bool = False, scenarios: bool = False, prudence: float = 0.0,
-          changements: bool = False, style: str = "fixe", equipe: bool = True, trio_equilibre: bool = False) -> list[dict]:
+          changements: bool = False, style: str = "fixe", equipe: bool = True, trio_equilibre: bool = False,
+          trio: list[int] | None = None) -> list[dict]:
     """Joue `nombre` parties ; chacune renvoie sa fin (avec le récit) et ses actions par vague."""
     parties: list[dict] = []
     verrou = threading.Lock()
@@ -52,7 +53,9 @@ def jouer(pont: Pont, cerveau, nombre: int, sans_balls: bool = False, plan: floa
                 if restantes[0] <= 0:
                     return
                 restantes[0] -= 1
-                if trio_equilibre:
+                if trio:
+                    especes = list(trio)  # un trio imposé (ex. celui du constructeur d'équipe)
+                elif trio_equilibre:
                     # Un starter Plante, un Feu, un Eau (la liste va par trios de génération : Plante,
                     # Feu, Eau), dans un ordre au hasard : le porteur (1er) peut être de n'importe quel type.
                     especes = [hasard.choice(STARTERS_COMPTE_NEUF[k::3]) for k in range(3)]
@@ -223,6 +226,7 @@ def main() -> None:
     parametres.add_argument("--changements", action="store_true", help="le planificateur prévoit les changements adverses")
     parametres.add_argument("--sans-equipe", action="store_true", help="couper le combat d'équipe simulé contre les dresseurs")
     parametres.add_argument("--trio-equilibre", action="store_true", help="starters : un Plante, un Feu, un Eau (au lieu de trois au hasard)")
+    parametres.add_argument("--trio", type=int, nargs=3, help="starters imposés (identifiants d'espèce, le porteur en premier)")
     parametres.add_argument("--style", choices=["fixe", "changer"], default="fixe",
                             help="style de combat du jeu : « changer » propose un changement gratuit au début des vagues sauvages")
     args = parametres.parse_args()
@@ -239,7 +243,8 @@ def main() -> None:
     with Pont(args.processus) as pont:
         poids = args.plan if args.plan is not None else cerveau.poids_plan
         parties = jouer(pont, cerveau, args.parties, args.sans_balls, poids, args.vague_max, args.plan_capture,
-                        args.scenarios, args.prudence, args.changements, args.style, not args.sans_equipe, args.trio_equilibre)
+                        args.scenarios, args.prudence, args.changements, args.style, not args.sans_equipe, args.trio_equilibre,
+                        args.trio)
     dossier = LEXAR / "analyses"
     dossier.mkdir(exist_ok=True)
     fichier = dossier / f"defaites-{datetime.now():%Y-%m-%d-%Hh%M}{'-sans-balls' if args.sans_balls else ''}{f'-plan{args.plan:g}' if args.plan else ''}.json"

@@ -37,6 +37,8 @@ export const COMMANDE = {
   FIGHT: valeurDe(Command, "FIGHT"),
   BALL: valeurDe(Command, "BALL"),
   POKEMON: valeurDe(Command, "POKEMON"),
+  /** Attaquer en Téracristallisant (même curseur d'attaque que FIGHT). */
+  TERA: valeurDe(Command, "TERA"),
 };
 
 export const USAGE_ATTAQUE_NORMAL = valeurDe(MoveUseMode, "NORMAL");

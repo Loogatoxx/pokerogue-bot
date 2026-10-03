@@ -137,6 +137,28 @@ function pasDansEquipe(e: Ecran, place: number, optionsVoulues: number[]): EtatE
 }
 
 /**
+ * La Téracristallisation (Orbe Téracristal, donné par le rival 4 à la vague 95 ; une par biome) :
+ * pour le porteur (le plus haut niveau), dans un combat important (boss, dresseur boss, rival,
+ * Conseil 4, Maître, Éthernatos), quand l'attaque choisie est de son type Téra — le bonus de même
+ * type passe de ×1,5 à ×2. Le bot ne l'utilisait jamais.
+ */
+function teracristalliser(scene: ScenePokerogue, pokemon: unknown, attaque: unknown): boolean {
+  const menu = scene.ui.getHandler() as { canTera?: () => boolean } | null;
+  if (typeof menu?.canTera !== "function" || !menu.canTera()) {
+    return false;
+  }
+  const p = pokemon as { level?: number; teraType?: number };
+  const a = attaque as { getMove?: () => { type?: number; category?: number } };
+  const vague = scene.currentBattle?.waveIndex ?? 0;
+  const ennemis = scene.getEnemyField() as unknown as { isBoss?: () => boolean }[];
+  const important = vague % 10 === 0 || vague >= 180 || ennemis.some(e => e.isBoss?.())
+    || [8, 25, 55, 95, 145, 195].includes(vague);
+  const porteur = Math.max(...scene.getPlayerParty().map(m => (m as unknown as { level: number }).level));
+  const coup = a.getMove?.();
+  return important && (p.level ?? 0) >= porteur && coup?.category !== 2 && coup?.type === p.teraType;
+}
+
+/**
  * Exécute l'action n° `index` choisie par le cerveau (voir observateur/actions.ts).
  * Renvoie faux si le jeu la refuse (ex. changement impossible car piégé).
  */
@@ -153,7 +175,8 @@ export function executerAction(scene: ScenePokerogue, index: number, etat: EtatP
       // Plus aucune attaque utilisable : le jeu attend « -1 » pour faire utiliser Lutte.
       const utilisable = !!pokemon && !!attaque && attaque.isUsable(pokemon, false, true)[0];
       etat.cible = action.cible === 0 ? CIBLE.ENNEMI_1 : CIBLE.ENNEMI_2;
-      return phase.handleCommand(COMMANDE.FIGHT, utilisable ? action.attaque : -1, USAGE_ATTAQUE_NORMAL);
+      const commande = utilisable && teracristalliser(scene, pokemon, attaque) ? COMMANDE.TERA : COMMANDE.FIGHT;
+      return phase.handleCommand(commande, utilisable ? action.attaque : -1, USAGE_ATTAQUE_NORMAL);
     }
     if (action.type === "ball") {
       // Comme l'écran des Poké Balls du jeu : la commande BALL avec le type de Ball choisi.
