@@ -811,3 +811,31 @@ Comprendre le plafond avant d'aller plus loin, et choisir la suite sur des faits
 
 **Objectif**
 Passer le rival 1 à 100 % en corrigeant les vraies décisions fautives, mesurées une par une.
+
+## 27. Autonomie : la fin de partie et le banc apparié — 03/10/2026 (matin)
+
+**Prompts**
+> (suite de l'entrée 26 : entraîner la fin de partie, viser la vague 200)
+>
+> okay juste importe dans le dossier cerveau le cerveau qui a le meilleur resultat pour li nstant et on continue ça un autre moment ça fais quand meme 10h on est deja le matin du lendemain 😂
+
+**Réponse**
+- Bug de mesure trouvé : la même graine donnait des parties différentes (nature des starters tirée
+  sans graine) ; corrigé, les parties sont reproductibles.
+- Banc apparié : les mêmes 480 parties pour chaque version ; bruit ±2 → ±0,6 à 1,3 vague.
+- Diagnostic « et si » (triche d'entraînement) : avec 5 Multi Exp au départ, le banc suit le
+  porteur et la moyenne passe de 55 à 91,6 (rival 2 : 75 → 100 %). La cause des défaites jusqu'à
+  la vague 66 est la profondeur de l'équipe.
+- Dix essais pour y arriver sans tricher : neutres ou perdants (l'expérience totale est fixée par
+  le jeu). Trio conseillé : 57,3 contre 55,7.
+- Meilleur cerveau : toujours la v5, copiée dans `cerveau/le-plus-fort-v5.cerveau` ; extension 0.10.0.
+
+**Modifications**
+- Nouveaux : `entraineur/banc_complet.py`, `entraineur/diagnostic_tardif.py`, `docs/etape-15-banc-apparie.md`.
+- Modifiés : simulateur (starters selon la graine, objets de départ, récompenses proposées),
+  `objets.ts` (expérience et plafond de niveau), carnet (starter du rival), moteur (spécialité des
+  champions, starter du rival), pilote (vrai carnet), `diagnostic_vague.py --banc`, extension 0.10.0.
+
+**Objectif**
+Mesurer assez juste pour voir des gains d'une demi-vague, et trouver la vraie cause du plafond
+avant d'y investir.

@@ -78,13 +78,13 @@ def jouer_banc(args, cerveau) -> None:
     a_faire = [k for k in range(args.parties) if k not in faites]
 
     def travail(pont, i, k, verrou):
-        info = jouer(pont.entretenir(i), cerveau, especes=trio_de(k), graine=f"complet-{k}", hasard_du_jeu=True, recit=True,
+        info = jouer(pont.entretenir(i), cerveau, especes=args.trio or trio_de(k), graine=f"complet-{k}", hasard_du_jeu=True, recit=True,
                      **({"objets_depart": args.objets} if args.objets else {}))
         if info.get("erreur"):
             return
         recit = info.get("recit") or []
         ligne = {
-            "k": k, "vague": info.get("vague", 0), "starters": trio_de(k),
+            "k": k, "vague": info.get("vague", 0), "starters": args.trio or trio_de(k),
             "recompenses": info.get("recompenses"), "offertes": info.get("offertes"), "achats": info.get("achats"),
             "bilan": info.get("bilan"),
             "niveaux": {r["vague"]: r["equipe"] for r in recit},
@@ -109,6 +109,7 @@ def main() -> None:
     parametres.add_argument("--parties", type=int, default=480)
     parametres.add_argument("--processus", type=int, default=10)
     parametres.add_argument("--comparer", nargs=2, metavar=("ESSAI", "REFERENCE"))
+    parametres.add_argument("--trio", type=int, nargs=3, help="starters imposés à toutes les parties (le porteur en premier)")
     parametres.add_argument("--objets", nargs="+", help="diagnostic « et si… » : objets donnés au départ (ex. EXP_SHARE EXP_SHARE)")
     args = parametres.parse_args()
     if args.comparer:
