@@ -59,6 +59,15 @@ export async function demarrerPartie(
         starter.ivs = [...ivs];
       }
     }
+    // L'outil de test tire nature, talent et chromatique des starters avec un hasard sans graine :
+    // la même graine donnait des parties différentes (une même partie finissait aux vagues 15, 25,
+    // 66 ou 90). Ils dépendent maintenant de la graine : rejouer une graine rejoue la même partie.
+    starters.forEach((starter, i) => {
+      starter.nature = hacher(`${graine}-${i}`) % 25;
+      starter.abilityIndex = 0;
+      starter.shiny = false;
+      starter.variant = 0;
+    });
     scene.setSeed(graine);
     scene.resetSeed();
     const selection = new SelectStarterPhase();
@@ -66,6 +75,15 @@ export async function demarrerPartie(
     selection.initBattle(starters);
   });
   await game.phaseInterceptor.to("EncounterPhase");
+}
+
+/** Un entier tiré d'un texte (FNV-1a), toujours le même pour le même texte. */
+function hacher(texte: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < texte.length; i++) {
+    h = Math.imul(h ^ texte.charCodeAt(i), 0x01000193) >>> 0;
+  }
+  return h;
 }
 
 // ─── Photos de partie : s'entraîner sur les combats qui bloquent ──────────────────────────────
