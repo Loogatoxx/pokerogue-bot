@@ -20,6 +20,7 @@
 import { NOMBRE_ACTIONS, PREMIER_CHANGEMENT, PREMIERE_BALL } from "./actions";
 import { combatDeLaVague } from "./combats";
 import { candidates, combattantAdverse, combattantAllie, type Combattant, degats, statsEstimees } from "./prevision";
+import { EFFETS_STATUT } from "./effets-statut";
 import { PRIORITES } from "./priorites";
 import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
 
@@ -36,12 +37,37 @@ interface Coup {
   priorite: number;
   /** Bluff, Escarmouche : ne marchent qu'au premier tour sur le terrain. */
   premierTourSeulement: boolean;
+  /** Attaque de statut qui change des crans (Rugissement, Danse-Lames…) : [crans, étapes, sur soi]. */
+  effet?: readonly [readonly number[], number, boolean];
 }
 
 const PREMIER_TOUR_SEULEMENT = new Set([252, 660]); // Bluff (Fake Out), Escarmouche (First Impression)
 const coupDe = (id: number, type: number, categorie: number, puissance: number, precision: number): Coup => ({
   type, categorie, puissance, precision, priorite: PRIORITES[id] ?? 0, premierTourSeulement: PREMIER_TOUR_SEULEMENT.has(id),
+  ...(EFFETS_STATUT[id] ? { effet: EFFETS_STATUT[id] } : {}),
 });
+
+/** Multiplicateur de précision selon les crans (Précision de l'attaquant, Esquive du défenseur). */
+const multiplicateurPrecision = (cran: number) => (cran >= 0 ? (3 + cran) / 3 : 3 / (3 - cran));
+
+/**
+ * Une attaque de statut qui change des crans (table générée du jeu : observateur/effets-statut.ts).
+ * Ajouté le 03/10 : les joueurs affaiblissent ou se renforcent contre les boss ; le moteur les
+ * comptait pour zéro. Les crans sont bornés à ±6 comme dans le jeu.
+ */
+function appliquerEffet(att: Acteur, def: Acteur, coup: Coup): void {
+  if (!coup.effet || att.pv <= 0) {
+    return;
+  }
+  const [crans, etapes, soi] = coup.effet;
+  const cible = soi ? att : def;
+  const nouveaux = [...cible.c.crans];
+  for (const i of crans) {
+    nouveaux[i] = Math.max(-6, Math.min(6, (nouveaux[i] ?? 0) + etapes));
+  }
+  cible.c = { ...cible.c, crans: nouveaux };
+  cible.vitesse = vitesseDe(cible.c);
+}
 
 interface Acteur {
   c: Combattant;
@@ -144,7 +170,8 @@ function attendus(att: Acteur, def: Acteur, coup: Coup): number {
   if (coup.categorie === CATEGORIE_STATUT || coup.puissance <= 0) {
     return 0;
   }
-  return degats(att.c, def.c, { type: coup.type, categorie: coup.categorie, puissance: coup.puissance }) * coup.precision;
+  const touche = Math.min(1, coup.precision * multiplicateurPrecision((att.c.crans[5] ?? 0) - (def.c.crans[6] ?? 0)));
+  return degats(att.c, def.c, { type: coup.type, categorie: coup.categorie, puissance: coup.puissance }) * touche;
 }
 
 /** La meilleure attaque : celle qui met K.O. (la plus sûre), sinon les plus gros dégâts attendus. */
@@ -222,6 +249,7 @@ function simuler(depart: Combat, premier: { attaque: number } | { changement: nu
     const frapper = (att: Acteur, def: Acteur, i: number) => {
       if (i >= 0 && att.pv > 0) {
         infliger(def, attendus(att, def, att.coups[i]!));
+        appliquerEffet(att, def, att.coups[i]!);
       }
     };
     // Bluff et Escarmouche ratent après le premier tour sur le terrain (simplifié : après le tour 0).
