@@ -218,6 +218,7 @@ export function observer(scene: ScenePokerogue, carnet: Carnet): Observation | n
     ? {
         nom: combat.trainer.getName(undefined, true),
         pokemonRestants: scene.getEnemyParty().filter(p => !p.isFainted()).length,
+        ...(combat.trainer.config?.hasSpecialtyType?.() ? { specialite: combat.trainer.config.specialtyType! } : {}),
       }
     : null;
 
@@ -239,6 +240,7 @@ export function observer(scene: ScenePokerogue, carnet: Carnet): Observation | n
       })),
       dresseur,
       prochainCombat: prochainCombatImportant(combat.waveIndex),
+      ...(carnet.typeStarterRival() !== undefined ? { starterRival: carnet.typeStarterRival()! } : {}),
     },
     equipe: scene.getPlayerParty().map(allie),
     adversaires: surTerrain,

@@ -34,6 +34,11 @@ export class Carnet {
   /** uid → dernier état vu d'un Pokémon adverse sur le terrain (le banc dont on se souvient). */
   private adversairesVus = new Map<number, PokemonAdverse>();
   readonly journal: EntreeJournal[] = [];
+  /**
+   * Type du starter du rival, vu au rival 1 (vague 8) : il garde la même lignée toute la partie
+   * (jeu : rival-team-gen.ts), un joueur s'en souvient pour préparer le rival 2.
+   */
+  private starterRival: number | undefined;
 
   /** À appeler régulièrement (à chaque phase dans le simulateur, plusieurs fois par seconde en ligne). */
   mettreAJour(scene: ScenePokerogue): void {
@@ -54,6 +59,11 @@ export class Carnet {
         continue;
       }
       this.noterUneFois(`vu-${adversaire.id}`, `Rencontre : ${adversaire.getNameToRender()} niv. ${adversaire.level}`);
+      // Au rival 1 : son starter (Plante, Feu ou Eau en premier type) ; l'oiseau est Normal ou Vol.
+      const type = adversaire.getTypes()[0];
+      if (combat.waveIndex === 8 && combat.trainer && (type === 9 || type === 10 || type === 11)) {
+        this.starterRival = type;
+      }
       this.noterAttaquesVues(adversaire);
       if (adversaire.waveData?.abilityRevealed) {
         const talent = adversaire.getAbility();
@@ -66,6 +76,11 @@ export class Carnet {
         this.noterUneFois(`ko-${allie.id}`, `${allie.name} est K.O.`);
       }
     }
+  }
+
+  /** Le type du starter du rival, s'il a été vu (rival 1). */
+  typeStarterRival(): number | undefined {
+    return this.starterRival;
   }
 
   attaquesVuesDe(uid: number): AttaqueVue[] {
@@ -131,6 +146,7 @@ export class Carnet {
   private oublierTout(): void {
     this.vague = -1;
     this.journal.length = 0;
+    this.starterRival = undefined;
     this.attaquesVues.clear();
     this.talentsReveles.clear();
     this.dejaNotes.clear();

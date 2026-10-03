@@ -406,7 +406,7 @@ async function jouerPartie(
   const scene: ScenePokerogue = game.scene;
   const intercepteur = game.phaseInterceptor as unknown as { state: string };
   const carnet = new Carnet();
-  const etat = nouvelEtatPilote();
+  const etat = nouvelEtatPilote(carnet);
   const graine = demande.graine ?? Math.random().toString(36).slice(2, 12);
   const debut = performance.now();
   let decisions = 0;

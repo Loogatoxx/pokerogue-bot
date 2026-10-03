@@ -84,7 +84,8 @@ def jouer_banc(args, cerveau) -> None:
         recit = info.get("recit") or []
         ligne = {
             "k": k, "vague": info.get("vague", 0), "starters": trio_de(k),
-            "recompenses": info.get("recompenses"), "achats": info.get("achats"), "bilan": info.get("bilan"),
+            "recompenses": info.get("recompenses"), "offertes": info.get("offertes"), "achats": info.get("achats"),
+            "bilan": info.get("bilan"),
             "niveaux": {r["vague"]: r["equipe"] for r in recit},
             "defaite": info.get("defaite"),
         }

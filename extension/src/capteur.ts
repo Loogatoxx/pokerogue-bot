@@ -31,7 +31,7 @@ type Phaser = { Scenes?: { Systems?: { prototype: SystemesPhaser } } };
 
 let scene: ScenePokerogue | null = null;
 const carnet = new Carnet();
-const etatPilote = nouvelEtatPilote();
+const etatPilote = nouvelEtatPilote(carnet);
 const pilotage = { auto: false, delaiMs: 700, derniereAction: 0 };
 
 function envoyer(message: ContenuCapteur): void {

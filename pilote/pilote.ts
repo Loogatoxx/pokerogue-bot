@@ -55,13 +55,16 @@ export interface EtatPilote {
   achats: number;
   achatsRefuses: Set<number>;
   dernierAchat: { index: number; argent: number } | null;
+  /** Le carnet de la partie (sa mémoire : starter du rival…), s'il y en a un. */
+  carnet: Carnet | null;
 }
 
 /** Achats au plus par vague : de quoi soigner l'équipe, sans boucle si quelque chose cloche. */
 const ACHATS_MAX = 6;
 
-export function nouvelEtatPilote(): EtatPilote {
+export function nouvelEtatPilote(carnet: Carnet | null = null): EtatPilote {
   return {
+    carnet,
     cible: CIBLE.ENNEMI_1, essaisCible: 0, recompensesEssayees: new Set(), vagueRecompenses: -1,
     receveur: null, placeARelacher: null, relacheEnCours: false, retoursCombat: 0, achats: 0, achatsRefuses: new Set(), dernierAchat: null,
   };
@@ -345,7 +348,7 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
     // planificateur trouve mieux sur le banc ; non (2e) sinon. On vise puis on valide : la touche
     // Annuler ne fait rien si la fenêtre interdit l'annulation.
     const position = (scene.phaseManager.getCurrentPhase() as { fieldIndex?: number } | null | undefined)?.fieldIndex ?? 0;
-    const obs = observer(scene, new Carnet());
+    const obs = observer(scene, etat.carnet ?? new Carnet());
     const oui = !!obs && changerAuDebut(obs, position);
     e.setCursor(oui ? 0 : 1);
     e.processInput(BOUTON.ACTION);

@@ -162,9 +162,11 @@ export interface Observation {
     quotidien: boolean;
     balls: (Libelle & { quantite: number })[];
     /** Le joueur voit le nombre de Poké Balls restantes du dresseur, pas ses Pokémon. */
-    dresseur: { nom: string; pokemonRestants: number } | null;
+    dresseur: { nom: string; pokemonRestants: number; specialite?: number } | null;
     /** v4 — le prochain combat important (rival, champion, boss…) : un joueur le voit venir. */
     prochainCombat: CombatImportant;
+    /** Type du starter du rival, vu au rival 1 (absent avant, ou si la partie reprend d'une photo). */
+    starterRival?: number;
   };
   equipe: PokemonAllie[];
   adversaires: PokemonAdverse[];

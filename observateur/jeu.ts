@@ -85,7 +85,11 @@ export interface ScenePokerogue {
     turn: number;
     battleType: number;
     double: boolean;
-    trainer?: { getName(slot?: number, avecTitre?: boolean): string } | null;
+    trainer?: {
+      getName(slot?: number, avecTitre?: boolean): string;
+      /** Spécialité d'un champion d'arène, du Conseil 4… (connaissance publique : un champion = un type). */
+      config?: { specialtyType?: number; hasSpecialtyType?(): boolean };
+    } | null;
   } | null;
   arena?: {
     biomeId: number;

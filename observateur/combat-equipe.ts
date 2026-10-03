@@ -153,12 +153,20 @@ function oiseauDuRival(starter: Acteur, evolue: boolean): Acteur {
   };
 }
 
-/** Un Pokémon jamais vu : même force que `modele`, en pleine forme, types inconnus. */
-function inconnu(modele: Acteur): Acteur {
+/**
+ * Un Pokémon jamais vu : même force que `modele`, en pleine forme, types inconnus. Chez un champion
+ * d'arène (ou un dresseur à spécialité : Conseil 4…), tous ses Pokémon ont son type (connaissance
+ * publique) : l'inconnu a ce type et sa plus forte attaque aussi. Les champions des vagues 30 à 90
+ * faisaient un quart des défaites ; un inconnu « neutre » laissait le moteur sacrifier le membre qui
+ * le battait.
+ */
+function inconnu(modele: Acteur, specialite?: number): Acteur {
+  const plusForte = modele.coups.reduce((m, x, i) => (x.puissance > (modele.coups[m]?.puissance ?? -1) ? i : m), 0);
   return {
-    c: { ...modele.c, types: [], crans: modele.c.crans.map(() => 0) },
+    c: { ...modele.c, types: specialite === undefined ? [] : [specialite], crans: modele.c.crans.map(() => 0) },
     pv: 1,
-    coups: modele.coups.map(x => ({ ...x, type: -1 })), // type inconnu : efficacité neutre, sans bonus de type
+    // type inconnu : efficacité neutre, sans bonus de type
+    coups: modele.coups.map((x, i) => ({ ...x, type: specialite !== undefined && i === plusForte ? specialite : -1 })),
     vitesse: modele.vitesse,
     poids: 1,
     barres: 1,
@@ -317,7 +325,7 @@ export function valeursCombatEquipe(obs: Observation): number[] | null {
   const rival = combatDeLaVague(obs.partie.vague)?.genre === "rival" && obs.partie.vague <= 25;
   const oiseauVu = [...enFace, ...(obs.banc ?? [])].some(a => a.types.some(t => t.id === 2));
   const inconnusJoues = Array.from({ length: inconnus }, (_, k) =>
-    rival && !oiseauVu && k === 0 ? oiseauDuRival(lui, obs.partie.vague > 8) : inconnu(lui));
+    rival && !oiseauVu && k === 0 ? oiseauDuRival(lui, obs.partie.vague > 8) : inconnu(lui, obs.partie.dresseur!.specialite));
   const eux = [lui, ...banc, ...inconnusJoues];
   const depart: Combat = { nous, eux, actif, actifEux: 0 };
   const valeurs = new Array<number>(NOMBRE_ACTIONS).fill(0);
