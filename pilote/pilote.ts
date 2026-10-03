@@ -57,6 +57,8 @@ export interface EtatPilote {
   dernierAchat: { index: number; argent: number } | null;
   /** Le carnet de la partie (sa mémoire : starter du rival…), s'il y en a un. */
   carnet: Carnet | null;
+  /** Récompenses proposées dans la partie, par nom (une fois par vague) : pour juger les choix. */
+  offertes: Record<string, number>;
 }
 
 /** Achats au plus par vague : de quoi soigner l'équipe, sans boucle si quelque chose cloche. */
@@ -65,6 +67,7 @@ const ACHATS_MAX = 6;
 export function nouvelEtatPilote(carnet: Carnet | null = null): EtatPilote {
   return {
     carnet,
+    offertes: {},
     cible: CIBLE.ENNEMI_1, essaisCible: 0, recompensesEssayees: new Set(), vagueRecompenses: -1,
     receveur: null, placeARelacher: null, relacheEnCours: false, retoursCombat: 0, achats: 0, achatsRefuses: new Set(), dernierAchat: null,
   };
@@ -405,7 +408,13 @@ function choisirRecompense(scene: ScenePokerogue, e: Ecran, etat: EtatPilote): s
   }
   // Rangée 1 = les récompenses gratuites, notées d'après l'état de l'équipe (observateur/objets.ts).
   // On prend la mieux notée pas encore essayée dans cette vague ; si aucune ne sert, on passe.
-  const notees = (optionsRecompensesAffichees(scene) ?? []).filter(o => !etat.recompensesEssayees.has(o.index));
+  const toutes = optionsRecompensesAffichees(scene) ?? [];
+  if (!etat.recompensesEssayees.size) {
+    for (const o of toutes) {
+      etat.offertes[o.nom] = (etat.offertes[o.nom] ?? 0) + 1;
+    }
+  }
+  const notees = toutes.filter(o => !etat.recompensesEssayees.has(o.index));
   const choix = meilleurObjet(notees);
   if (!choix) {
     e.processInput(BOUTON.CANCEL);

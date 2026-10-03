@@ -324,8 +324,14 @@ export function valeursCombatEquipe(obs: Observation): number[] | null {
   // Rival 1 ou 2 : l'oiseau, s'il n'est pas encore sorti, est le premier des Pokémon inconnus.
   const rival = combatDeLaVague(obs.partie.vague)?.genre === "rival" && obs.partie.vague <= 25;
   const oiseauVu = [...enFace, ...(obs.banc ?? [])].some(a => a.types.some(t => t.id === 2));
+  // Son starter garde la même lignée toute la partie (vu au rival 1, retenu par le carnet) : s'il
+  // n'est pas encore sorti, un des inconnus a son type.
+  const typeStarter = combatDeLaVague(obs.partie.vague)?.genre === "rival" ? obs.partie.starterRival : undefined;
+  const starterVu = typeStarter !== undefined && [...enFace, ...(obs.banc ?? [])].some(a => a.types[0]?.id === typeStarter);
   const inconnusJoues = Array.from({ length: inconnus }, (_, k) =>
-    rival && !oiseauVu && k === 0 ? oiseauDuRival(lui, obs.partie.vague > 8) : inconnu(lui, obs.partie.dresseur!.specialite));
+    rival && !oiseauVu && k === 0 ? oiseauDuRival(lui, obs.partie.vague > 8)
+      : typeStarter !== undefined && !starterVu && k === (rival && !oiseauVu ? 1 : 0) ? inconnu(lui, typeStarter)
+        : inconnu(lui, obs.partie.dresseur!.specialite));
   const eux = [lui, ...banc, ...inconnusJoues];
   const depart: Combat = { nous, eux, actif, actifEux: 0 };
   const valeurs = new Array<number>(NOMBRE_ACTIONS).fill(0);

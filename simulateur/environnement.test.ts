@@ -882,6 +882,7 @@ async function jouerPartie(
     },
     achats,
     recompenses,
+    offertes: etat.offertes,
     statuts,
     // Ce qui pourrait s'accumuler d'une partie à l'autre dans ce processus (à surveiller).
     diagnostic,
