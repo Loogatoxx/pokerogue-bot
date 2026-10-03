@@ -78,7 +78,8 @@ def jouer_banc(args, cerveau) -> None:
     a_faire = [k for k in range(args.parties) if k not in faites]
 
     def travail(pont, i, k, verrou):
-        info = jouer(pont.entretenir(i), cerveau, especes=trio_de(k), graine=f"complet-{k}", hasard_du_jeu=True, recit=True)
+        info = jouer(pont.entretenir(i), cerveau, especes=trio_de(k), graine=f"complet-{k}", hasard_du_jeu=True, recit=True,
+                     **({"objets_depart": args.objets} if args.objets else {}))
         if info.get("erreur"):
             return
         recit = info.get("recit") or []
@@ -108,6 +109,7 @@ def main() -> None:
     parametres.add_argument("--parties", type=int, default=480)
     parametres.add_argument("--processus", type=int, default=10)
     parametres.add_argument("--comparer", nargs=2, metavar=("ESSAI", "REFERENCE"))
+    parametres.add_argument("--objets", nargs="+", help="diagnostic « et si… » : objets donnés au départ (ex. EXP_SHARE EXP_SHARE)")
     args = parametres.parse_args()
     if args.comparer:
         comparer(*args.comparer)

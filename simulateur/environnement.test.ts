@@ -13,7 +13,7 @@
 import { BattleScene } from "#app/battle-scene";
 import { activeOverrides } from "#app/overrides";
 import { BattleStyle } from "#enums/battle-style";
-import { allMoves } from "#data/data-lists";
+import { allMoves, modifierTypes } from "#data/data-lists";
 import { MoveCategory } from "#enums/move-category";
 import { MysteryEncounterType } from "#enums/mystery-encounter-type";
 import { SpeciesId } from "#enums/species-id";
@@ -100,6 +100,8 @@ type MessagePython =
       trace?: string;
       /** Garder le hasard du jeu (graine de la vague) : mêmes coups, même résultat. */
       hasardDuJeu?: boolean;
+      /** Objets donnés au départ (clés de modifierTypes, ex. EXP_SHARE) : diagnostic « et si… ». */
+      objetsDepart?: string[];
     }
   /** `hasard` : changer la graine du combat juste avant cette action (la suite de la vague tire
    * d'autres nombres, depuis exactement la même situation : professeur.py, jugement d'un coup). */
@@ -360,6 +362,7 @@ async function jouerPartie(
     mystere?: string;
     trace?: string;
     hasardDuJeu?: boolean;
+    objetsDepart?: string[];
   },
 ) {
   // Nettoyage entre deux parties d'un même processus (normalement fait par l'outil de test
@@ -696,6 +699,14 @@ async function jouerPartie(
       await reprendrePartie(game, demande.depart, graine);
     } else {
       await demarrerPartie(game, (demande.especes ?? STARTERS_PAR_DEFAUT) as SpeciesId[], graine, IVS_COMPTE_NEUF);
+      // Diagnostic « et si… » (triche permise à l'entraînement) : ce que vaudrait un levier, avant
+      // d'y investir. Ex. 5 Multi Exp : tout le banc monte comme le porteur.
+      for (const cle of demande.objetsDepart ?? []) {
+        const fabrique = (modifierTypes as unknown as Record<string, (() => { withIdFromFunc(f: unknown): { newModifier(): unknown } }) | undefined>)[cle];
+        if (fabrique) {
+          game.scene.addModifier(fabrique().withIdFromFunc(fabrique).newModifier() as never, true, false, false, true);
+        }
+      }
     }
     let vagueSuivie = -1;
     let phasesDansLaVague = 0;

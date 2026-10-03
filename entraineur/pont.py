@@ -95,7 +95,8 @@ class Simulateur:
                         plan_capture: bool = False, mysteres: str | int | None = None,
                         plan_scenarios: bool = False, plan_prudence: float = 0.0,
                         plan_changements: bool = False, mystere: str | None = None,
-                        trace: str | None = None, hasard_du_jeu: bool = False, plan_equipe: bool = True) -> Etat | Fin:
+                        trace: str | None = None, hasard_du_jeu: bool = False, plan_equipe: bool = True,
+                        objets_depart: list[str] | None = None) -> Etat | Fin:
         """style_combat : « fixe » ou « changer » (le jeu propose alors de changer après chaque K.O.).
         vague_max : la partie s'arrête au-delà (info « tronquee »), pour le programme progressif.
         recit : la fin de partie contient aussi le récit (forces en présence à chaque vague, et l'état
@@ -126,6 +127,8 @@ class Simulateur:
             demande["planEquipe"] = False  # couper le combat d'équipe simulé (actif par défaut)
         if hasard_du_jeu:
             demande["hasardDuJeu"] = True  # mêmes coups → même résultat (graine de la vague)
+        if objets_depart:
+            demande["objetsDepart"] = objets_depart  # diagnostic « et si… » : objets donnés au départ
         if trace:
             demande["trace"] = trace  # fichier : phases, écrans et règles du pilote, au fil de l'eau
         if plan_scenarios:
