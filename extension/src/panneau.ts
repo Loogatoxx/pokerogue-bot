@@ -25,6 +25,7 @@ import { attaquesPossibles, connaissance, immunitesPossibles, nomTalent } from "
 import { chanceCapture } from "../../observateur/capture";
 import { planifier } from "../../observateur/planificateur";
 import { prevoir, prevoirChangement } from "../../observateur/prevision";
+import { conseillerEquipes, type EquipeConseillee } from "../../observateur/constructeur-equipe";
 import { PokeballType, PokemonType } from "../../observateur/noms";
 import {
   type Decision,
@@ -438,6 +439,21 @@ function libelleAction(index: number, obs: Observation): string {
 }
 
 /** Le choix du cerveau en gros, puis ses autres options les plus probables. */
+/** Les trios conseillés à l'écran de choix des starters (observateur/constructeur-equipe.ts). */
+function afficherEquipesConseillees(equipes: EquipeConseillee[], nombre: number): string {
+  if (!equipes.length) {
+    return `<div class="discret">Aucun starter attrapé lu sur cet écran.</div>`;
+  }
+  const lignes = equipes.map((e, i) => `
+    <div class="pk">
+      <div class="haut"><span class="nom">${i + 1}. ${e.membres.map(m => echapper(m.nom)).join(" + ")}</span>
+        <span>${e.cout} pts · note ${e.note.toFixed(1)}</span></div>
+      <div class="discret">${e.pourquoi.map(echapper).join(" · ")}</div>
+    </div>`).join("");
+  return `<div class="quoi">Équipe de départ conseillée (parmi ${nombre} starters du compte)</div>${lignes}
+    <div class="discret">Le 1er est le porteur : mets-le en tête. Force = vague moyenne mesurée comme porteur au simulateur.</div>`;
+}
+
 function afficherReflexion(obs: Observation, reponse: Reponse, choisie: number): string {
   const pourcent = (p: number) => Math.round(p * 100);
   const p = reponse.probabilites[choisie] ?? 0;
@@ -798,6 +814,13 @@ function demarrer(): void {
           horsPartie = message.etat === "attente-jeu" ? "Le jeu se charge…" : "Lance une partie pour voir ce que le cerveau pense.";
           mettreAJourReflexion();
         }
+        return;
+      case "starters":
+        ui.etat.className = "etat";
+        ui.etat.textContent = "choix des starters";
+        derniereObservation = null;
+        horsPartie = "";
+        remplir(ui.observation, afficherEquipesConseillees(conseillerEquipes(message.candidats), message.candidats.length));
         return;
       case "erreur":
         ui.etat.className = "etat erreur";

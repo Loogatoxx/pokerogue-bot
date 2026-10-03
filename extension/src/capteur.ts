@@ -19,6 +19,10 @@ import {
   repondreParRegles,
 } from "../../pilote/pilote";
 import { type ContenuCapteur, cleDecision, estMessagePanneau, SOURCE } from "./messages";
+import { lireStartersDuCompte } from "./starters-compte";
+
+/** Signature de la dernière liste de starters envoyée : on ne la renvoie que si elle change. */
+let derniersStarters = "";
 
 const PERIODE_MS = 250;
 
@@ -59,6 +63,16 @@ function autoPermis(s: ScenePokerogue): boolean {
 function observerUneFois(): void {
   try {
     if (!scene?.currentBattle) {
+      // Écran de choix des starters : le panneau conseille une équipe (constructeur-equipe.ts).
+      const candidats = scene ? lireStartersDuCompte(scene) : null;
+      if (candidats) {
+        const signature = candidats.map(c => `${c.espece}:${c.cout}`).join(",");
+        if (signature !== derniersStarters) {
+          derniersStarters = signature;
+          envoyer({ type: "starters", candidats });
+        }
+        return;
+      }
       envoyer({ type: "etat", etat: "hors-partie" });
       return;
     }

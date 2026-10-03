@@ -5,6 +5,7 @@
  * Ils communiquent par window.postMessage, que n'importe quel script de la page peut aussi
  * utiliser : d'où la signature SOURCE et l'origine, vérifiées à la réception.
  */
+import type { CandidatStarter } from "../../observateur/constructeur-equipe";
 import type { Observation } from "../../observateur/types";
 
 export const SOURCE = "pokerogue-cerveau";
@@ -13,6 +14,8 @@ export const SOURCE = "pokerogue-cerveau";
 export type ContenuCapteur =
   | { type: "etat"; etat: "attente-jeu" | "hors-partie" }
   | { type: "observation"; observation: Observation }
+  /** Écran de choix des starters : ceux du compte, pour conseiller une équipe. */
+  | { type: "starters"; candidats: CandidatStarter[] }
   | { type: "pilote"; texte: string }
   | { type: "erreur"; message: string };
 
