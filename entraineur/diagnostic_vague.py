@@ -8,6 +8,7 @@ Si son meilleur coup perd souvent là où d'autres coups gagnent, c'est le comba
 si rien ne gagne depuis cette photo, l'équipe arrivait déjà condamnée (décisions d'avant).
 
 Usage : .venv/bin/python -m entraineur.diagnostic_vague <analyse.json> [--vague 8] [--nombre 24]
+        .venv/bin/python -m entraineur.diagnostic_vague --banc <nom> --vague 25
 """
 from __future__ import annotations
 
@@ -29,13 +30,21 @@ TEMPERATURES_VARIEES = (30.0, 100.0, 300.0)
 
 def main() -> None:
     parametres = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parametres.add_argument("analyse", type=Path)
+    parametres.add_argument("analyse", type=Path, nargs="?")
+    parametres.add_argument("--banc", help="les défaites d'un banc complet (banc_complet.py, parties reproductibles)")
     parametres.add_argument("--vague", type=int, default=8)
     parametres.add_argument("--nombre", type=int, default=24)
     parametres.add_argument("--essais", type=int, default=8)
     parametres.add_argument("--processus", type=int, default=8)
     args = parametres.parse_args()
-    donnees = json.load(open(args.analyse))
+    if args.banc:
+        from .banc_complet import lire_resultats, trio_de
+        from .banc_tardif import V5
+        donnees = {"cerveau": str(V5), "parties": [
+            {"vague": r["vague"], "graine": f"complet-{k}", "starters": trio_de(k), "hasard": True}
+            for k, r in sorted(lire_resultats(args.banc).items())]}
+    else:
+        donnees = json.load(open(args.analyse))
     cerveau, _ = lire(Path(donnees["cerveau"]))
     cerveau.eval()
     torch.set_num_threads(1)
@@ -53,7 +62,8 @@ def main() -> None:
                 p = a_faire.pop(0)
             s = pont.entretenir(i)
             # 1. Le cerveau jusqu'au début de la vague V.
-            etat = s.nouvelle_partie(especes=p["starters"], graine=p["graine"], photos=[V], vague_max=V - 1, style_combat="changer")
+            etat = s.nouvelle_partie(especes=p["starters"], graine=p["graine"], photos=[V], vague_max=V - 1, style_combat="changer",
+                                   hasard_du_jeu=p.get("hasard", False))
             while isinstance(etat, Etat):
                 plan = None if etat.plan is None else torch.from_numpy(etat.plan)
                 action, _ = cerveau.choisir(torch.from_numpy(etat.observation), torch.from_numpy(etat.masque), tirage=False, plan=plan)

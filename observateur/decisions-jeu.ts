@@ -163,7 +163,26 @@ function contexte(scene: ScenePokerogue): ContexteObjets {
     // Les récompenses arrivent après la vague gagnée : ce qui compte, c'est la suivante.
     prochainCombat: prochainCombatImportant((scene.currentBattle?.waveIndex ?? 0) + 1),
     typesAPreparer: typesAPreparer((scene.currentBattle?.waveIndex ?? 0) + 1),
+    // Le plafond de niveau du moment (affiché par le jeu quand il monte) : au-delà, l'expérience ne sert plus.
+    plafondNiveau: (scene as unknown as { getMaxExpLevel?: () => number }).getMaxExpLevel?.(),
+    multiplicateurExperience: multiplicateurExperience(scene),
   };
+}
+
+/**
+ * Le multiplicateur d'expérience des Charmes déjà possédés. Le jeu les multiplie entre eux : chaque
+ * sorte de Charme donne (1 + nombre × bonus) — 8 Charmes Exp (+25 %) et 4 Super Charmes (+60 %),
+ * l'équipe type du bot à la vague 100, font déjà × 3 × 3,4 ≈ × 10.
+ */
+function multiplicateurExperience(scene: ScenePokerogue): number {
+  let total = 1;
+  for (const m of scene.modifiers ?? []) {
+    if (["EXP_CHARM", "SUPER_EXP_CHARM", "GOLDEN_EXP_CHARM"].includes(m.type?.id ?? "")) {
+      const bonus = Number(m.getArgs?.()[0] ?? 0) / 100;
+      total *= 1 + (m.stackCount ?? 1) * bonus;
+    }
+  }
+  return total;
 }
 
 /** Les récompenses affichées, notées d'après l'état de l'équipe ; null hors de cet écran. */

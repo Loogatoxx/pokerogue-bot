@@ -90,4 +90,15 @@ describe("Stratégie du porteur", () => {
     const avance = { equipe: [membre("Rattata", 30, [0], 60, 60), membre("Aligatueur", 55, [10], 160, 160)], balls: [5, 0, 0, 0, 0] };
     expect(evaluerObjets([bonbon], avance)[0]!.cible).toBe(0); // passé 40, il aide le membre en retard
   });
+
+  it("n'empile plus les Charmes Exp quand l'expérience est déjà multipliée ou l'équipe au plafond", () => {
+    const charme: ObjetPropose = { id: "EXP_CHARM", nom: "Charme Exp", cout: 0 };
+    const equipe = [membre("Dracaufeu", 60, [9], 150, 150), membre("Tortank", 58, [10], 150, 150)];
+    const debut = evaluerObjets([charme], { equipe, balls: [0, 0, 0, 0, 0], plafondNiveau: 78, multiplicateurExperience: 1 })[0]!.note;
+    const sature = evaluerObjets([charme], { equipe, balls: [0, 0, 0, 0, 0], plafondNiveau: 78, multiplicateurExperience: 10 })[0]!.note;
+    const auPlafond = evaluerObjets([charme], { equipe, balls: [0, 0, 0, 0, 0], plafondNiveau: 60, multiplicateurExperience: 1 })[0]!.note;
+    expect(debut).toBe(25);
+    expect(sature).toBeLessThan(6);
+    expect(auPlafond).toBeLessThan(6);
+  });
 });

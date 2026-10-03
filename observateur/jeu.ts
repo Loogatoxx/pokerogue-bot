@@ -97,6 +97,8 @@ export interface ScenePokerogue {
   gameMode: { isDaily: boolean };
   /** Pokédex du joueur : caughtAttr non nul = espèce déjà capturée. */
   gameData: { dexData: Record<number, { caughtAttr: bigint } | undefined> };
+  /** Objets possédés par le joueur (Charmes Exp, objets tenus…). */
+  modifiers?: { type?: { id?: string }; stackCount?: number; getArgs?: () => unknown[] }[];
   getPlayerParty(): PokemonJeu[];
   getPlayerField(): PokemonJeu[];
   getEnemyParty(): PokemonJeu[];

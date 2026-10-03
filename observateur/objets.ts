@@ -58,6 +58,37 @@ export interface ContexteObjets {
   prochainCombat?: CombatImportant;
   /** Types à préparer avant le rival (combats.ts, typesAPreparer), ou absent. */
   typesAPreparer?: number[] | undefined;
+  /** Plafond de niveau du moment (le jeu le relève toutes les 10 vagues), ou absent. */
+  plafondNiveau?: number | undefined;
+  /** Multiplicateur d'expérience des Charmes déjà possédés (1 sans Charme), ou absent. */
+  multiplicateurExperience?: number | undefined;
+}
+
+const OBJETS_EXPERIENCE = new Set(["EXP_SHARE", "EXP_BALANCE", "EXP_CHARM", "SUPER_EXP_CHARM", "GOLDEN_EXP_CHARM", "LUCKY_EGG", "GOLDEN_EGG"]);
+
+/**
+ * Part de l'équipe que l'expérience peut encore faire monter. En fin de partie, l'équipe est au
+ * plafond de niveau (vagues 101-110 : niveau 94) : le bot empilait pourtant les Charmes Exp (jusqu'à
+ * 10 Charmes et 5 Super Charmes à la vague 110) au lieu d'objets de combat.
+ */
+function partSousPlafond(ctx: ContexteObjets): number {
+  const vivants = ctx.equipe.filter(m => !m.ko);
+  if (!ctx.plafondNiveau || !vivants.length) {
+    return 1;
+  }
+  return vivants.filter(m => m.niveau < ctx.plafondNiveau! - 3).length / vivants.length;
+}
+
+/**
+ * Ce que vaut encore un objet d'expérience : beaucoup en début de partie (le niveau du porteur décide
+ * du rival 1), de moins en moins quand l'expérience est déjà multipliée (rendement décroissant :
+ * passé × 2, l'équipe rattrape le plafond de niveau en quelques vagues après chaque hausse) et peu
+ * quand l'équipe est au plafond. À la vague 100, le bot avait en moyenne 8 Charmes Exp, 4 Super
+ * Charmes et 4 Multi Exp, mais seulement 3 vitamines et moins d'un objet de type.
+ */
+function valeurExperience(ctx: ContexteObjets): number {
+  const saturation = Math.min(1, 2 / Math.max(ctx.multiplicateurExperience ?? 1, 1));
+  return (0.2 + 0.8 * partSousPlafond(ctx)) * saturation;
 }
 
 /** Combien un soin compte de plus avant un combat important : la vague suivante, ou celle d'après. */
@@ -322,7 +353,9 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
   if ((objet.id === "TEMP_STAT_STAGE_BOOSTER" || objet.id === "DIRE_HIT") && vagueCourante >= 170) {
     return { note: 20, cible: null, pour: ["fin de partie : un cran de stat pour les derniers combats"], contre: [] };
   }
-  const base = VALEURS[objet.id];
+  const base0 = VALEURS[objet.id];
+  // L'expérience ne vaut que pour les membres encore sous le plafond de niveau.
+  const base = base0 !== undefined && OBJETS_EXPERIENCE.has(objet.id) ? base0 * valeurExperience(ctx) : base0;
   if (base === undefined) {
     return { note: VALEUR_INCONNUE, cible: null, pour: [], contre: ["effet mal connu du pilote"] };
   }
