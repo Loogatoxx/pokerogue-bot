@@ -18,7 +18,8 @@
  * remplacent un K.O. par leur meilleur Pokémon. Seulement en combat simple (un contre un).
  */
 import { NOMBRE_ACTIONS, PREMIER_CHANGEMENT, PREMIERE_BALL } from "./actions";
-import { candidates, combattantAdverse, combattantAllie, type Combattant, degats } from "./prevision";
+import { combatDeLaVague } from "./combats";
+import { candidates, combattantAdverse, combattantAllie, type Combattant, degats, statsEstimees } from "./prevision";
 import { PRIORITES } from "./priorites";
 import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
 
@@ -107,6 +108,22 @@ function adverse(a: PokemonAdverse): Acteur {
     vitesse: vitesseDe(c),
     poids: 1,
     barres: a.boss ? Math.max(1, a.boss.segments) : 1,
+  };
+}
+
+/**
+ * L'oiseau du rival, pas encore sorti. Connaissance publique (jeu : rival-party-config.ts, wiki) :
+ * le rival aligne toujours son starter et un oiseau (Roucool, Hoothoot, Étourmi, Nirondelle,
+ * Poichigeon, Passerouge, Picassaut, Corvaillus, Wattrel…), un niveau en dessous du starter.
+ * Statistiques de base : la moyenne de ces oiseaux (et de leur 1re évolution au rival 2).
+ */
+function oiseauDuRival(starter: Acteur, evolue: boolean): Acteur {
+  const base = evolue ? [60, 70, 55, 50, 50, 80] : [43, 50, 36, 36, 36, 61];
+  const niveau = Math.max(1, starter.c.niveau - 1);
+  const c: Combattant = { niveau, types: [0, 2], stats: statsEstimees(base, niveau), crans: [0, 0, 0, 0, 0, 0, 0] };
+  return {
+    c, pv: 1, vitesse: vitesseDe(c), poids: 1, barres: 1,
+    coups: [coupDe(-1, 2, 0, evolue ? 60 : 40, 1), coupDe(-1, 0, 0, evolue ? 50 : 40, 1)], // Vol (Picpic, Cru-Ailes…), Normal
   };
 }
 
@@ -268,7 +285,12 @@ export function valeursCombatEquipe(obs: Observation): number[] | null {
   const banc = (obs.banc ?? []).filter(b => !b.ko).map(adverse);
   const restants = obs.partie.dresseur.pokemonRestants;
   const inconnus = Math.max(0, restants - 1 - banc.length);
-  const eux = [lui, ...banc, ...Array.from({ length: inconnus }, () => inconnu(lui))];
+  // Rival 1 ou 2 : l'oiseau, s'il n'est pas encore sorti, est le premier des Pokémon inconnus.
+  const rival = combatDeLaVague(obs.partie.vague)?.genre === "rival" && obs.partie.vague <= 25;
+  const oiseauVu = [...enFace, ...(obs.banc ?? [])].some(a => a.types.some(t => t.id === 2));
+  const inconnusJoues = Array.from({ length: inconnus }, (_, k) =>
+    rival && !oiseauVu && k === 0 ? oiseauDuRival(lui, obs.partie.vague > 8) : inconnu(lui));
+  const eux = [lui, ...banc, ...inconnusJoues];
   const depart: Combat = { nous, eux, actif, actifEux: 0 };
   const valeurs = new Array<number>(NOMBRE_ACTIONS).fill(0);
   for (let action = 0; action < PREMIERE_BALL; action++) {
