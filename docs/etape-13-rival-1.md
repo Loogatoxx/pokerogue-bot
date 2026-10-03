@@ -105,3 +105,29 @@ personne de niveau 5+ n'a le type qui bat le sien (17 des 24).
 
 **Toute la partie, arrêt à la vague 50 (480 parties)** : **39,6** de vague moyenne (35,9 à 38,0
 dans les mêmes conditions avant), rival 1 97 %, rival 2 76 %.
+
+## 6. L'oiseau du rival, et les trios équilibrés (03/10)
+
+Connaissance publique : le rival aligne toujours son starter **et un oiseau** (Normal/Vol, un niveau
+en dessous). Le moteur jouait ce Pokémon pas encore sorti « sans type » ; il le joue maintenant
+comme l'oiseau (statistiques moyennes des oiseaux possibles). Rival 1 : 97 % ; défaites en neutre
+2,0 → 0,3 %. Restait le cas où son starter contre notre porteur **et** où personne ne bat son type.
+
+Un compte neuf a les 27 starters régionaux : un joueur peut prendre **un Plante, un Feu et un Eau**.
+Quel que soit le starter du rival (tiré parmi ces trois types), un des nôtres le bat.
+
+| Starters (960 parties, arrêt après le rival 1) | Rival 1 | Défaites quand il contre notre porteur |
+|---|---|---|
+| Trois au hasard | 96-97 % | 7,4 % |
+| **Un Plante, un Feu, un Eau** | **99 %, 99 %** (100 % sur 480 parties jusqu'à la vague 50) | **0,9 %** |
+
+Le choix des starters est fait par Carlos dans le jeu : le panneau de l'extension (0.9.8) le
+conseille à l'écran de composition de l'équipe.
+
+**Bilan de la nuit (mêmes conditions : style Changer, v5)** :
+
+| | Début de soirée | Fin de nuit (au hasard) | Fin de nuit (trio équilibré) |
+|---|---|---|---|
+| Rival 1 | 92-95 % | 96-97 % | **99-100 %** |
+| Vague moyenne (arrêt à 50) | 35,9-38,0 | 39,0-39,6 | 40,2 |
+| Vague moyenne (sans limite) | 49,1 | **53,6** (rival 2 : 84 %) | |

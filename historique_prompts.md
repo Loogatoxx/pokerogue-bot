@@ -782,3 +782,32 @@ Donner au cerveau des exemples où l'on sait vraiment quel coup était le meille
 
 **Objectif**
 Comprendre le plafond avant d'aller plus loin, et choisir la suite sur des faits.
+
+## 26. Autonomie : le rival 1 — 02-03/10/2026 (nuit)
+
+**Prompts**
+> prochaine etape tu peut tourner en arriere plan et tout faire de maniere organiser […] ne pas venir a la conclusion l adversaire etait trop fort ou c'était une partie serrer […] il y a toujours une raison a çause d une decision precedente […] je serais deja content si les ia passe le premier rival a 100% […]
+>
+> un indice […] tu peu reprendre la graine et jouer la partie parfaite […] si tu vois qu elle etait gagnable tu pourra mieu voir ensuite d ou vient les erreur […]
+>
+> bonne initiative de faire un equilibrage, quand t'aura bien optimiser tout ça […] faire en sorte que l ia construise elle meme l equipe de starter mais avec une plus grosse base de starter […] l entrainer sur le late game pour tenter de faire en sorte que elle reussi le lvl 200 le plus de fois possible […] elle avait du mal dans les vagues 110
+
+**Réponse**
+- Cause n° 1 au rival 1 : son starter, tiré au hasard, contre notre porteur (15 % de défaites,
+  trois quarts du total). Parties perdues rejouées par le professeur : 24/24 gagnables ; deux
+  tiers mal jouées pendant le combat.
+- Moteur de combat d'équipe (le combat entier simulé pour chaque coup) : 92-94 → 96 %.
+- Bug : le porteur était relâché avant le rival (2 à 10 % des parties) ; corrigé.
+- Le porteur garde l'expérience avant le rival ; priorité, barres des boss, oiseau du rival.
+- Trio Plante + Feu + Eau : rival 1 99-100 %. Sans limite : 49,1 → 53,6 (rival 2 : 72 → 84 %).
+
+**Modifications**
+- Nouveaux : `observateur/combat-equipe.ts`, `observateur/priorites.ts`,
+  `observateur/effets-statut.ts`, `entraineur/rejouer_defaites.py`, `entraineur/diagnostic_vague.py`,
+  `entraineur/juge_cible.py`, `docs/etape-13-rival-1.md`.
+- Modifiés : planificateur (moteur, porteur, second), `equipe.ts` (porteur jamais relâché,
+  couverture), `objets.ts` (Super Bonbon), simulateur (description des coups), analyse
+  (`--sans-equipe`, `--trio-equilibre`), tests, extension 0.9.8.
+
+**Objectif**
+Passer le rival 1 à 100 % en corrigeant les vraies décisions fautives, mesurées une par une.

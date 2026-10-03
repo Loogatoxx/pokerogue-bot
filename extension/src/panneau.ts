@@ -308,7 +308,9 @@ function duelEtDetails(obs: Observation, ouverts: ReadonlySet<string>): string {
 function texteDecision(d: Decision, obs: Observation): string {
   const acteur = obs.equipe.find(p => p.uid === d.acteur)?.nom ?? "ton Pokémon";
   const textes: Record<Decision["type"], string> = {
-    "equipe-depart": "Composer l'équipe de départ",
+    // Mesuré (03/10, 960 parties) : un starter Plante, un Feu et un Eau → rival 1 passé 99 % du temps
+    // (trois au hasard : 97 %) ; son starter, tiré au hasard, ne peut alors contrer personne sans réponse.
+    "equipe-depart": "Composer l'équipe de départ — conseil : un starter Plante, un Feu et un Eau (rival 1 : 99 %)",
     combat: `Action de ${acteur}`,
     cible: "Choisir la cible",
     bonus: "Choisir une récompense",
