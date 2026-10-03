@@ -62,9 +62,9 @@ export function forceEspece(espece: number): number {
 }
 
 /** La note d'un starter (en « vagues » environ). */
-export function noterStarter(c: CandidatStarter): { note: number; pourquoi: string[] } {
+export function noterStarter(c: CandidatStarter, force: (espece: number) => number = forceEspece): { note: number; pourquoi: string[] } {
   const pourquoi: string[] = [];
-  let note = forceEspece(c.espece);
+  let note = force(c.espece);
   pourquoi.push(`${c.nom} : force ${note.toFixed(1)}${PUISSANCE_STARTERS[c.espece] === undefined ? " (estimée)" : ""}`);
   const physique = (c.statsDeBase[1] ?? 0) >= (c.statsDeBase[3] ?? 0);
   const attaque = physique ? 1 : 3;
@@ -104,8 +104,9 @@ function couverture(membres: CandidatStarter[]): number {
  * Les meilleures équipes de 1 à 3 starters dans le budget. `candidats` : les starters du compte.
  * Le porteur (le mieux noté) est mis en premier : il commence les combats et prend l'expérience.
  */
-export function conseillerEquipes(candidats: CandidatStarter[], nombre = 3): EquipeConseillee[] {
-  const notes = new Map(candidats.map(c => [c.espece, noterStarter(c)]));
+export function conseillerEquipes(candidats: CandidatStarter[], nombre = 3,
+  force: (espece: number) => number = forceEspece): EquipeConseillee[] {
+  const notes = new Map(candidats.map(c => [c.espece, noterStarter(c, force)]));
   const tries = [...candidats].filter(c => c.cout <= BUDGET).sort((a, b) => notes.get(b.espece)!.note - notes.get(a.espece)!.note);
   // On se limite aux 40 meilleurs : assez pour couvrir les trios utiles, assez peu pour tout essayer.
   const pool = tries.slice(0, 40);
