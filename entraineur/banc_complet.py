@@ -15,19 +15,17 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import random
-import statistics
 from collections import Counter
+from pathlib import Path
 
 import torch
 
 from .banc_tardif import BANC, V5, en_parallele, jouer
 from .ensemble import STARTERS_COMPTE_NEUF
 from .format_cerveau import lire
-from .pont import Pont
-
-RIVAUX = {8: "rival 1", 25: "rival 2", 55: "rival 3", 95: "rival 4", 145: "rival 5", 195: "rival 6"}
+from .pont import Etat, Pont
+from .statistiques_banc import comparer_apparie, est_valide, resume
 
 
 def trio_de(k: int) -> list[int]:
@@ -37,58 +35,71 @@ def trio_de(k: int) -> list[int]:
     return trio
 
 
-def fichier(nom: str):
-    return BANC / f"complet-{nom}.jsonl"
+def fichier(nom: str, dossier: Path = BANC) -> Path:
+    return dossier / f"complet-{nom}.jsonl"
 
 
-def lire_resultats(nom: str) -> dict[int, dict]:
-    return {r["k"]: r for r in map(json.loads, fichier(nom).read_text(encoding="utf-8").splitlines())}
+def lire_resultats(nom: str, dossier: Path = BANC, avec_erreurs: bool = False) -> dict[int, dict]:
+    lignes = map(json.loads, fichier(nom, dossier).read_text(encoding="utf-8").splitlines())
+    return {r["k"]: r for r in lignes if avec_erreurs or est_valide(r)}
 
 
-def resume(resultats: dict[int, dict]) -> str:
-    vagues = [r["vague"] for r in resultats.values()]
-    morts = Counter(vagues)
-    lignes = [f"{len(vagues)} parties · vague moyenne {statistics.mean(vagues):.1f} · médiane {statistics.median(vagues):.0f}"]
-    restants = len(vagues)
-    taux = []
-    for v in sorted(morts):
-        if v in RIVAUX:
-            taux.append(f"{RIVAUX[v]} {100 * (1 - morts[v] / max(restants, 1)):.0f} %")
-        restants -= morts[v]
-    lignes.append("passent : " + ", ".join(taux))
-    lignes.append("murs : " + ", ".join(f"{v} ({n})" for v, n in morts.most_common(8)))
-    return "\n".join(lignes)
+def comparer(a: str, b: str, dossier: Path = BANC) -> None:
+    ra, rb = lire_resultats(a, dossier, avec_erreurs=True), lire_resultats(b, dossier, avec_erreurs=True)
+    communs = sorted(k for k in set(ra) & set(rb) if est_valide(ra[k]) and est_valide(rb[k]))
+    differences = [ra[k]["vague"] - rb[k]["vague"] for k in communs]
+    moyenne, erreur_type, verdict = comparer_apparie(differences)
+    print(f"{a} − {b} : {moyenne:+.2f} vagues (erreur-type appariée {erreur_type:.2f}, seuil {2 * erreur_type:.2f}, "
+          f"{len(differences)} paires) · mieux {sum(x > 0 for x in differences)}, "
+          f"pareil {sum(x == 0 for x in differences)}, pire {sum(x < 0 for x in differences)}")
+    print(f"verdict : {verdict}")
+    print(f"\n{a} :\n{resume([ra[k] for k in communs])}\n\n{b} :\n{resume([rb[k] for k in communs])}")
 
 
-def comparer(a: str, b: str) -> None:
-    ra, rb = lire_resultats(a), lire_resultats(b)
-    communs = sorted(set(ra) & set(rb))
-    d = [ra[k]["vague"] - rb[k]["vague"] for k in communs]
-    m = statistics.mean(d)
-    se = statistics.stdev(d) / math.sqrt(len(d)) if len(d) > 1 else 0
-    print(f"{a} − {b} : {m:+.2f} vagues (± {se:.2f}, {len(d)} paires) · mieux {sum(x > 0 for x in d)}, "
-          f"pareil {sum(x == 0 for x in d)}, pire {sum(x < 0 for x in d)}")
-    print(f"\n{a} :\n{resume({k: ra[k] for k in communs})}\n\n{b} :\n{resume({k: rb[k] for k in communs})}")
+def choisir_plan_seul(etat: Etat) -> int:
+    permises = [i for i, permise in enumerate(etat.masque) if permise]
+    if etat.plan is None:
+        return permises[0]
+    return max(permises, key=lambda i: etat.plan[i])
+
+
+def jouer_plan_seul(simulateur, **partie) -> dict:
+    etat = simulateur.nouvelle_partie(style_combat="changer", plan_capture=True, **partie)
+    while isinstance(etat, Etat):
+        etat = simulateur.agir(choisir_plan_seul(etat))
+    return etat.info
 
 
 def jouer_banc(args, cerveau) -> None:
-    BANC.mkdir(exist_ok=True)
-    sortie = fichier(args.nom)
-    faites = set(lire_resultats(args.nom)) if sortie.exists() else set()
+    dossier = Path(args.dossier)
+    dossier.mkdir(parents=True, exist_ok=True)
+    sortie = fichier(args.nom, dossier)
+    faites = set(lire_resultats(args.nom, dossier, avec_erreurs=True)) if sortie.exists() else set()
     a_faire = [k for k in range(args.parties) if k not in faites]
+    reglages = {"mysteres": args.mysteres} if args.mysteres != "aucune" else {}
+    essais_depart = Counter()
 
     def travail(pont, i, k, verrou):
-        info = jouer(pont.entretenir(i), cerveau, especes=args.trio or trio_de(k), graine=f"complet-{k}", hasard_du_jeu=True, recit=True,
-                     **({"objets_depart": args.objets} if args.objets else {}))
-        if info.get("erreur"):
+        partie = {"especes": args.trio or trio_de(k), "graine": f"complet-{k}", "hasard_du_jeu": True, "recit": True,
+                  **reglages, **({"objets_depart": args.objets} if args.objets else {})}
+        simulateur = pont.entretenir(i)
+        info = jouer_plan_seul(simulateur, **partie) if cerveau is None else jouer(simulateur, cerveau, **partie)
+        if info.get("erreur") and info.get("vague", 0) == 0 and essais_depart[k] < 2:
+            pont.redemarrer(i)
+            with verrou:
+                essais_depart[k] += 1
+                a_faire.append(k)
             return
         recit = info.get("recit") or []
         ligne = {
-            "k": k, "vague": info.get("vague", 0), "starters": args.trio or trio_de(k),
+            "k": k, "vague": info.get("vague", 0), "victoire": info.get("victoire", False), "starters": args.trio or trio_de(k),
+            "totalStatsDepart": info.get("totalStatsDepart"), "changements": info.get("changements"),
             "recompenses": info.get("recompenses"), "offertes": info.get("offertes"), "achats": info.get("achats"),
             "bilan": info.get("bilan"),
             "niveaux": {r["vague"]: r["equipe"] for r in recit},
             "defaite": info.get("defaite"),
+            "protocole": {"mysteres": args.mysteres, "planSeul": cerveau is None},
+            **({"erreur": info["erreur"], "phase": info.get("phase")} if info.get("erreur") else {}),
         }
         with verrou:
             with open(sortie, "a", encoding="utf-8") as f:
@@ -99,7 +110,7 @@ def jouer_banc(args, cerveau) -> None:
 
     with Pont(args.processus) as pont:
         en_parallele(pont, travail, a_faire)
-    print(resume(lire_resultats(args.nom)))
+    print(resume(list(lire_resultats(args.nom, dossier, avec_erreurs=True).values())))
     print(f"Détails : {sortie}")
 
 
@@ -111,13 +122,18 @@ def main() -> None:
     parametres.add_argument("--comparer", nargs=2, metavar=("ESSAI", "REFERENCE"))
     parametres.add_argument("--trio", type=int, nargs=3, help="starters imposés à toutes les parties (le porteur en premier)")
     parametres.add_argument("--objets", nargs="+", help="diagnostic « et si… » : objets donnés au départ (ex. EXP_SHARE EXP_SHARE)")
+    parametres.add_argument("--plan-seul", action="store_true", help="sans cerveau : l'action la mieux notée par le planificateur, Balls notées par le planificateur")
+    parametres.add_argument("--mysteres", default="jeu", help="rencontres mystères : « jeu » (rythme du vrai jeu, protocole) ou « aucune »")
+    parametres.add_argument("--dossier", default=str(BANC), help="dossier des résultats (par défaut sur le Lexar)")
     args = parametres.parse_args()
     if args.comparer:
-        comparer(*args.comparer)
+        comparer(*args.comparer, dossier=Path(args.dossier))
         return
-    cerveau, _ = lire(V5)
-    cerveau.eval()
-    torch.set_num_threads(1)
+    cerveau = None
+    if not args.plan_seul:
+        cerveau, _ = lire(V5)
+        cerveau.eval()
+        torch.set_num_threads(1)
     jouer_banc(args, cerveau)
 
 

@@ -1,0 +1,27 @@
+{
+  "source": "PokéRogue v1.12.0.11 : src/enums/fixed-boss-waves.ts (combats fixes), src/game-mode.ts isWaveFinal (vague finale)",
+  "vague_finale": 200,
+  "combats_fixes": {
+    "5": "gamin",
+    "8": "rival",
+    "25": "rival",
+    "35": "team",
+    "55": "rival",
+    "62": "team",
+    "64": "team",
+    "66": "team",
+    "95": "rival",
+    "112": "team",
+    "114": "team",
+    "115": "team",
+    "145": "rival",
+    "164": "team",
+    "165": "team",
+    "182": "conseil 4",
+    "184": "conseil 4",
+    "186": "conseil 4",
+    "188": "conseil 4",
+    "190": "maître",
+    "195": "rival"
+  }
+}

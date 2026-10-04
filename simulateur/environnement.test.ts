@@ -13,6 +13,7 @@
 import { BattleScene } from "#app/battle-scene";
 import { activeOverrides } from "#app/overrides";
 import { BattleStyle } from "#enums/battle-style";
+import { BattleType } from "#enums/battle-type";
 import { allMoves, modifierTypes } from "#data/data-lists";
 import { MoveCategory } from "#enums/move-category";
 import { MysteryEncounterType } from "#enums/mystery-encounter-type";
@@ -459,6 +460,20 @@ async function jouerPartie(
   /** Photos du début des vagues demandées (texte de la sauvegarde du jeu). */
   const photos: Record<number, string> = {};
   let defaite: Record<string, unknown> | undefined;
+  let totalStatsDepart = 0;
+  const changements = { volontaires: 0, serieMax: 0, series3: 0 };
+  const serieParPlace = [0, 0];
+  const compterChangement = (place: number, change: boolean) => {
+    serieParPlace[place] = change ? (serieParPlace[place] ?? 0) + 1 : 0;
+    if (!change) {
+      return;
+    }
+    changements.volontaires++;
+    changements.serieMax = Math.max(changements.serieMax, serieParPlace[place]!);
+    if (serieParPlace[place] === 3) {
+      changements.series3++;
+    }
+  };
   /**
    * Précision du prédicteur de l'IA adverse (observateur/prevision.ts), mesurée en jouant : à
    * chaque décision, ce qu'il annonce pour chaque adversaire ; une fois les ordres de l'adversaire
@@ -683,6 +698,8 @@ async function jouerPartie(
           }
           if (!executerAction(scene, message.action, etat)) {
             refusees.add(message.action);
+          } else if (obs.decision.type === "combat") {
+            compterChangement(obs.decision.positionActeur ?? 0, decrireAction(message.action).type === "envoyer");
           }
           derniereAction = message.action;
         }
@@ -699,6 +716,7 @@ async function jouerPartie(
       await reprendrePartie(game, demande.depart, graine);
     } else {
       await demarrerPartie(game, (demande.especes ?? STARTERS_PAR_DEFAUT) as SpeciesId[], graine, IVS_COMPTE_NEUF);
+      totalStatsDepart = game.scene.getPlayerParty().reduce((total, p) => total + p.species.baseTotal, 0);
       // Diagnostic « et si… » (triche permise à l'entraînement) : ce que vaudrait un levier, avant
       // d'y investir. Ex. 5 Multi Exp : tout le banc monte comme le porteur.
       for (const cle of demande.objetsDepart ?? []) {
@@ -736,6 +754,8 @@ async function jouerPartie(
             equipe: sceneRecit.getPlayerParty().map(resumer),
             adversaires: sceneRecit.getEnemyParty().map(resumer),
             objets: objetsPortes(sceneRecit),
+            typeCombat: BattleType[game.scene.currentBattle?.battleType ?? BattleType.WILD],
+            boss: game.scene.getEnemyParty().some(p => p.isBoss()),
           };
         }
         break;
@@ -814,6 +834,7 @@ async function jouerPartie(
       if (vague !== vagueSuivie) {
         vagueSuivie = vague;
         phasesDansLaVague = 0;
+        serieParPlace.fill(0);
         if (demande.recit) {
           const equipe = sceneRecit.getPlayerParty();
           const pv = equipe.reduce((n, p) => n + p.hp, 0);
@@ -895,6 +916,8 @@ async function jouerPartie(
     recompenses,
     offertes: etat.offertes,
     statuts,
+    changements,
+    totalStatsDepart,
     // Ce qui pourrait s'accumuler d'une partie à l'autre dans ce processus (à surveiller).
     diagnostic,
     ...(demande.recit ? { recit, defaite, prediction, journalCombat, calibration } : {}),

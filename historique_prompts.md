@@ -864,3 +864,99 @@ avant d'y investir.
 
 **Objectif**
 Corriger les décisions hors combat qu'un joueur voit tout de suite, et dont la partie dépendait.
+
+## 29. Nouveau cadre de travail et Phase 0 (audit sans code) — 04/10/2026
+
+**Prompt** (résumé : prompt structuré en sections rôle, objectif, situation, règles du jeu, règles
+perso, diagnostic H1-H7, architecture cible, matrices M0-M4, state, RL, évaluation, méthode par
+phases, contraintes de code, mémoire du projet)
+> Tu es mon ingénieur senior […] Un bot qui décide comme un joueur humain […] Cible de départ : faire
+> monter la vague moyenne de façon mesurable […] Ne code rien. Fais la Phase 0 : 1. Reformule le
+> projet en 10 lignes maximum […] 2. Pose-moi tes questions manquantes en une seule fois (5 maximum)
+> […] 3. Vérifie dans le code du jeu chaque règle de <regles_du_jeu_immuables> […] 4. Donne le plan
+> de phases avec l'effort estimé, les risques, et ce qui te semble infaisable. 5. Crée REGLES.md.
+> Puis attends mon "GO phase 1".
+
+**Réponse**
+- Règles vérifiées dans PokéRogue `v1.12.0.11` (cloné au tag exact) :
+  - confirmées : 200 vagues, biomes de 10 vagues, soin gratuit complet (PV, PP, statut, K.O.) au
+    passage X0 → X1, boutique d'abord puis récompense, pas de boutique aux X0, overrides présents ;
+  - différentes de ce qui était écrit : champion d'arène seulement toutes les 30 vagues (20/50/80…
+    ou 30/60/90…, une chance sur deux par graine) ; aucune récompense au choix aux vagues X0 (Charme
+    Exp imposé) ; un gros coup peut casser plusieurs segments ; un boss de dresseur ne gagne pas
+    de boost ; les légendaires sauvages sont des boss à toute vague ; aucun inventaire de soins
+    (appliqués tout de suite) ; les crans durent entre sauvages du même biome, mais pas avant un
+    dresseur, une rencontre mystère ou un nouveau biome.
+- Audit : l'architecture cible existe déjà en grande partie (state versionné, pilote, garde-fous
+  boutique, règles d'objets, planificateur, moteur d'équipe, banc apparié). Manques : variables du
+  state (pièges, objets passifs, historique des changements, prochain soin), segments contre les boss
+  sauvages, relances, transferts, biome, statistiques de mesure (écart-type, p10/p90, morts par
+  type).
+- Corrections : la mesure n'est pas « starters aléatoires » mais un banc apparié (trio
+  Plante/Feu/Eau par graine) ; la dernière mesure est 58,6, pas 57 ; l'erreur-type à utiliser
+  est celle des différences appariées.
+- Plan de phases avec efforts et risques ; vague 200 jugée hors de portée à court terme.
+- Question GitHub : déjà réglée (dépôt Loogatoxx/pokerogue-bot, entrée 3).
+
+**Modifications**
+- Nouveaux : `REGLES.md` (règles du jeu sourcées, règles de Carlos, décisions d'architecture),
+  `BACKLOG.md` (11 idées hors phase), `RESULTATS.md` (mesures d'avant protocole).
+- Aucun code modifié.
+
+**Objectif**
+Repartir sur une base écrite et vérifiée, pour qu'aucune règle du jeu ne soit plus oubliée ni
+devinée, et savoir ce qui existe déjà avant d'investir dans une phase.
+
+## 30. Phase 1 : instrumentation, protocole figé, baseline — 04/10/2026
+
+**Prompt**
+> question 1 je suis d accord, question 2 on peu faire la reponse a, 3 je suis d accord, 4 je suis
+> daccord, on est la pas pour tout refaire mais justement detecter les anomalie et tout corriger,
+> oui c'est vrai les objet non pas le meme poid/valeur selon la situation et la vague. GO
+
+**Réponse**
+- Décisions actées :
+  - le banc apparié devient le protocole figé ;
+  - les bancs officiels tournent sur le Mac ;
+  - on mesure « cerveau v5 » contre « plan seul » ;
+  - pas de commentaire dans le nouveau code, et les anciens restent.
+- Le simulateur tourne maintenant aussi dans le cloud : Node 24, jeu au tag `v1.12.0.11`, seulement
+  les données JSON du dépôt d'images. Une partie complète prend environ 4 s.
+- Instrumentation, sans changer aucune décision (vérifié : 6 parties identiques avant et après) :
+  - type du combat perdu (rencontre mystère, dresseur, sauvage) et boss ou non ;
+  - changements volontaires consécutifs (H4) ;
+  - total des stats de base des starters.
+- Banc : statistiques complètes (écart-type, erreur-type, p10/p90, histogramme, morts par type de
+  vague, argent et objets à la mort, changements, tiers de force des starters) et verdict
+  automatique « garder » ou « revenir en arrière » à 2 erreurs-types appariées.
+  - Nouvelles options : `--plan-seul`, `--mysteres` (par défaut au rythme du jeu), `--dossier`.
+  - Les parties en erreur sont enregistrées au lieu de disparaître.
+- Anomalies trouvées :
+  - l'ancien banc jouait **sans rencontres mystères** ;
+  - le pilote prend toujours **la 1re option** d'une rencontre mystère, souvent le combat
+    contre un boss : 3 morts sur 6 au premier test, 4 sur 24 au second ;
+  - un mort au champion avec 3 176 ₽ non dépensés ;
+  - 9 parties sur 24 ont au moins 3 changements d'affilée (plan seul).
+- Le cerveau v5 ne fait pas que départager : il décide aussi des captures (Ball contre attaque à
+  valeur égale). « Plan seul » utilise donc la règle de capture du planificateur.
+- Aperçu cloud (plan seul, 480 parties, à confirmer sur le Mac) :
+  - avec les rencontres mystères 40,26, sans 54,69 : **−14,24 ± 1,44 vagues** ;
+  - les rencontres mystères sont la 1re cause de mort (35 %) ;
+  - 34 à 49 % des parties ont au moins 3 changements d'affilée, avec des séries jusqu'à 91 contre
+    des dresseurs (H4 confirmée) ;
+  - 15 parties bloquées dans une boucle du pilote (rencontre mystère, écran de résumé).
+- Correctif du banc : une partie bloquée au démarrage (copie du jeu en mauvais état) est rejouée au
+  lieu d'être comptée comme erreur.
+
+**Modifications**
+- `simulateur/environnement.test.ts` : 23 lignes ajoutées (défaite, changements, total des stats).
+- `entraineur/banc_complet.py` : statistiques via le nouveau module, plan seul, rencontres
+  mystères, erreurs enregistrées, dossier au choix.
+- Nouveaux : `entraineur/statistiques_banc.py`, `entraineur/test_statistiques_banc.py`,
+  `donnees/vagues-classique.json` (combats fixes, source citée).
+- `RESULTATS.md` (protocole figé), `REGLES.md` (C5), `BACKLOG.md` (n° 1 fait, n° 12 à 14),
+  `README.md` (jeu épinglé au tag `v1.12.0.11`).
+
+**Objectif**
+Mesurer juste et complet avant de corriger quoi que ce soit, en jouant dans les conditions du vrai
+jeu, pour que chaque correction des phases suivantes soit gardée ou rejetée sur des chiffres.

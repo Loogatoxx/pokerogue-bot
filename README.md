@@ -22,14 +22,17 @@ Détails : [`docs/architecture.md`](docs/architecture.md).
 
 ## Installer la copie locale du jeu
 
-Il faut Node 24 ou plus récent et pnpm (`brew install pnpm`). On clone **la branche `main`**,
-qui correspond à la version en ligne sur pokerogue.net :
+Il faut Node 24.9 ou plus récent et pnpm (`brew install pnpm`). On clone **le tag `v1.12.0.11`**,
+la version sur laquelle les règles de `REGLES.md` ont été vérifiées. Elle était identique à la
+branche `main` et au site le 04/10/2026 ; `main` bouge, le tag non :
 
 ```bash
-git clone --depth 1 --branch main --recurse-submodules --shallow-submodules \
+git clone --depth 1 --branch v1.12.0.11 --recurse-submodules --shallow-submodules \
   https://github.com/pagefaultgames/pokerogue.git jeu
 cd jeu && pnpm install
 ```
+
+Vérifier la version d'une copie déjà installée : `git -C jeu describe --tags` doit afficher `v1.12.0.11`.
 
 Jouer à la copie locale dans le navigateur : `pnpm --dir jeu start:dev`, puis
 http://localhost:8000.
