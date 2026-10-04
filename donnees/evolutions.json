@@ -1,0 +1,1979 @@
+{
+ "source": "PokéRogue v1.12.0.11 : speciesDataRegistry.getEvolutions (src/data/balance/pokemon-evolutions.ts), évolutions par niveau seulement, sans objet ni condition, une seule possible",
+ "evolutions": {
+  "1": {
+   "nom": "BULBASAUR",
+   "niveau": 16,
+   "vers": "IVYSAUR",
+   "gainStats": 87
+  },
+  "2": {
+   "nom": "IVYSAUR",
+   "niveau": 32,
+   "vers": "VENUSAUR",
+   "gainStats": 120
+  },
+  "4": {
+   "nom": "CHARMANDER",
+   "niveau": 16,
+   "vers": "CHARMELEON",
+   "gainStats": 96
+  },
+  "5": {
+   "nom": "CHARMELEON",
+   "niveau": 36,
+   "vers": "CHARIZARD",
+   "gainStats": 129
+  },
+  "7": {
+   "nom": "SQUIRTLE",
+   "niveau": 16,
+   "vers": "WARTORTLE",
+   "gainStats": 91
+  },
+  "8": {
+   "nom": "WARTORTLE",
+   "niveau": 36,
+   "vers": "BLASTOISE",
+   "gainStats": 125
+  },
+  "10": {
+   "nom": "CATERPIE",
+   "niveau": 7,
+   "vers": "METAPOD",
+   "gainStats": 10
+  },
+  "11": {
+   "nom": "METAPOD",
+   "niveau": 10,
+   "vers": "BUTTERFREE",
+   "gainStats": 190
+  },
+  "13": {
+   "nom": "WEEDLE",
+   "niveau": 7,
+   "vers": "KAKUNA",
+   "gainStats": 10
+  },
+  "14": {
+   "nom": "KAKUNA",
+   "niveau": 10,
+   "vers": "BEEDRILL",
+   "gainStats": 190
+  },
+  "16": {
+   "nom": "PIDGEY",
+   "niveau": 18,
+   "vers": "PIDGEOTTO",
+   "gainStats": 98
+  },
+  "17": {
+   "nom": "PIDGEOTTO",
+   "niveau": 36,
+   "vers": "PIDGEOT",
+   "gainStats": 130
+  },
+  "19": {
+   "nom": "RATTATA",
+   "niveau": 20,
+   "vers": "RATICATE",
+   "gainStats": 160
+  },
+  "21": {
+   "nom": "SPEAROW",
+   "niveau": 20,
+   "vers": "FEAROW",
+   "gainStats": 180
+  },
+  "23": {
+   "nom": "EKANS",
+   "niveau": 22,
+   "vers": "ARBOK",
+   "gainStats": 160
+  },
+  "27": {
+   "nom": "SANDSHREW",
+   "niveau": 22,
+   "vers": "SANDSLASH",
+   "gainStats": 150
+  },
+  "29": {
+   "nom": "NIDORAN_F",
+   "niveau": 16,
+   "vers": "NIDORINA",
+   "gainStats": 90
+  },
+  "32": {
+   "nom": "NIDORAN_M",
+   "niveau": 16,
+   "vers": "NIDORINO",
+   "gainStats": 92
+  },
+  "41": {
+   "nom": "ZUBAT",
+   "niveau": 22,
+   "vers": "GOLBAT",
+   "gainStats": 210
+  },
+  "43": {
+   "nom": "ODDISH",
+   "niveau": 21,
+   "vers": "GLOOM",
+   "gainStats": 75
+  },
+  "46": {
+   "nom": "PARAS",
+   "niveau": 24,
+   "vers": "PARASECT",
+   "gainStats": 120
+  },
+  "48": {
+   "nom": "VENONAT",
+   "niveau": 31,
+   "vers": "VENOMOTH",
+   "gainStats": 145
+  },
+  "50": {
+   "nom": "DIGLETT",
+   "niveau": 26,
+   "vers": "DUGTRIO",
+   "gainStats": 160
+  },
+  "52": {
+   "nom": "MEOWTH",
+   "niveau": 28,
+   "vers": "PERSIAN",
+   "gainStats": 150
+  },
+  "54": {
+   "nom": "PSYDUCK",
+   "niveau": 33,
+   "vers": "GOLDUCK",
+   "gainStats": 180
+  },
+  "56": {
+   "nom": "MANKEY",
+   "niveau": 28,
+   "vers": "PRIMEAPE",
+   "gainStats": 150
+  },
+  "60": {
+   "nom": "POLIWAG",
+   "niveau": 25,
+   "vers": "POLIWHIRL",
+   "gainStats": 85
+  },
+  "63": {
+   "nom": "ABRA",
+   "niveau": 16,
+   "vers": "KADABRA",
+   "gainStats": 90
+  },
+  "66": {
+   "nom": "MACHOP",
+   "niveau": 28,
+   "vers": "MACHOKE",
+   "gainStats": 100
+  },
+  "69": {
+   "nom": "BELLSPROUT",
+   "niveau": 21,
+   "vers": "WEEPINBELL",
+   "gainStats": 90
+  },
+  "72": {
+   "nom": "TENTACOOL",
+   "niveau": 30,
+   "vers": "TENTACRUEL",
+   "gainStats": 180
+  },
+  "74": {
+   "nom": "GEODUDE",
+   "niveau": 25,
+   "vers": "GRAVELER",
+   "gainStats": 90
+  },
+  "77": {
+   "nom": "PONYTA",
+   "niveau": 40,
+   "vers": "RAPIDASH",
+   "gainStats": 90
+  },
+  "79": {
+   "nom": "SLOWPOKE",
+   "niveau": 37,
+   "vers": "SLOWBRO",
+   "gainStats": 175
+  },
+  "81": {
+   "nom": "MAGNEMITE",
+   "niveau": 30,
+   "vers": "MAGNETON",
+   "gainStats": 140
+  },
+  "84": {
+   "nom": "DODUO",
+   "niveau": 31,
+   "vers": "DODRIO",
+   "gainStats": 160
+  },
+  "86": {
+   "nom": "SEEL",
+   "niveau": 34,
+   "vers": "DEWGONG",
+   "gainStats": 150
+  },
+  "88": {
+   "nom": "GRIMER",
+   "niveau": 38,
+   "vers": "MUK",
+   "gainStats": 175
+  },
+  "92": {
+   "nom": "GASTLY",
+   "niveau": 25,
+   "vers": "HAUNTER",
+   "gainStats": 95
+  },
+  "96": {
+   "nom": "DROWZEE",
+   "niveau": 26,
+   "vers": "HYPNO",
+   "gainStats": 155
+  },
+  "98": {
+   "nom": "KRABBY",
+   "niveau": 28,
+   "vers": "KINGLER",
+   "gainStats": 150
+  },
+  "100": {
+   "nom": "VOLTORB",
+   "niveau": 30,
+   "vers": "ELECTRODE",
+   "gainStats": 160
+  },
+  "111": {
+   "nom": "RHYHORN",
+   "niveau": 42,
+   "vers": "RHYDON",
+   "gainStats": 140
+  },
+  "116": {
+   "nom": "HORSEA",
+   "niveau": 32,
+   "vers": "SEADRA",
+   "gainStats": 145
+  },
+  "118": {
+   "nom": "GOLDEEN",
+   "niveau": 33,
+   "vers": "SEAKING",
+   "gainStats": 130
+  },
+  "129": {
+   "nom": "MAGIKARP",
+   "niveau": 20,
+   "vers": "GYARADOS",
+   "gainStats": 340
+  },
+  "138": {
+   "nom": "OMANYTE",
+   "niveau": 40,
+   "vers": "OMASTAR",
+   "gainStats": 140
+  },
+  "140": {
+   "nom": "KABUTO",
+   "niveau": 40,
+   "vers": "KABUTOPS",
+   "gainStats": 140
+  },
+  "147": {
+   "nom": "DRATINI",
+   "niveau": 30,
+   "vers": "DRAGONAIR",
+   "gainStats": 120
+  },
+  "148": {
+   "nom": "DRAGONAIR",
+   "niveau": 55,
+   "vers": "DRAGONITE",
+   "gainStats": 180
+  },
+  "152": {
+   "nom": "CHIKORITA",
+   "niveau": 16,
+   "vers": "BAYLEEF",
+   "gainStats": 87
+  },
+  "153": {
+   "nom": "BAYLEEF",
+   "niveau": 32,
+   "vers": "MEGANIUM",
+   "gainStats": 120
+  },
+  "155": {
+   "nom": "CYNDAQUIL",
+   "niveau": 14,
+   "vers": "QUILAVA",
+   "gainStats": 96
+  },
+  "158": {
+   "nom": "TOTODILE",
+   "niveau": 18,
+   "vers": "CROCONAW",
+   "gainStats": 91
+  },
+  "159": {
+   "nom": "CROCONAW",
+   "niveau": 30,
+   "vers": "FERALIGATR",
+   "gainStats": 125
+  },
+  "161": {
+   "nom": "SENTRET",
+   "niveau": 15,
+   "vers": "FURRET",
+   "gainStats": 200
+  },
+  "163": {
+   "nom": "HOOTHOOT",
+   "niveau": 20,
+   "vers": "NOCTOWL",
+   "gainStats": 190
+  },
+  "165": {
+   "nom": "LEDYBA",
+   "niveau": 18,
+   "vers": "LEDIAN",
+   "gainStats": 125
+  },
+  "167": {
+   "nom": "SPINARAK",
+   "niveau": 22,
+   "vers": "ARIADOS",
+   "gainStats": 150
+  },
+  "170": {
+   "nom": "CHINCHOU",
+   "niveau": 27,
+   "vers": "LANTURN",
+   "gainStats": 130
+  },
+  "177": {
+   "nom": "NATU",
+   "niveau": 25,
+   "vers": "XATU",
+   "gainStats": 150
+  },
+  "179": {
+   "nom": "MAREEP",
+   "niveau": 15,
+   "vers": "FLAAFFY",
+   "gainStats": 85
+  },
+  "180": {
+   "nom": "FLAAFFY",
+   "niveau": 30,
+   "vers": "AMPHAROS",
+   "gainStats": 145
+  },
+  "183": {
+   "nom": "MARILL",
+   "niveau": 18,
+   "vers": "AZUMARILL",
+   "gainStats": 170
+  },
+  "187": {
+   "nom": "HOPPIP",
+   "niveau": 18,
+   "vers": "SKIPLOOM",
+   "gainStats": 90
+  },
+  "188": {
+   "nom": "SKIPLOOM",
+   "niveau": 27,
+   "vers": "JUMPLUFF",
+   "gainStats": 120
+  },
+  "194": {
+   "nom": "WOOPER",
+   "niveau": 20,
+   "vers": "QUAGSIRE",
+   "gainStats": 220
+  },
+  "204": {
+   "nom": "PINECO",
+   "niveau": 31,
+   "vers": "FORRETRESS",
+   "gainStats": 175
+  },
+  "209": {
+   "nom": "SNUBBULL",
+   "niveau": 23,
+   "vers": "GRANBULL",
+   "gainStats": 150
+  },
+  "216": {
+   "nom": "TEDDIURSA",
+   "niveau": 30,
+   "vers": "URSARING",
+   "gainStats": 170
+  },
+  "218": {
+   "nom": "SLUGMA",
+   "niveau": 38,
+   "vers": "MAGCARGO",
+   "gainStats": 180
+  },
+  "220": {
+   "nom": "SWINUB",
+   "niveau": 33,
+   "vers": "PILOSWINE",
+   "gainStats": 200
+  },
+  "223": {
+   "nom": "REMORAID",
+   "niveau": 25,
+   "vers": "OCTILLERY",
+   "gainStats": 180
+  },
+  "228": {
+   "nom": "HOUNDOUR",
+   "niveau": 24,
+   "vers": "HOUNDOOM",
+   "gainStats": 170
+  },
+  "231": {
+   "nom": "PHANPY",
+   "niveau": 25,
+   "vers": "DONPHAN",
+   "gainStats": 170
+  },
+  "238": {
+   "nom": "SMOOCHUM",
+   "niveau": 30,
+   "vers": "JYNX",
+   "gainStats": 150
+  },
+  "239": {
+   "nom": "ELEKID",
+   "niveau": 30,
+   "vers": "ELECTABUZZ",
+   "gainStats": 130
+  },
+  "240": {
+   "nom": "MAGBY",
+   "niveau": 30,
+   "vers": "MAGMAR",
+   "gainStats": 130
+  },
+  "246": {
+   "nom": "LARVITAR",
+   "niveau": 30,
+   "vers": "PUPITAR",
+   "gainStats": 110
+  },
+  "247": {
+   "nom": "PUPITAR",
+   "niveau": 55,
+   "vers": "TYRANITAR",
+   "gainStats": 190
+  },
+  "252": {
+   "nom": "TREECKO",
+   "niveau": 16,
+   "vers": "GROVYLE",
+   "gainStats": 95
+  },
+  "253": {
+   "nom": "GROVYLE",
+   "niveau": 36,
+   "vers": "SCEPTILE",
+   "gainStats": 125
+  },
+  "255": {
+   "nom": "TORCHIC",
+   "niveau": 16,
+   "vers": "COMBUSKEN",
+   "gainStats": 95
+  },
+  "256": {
+   "nom": "COMBUSKEN",
+   "niveau": 36,
+   "vers": "BLAZIKEN",
+   "gainStats": 125
+  },
+  "258": {
+   "nom": "MUDKIP",
+   "niveau": 16,
+   "vers": "MARSHTOMP",
+   "gainStats": 95
+  },
+  "259": {
+   "nom": "MARSHTOMP",
+   "niveau": 36,
+   "vers": "SWAMPERT",
+   "gainStats": 130
+  },
+  "261": {
+   "nom": "POOCHYENA",
+   "niveau": 18,
+   "vers": "MIGHTYENA",
+   "gainStats": 200
+  },
+  "263": {
+   "nom": "ZIGZAGOON",
+   "niveau": 20,
+   "vers": "LINOONE",
+   "gainStats": 180
+  },
+  "266": {
+   "nom": "SILCOON",
+   "niveau": 10,
+   "vers": "BEAUTIFLY",
+   "gainStats": 190
+  },
+  "268": {
+   "nom": "CASCOON",
+   "niveau": 10,
+   "vers": "DUSTOX",
+   "gainStats": 180
+  },
+  "270": {
+   "nom": "LOTAD",
+   "niveau": 14,
+   "vers": "LOMBRE",
+   "gainStats": 120
+  },
+  "273": {
+   "nom": "SEEDOT",
+   "niveau": 14,
+   "vers": "NUZLEAF",
+   "gainStats": 120
+  },
+  "276": {
+   "nom": "TAILLOW",
+   "niveau": 22,
+   "vers": "SWELLOW",
+   "gainStats": 185
+  },
+  "278": {
+   "nom": "WINGULL",
+   "niveau": 25,
+   "vers": "PELIPPER",
+   "gainStats": 170
+  },
+  "280": {
+   "nom": "RALTS",
+   "niveau": 20,
+   "vers": "KIRLIA",
+   "gainStats": 80
+  },
+  "281": {
+   "nom": "KIRLIA",
+   "niveau": 30,
+   "vers": "GARDEVOIR",
+   "gainStats": 240
+  },
+  "283": {
+   "nom": "SURSKIT",
+   "niveau": 22,
+   "vers": "MASQUERAIN",
+   "gainStats": 185
+  },
+  "285": {
+   "nom": "SHROOMISH",
+   "niveau": 23,
+   "vers": "BRELOOM",
+   "gainStats": 165
+  },
+  "287": {
+   "nom": "SLAKOTH",
+   "niveau": 18,
+   "vers": "VIGOROTH",
+   "gainStats": 160
+  },
+  "288": {
+   "nom": "VIGOROTH",
+   "niveau": 36,
+   "vers": "SLAKING",
+   "gainStats": 230
+  },
+  "290": {
+   "nom": "NINCADA",
+   "niveau": 20,
+   "vers": "NINJASK",
+   "gainStats": 190
+  },
+  "293": {
+   "nom": "WHISMUR",
+   "niveau": 20,
+   "vers": "LOUDRED",
+   "gainStats": 120
+  },
+  "294": {
+   "nom": "LOUDRED",
+   "niveau": 40,
+   "vers": "EXPLOUD",
+   "gainStats": 130
+  },
+  "296": {
+   "nom": "MAKUHITA",
+   "niveau": 24,
+   "vers": "HARIYAMA",
+   "gainStats": 237
+  },
+  "304": {
+   "nom": "ARON",
+   "niveau": 32,
+   "vers": "LAIRON",
+   "gainStats": 100
+  },
+  "305": {
+   "nom": "LAIRON",
+   "niveau": 42,
+   "vers": "AGGRON",
+   "gainStats": 100
+  },
+  "307": {
+   "nom": "MEDITITE",
+   "niveau": 37,
+   "vers": "MEDICHAM",
+   "gainStats": 130
+  },
+  "309": {
+   "nom": "ELECTRIKE",
+   "niveau": 26,
+   "vers": "MANECTRIC",
+   "gainStats": 180
+  },
+  "316": {
+   "nom": "GULPIN",
+   "niveau": 26,
+   "vers": "SWALOT",
+   "gainStats": 165
+  },
+  "318": {
+   "nom": "CARVANHA",
+   "niveau": 30,
+   "vers": "SHARPEDO",
+   "gainStats": 155
+  },
+  "320": {
+   "nom": "WAILMER",
+   "niveau": 40,
+   "vers": "WAILORD",
+   "gainStats": 100
+  },
+  "322": {
+   "nom": "NUMEL",
+   "niveau": 33,
+   "vers": "CAMERUPT",
+   "gainStats": 155
+  },
+  "325": {
+   "nom": "SPOINK",
+   "niveau": 32,
+   "vers": "GRUMPIG",
+   "gainStats": 140
+  },
+  "328": {
+   "nom": "TRAPINCH",
+   "niveau": 35,
+   "vers": "VIBRAVA",
+   "gainStats": 50
+  },
+  "329": {
+   "nom": "VIBRAVA",
+   "niveau": 45,
+   "vers": "FLYGON",
+   "gainStats": 180
+  },
+  "331": {
+   "nom": "CACNEA",
+   "niveau": 32,
+   "vers": "CACTURNE",
+   "gainStats": 140
+  },
+  "333": {
+   "nom": "SWABLU",
+   "niveau": 35,
+   "vers": "ALTARIA",
+   "gainStats": 180
+  },
+  "339": {
+   "nom": "BARBOACH",
+   "niveau": 30,
+   "vers": "WHISCASH",
+   "gainStats": 180
+  },
+  "341": {
+   "nom": "CORPHISH",
+   "niveau": 30,
+   "vers": "CRAWDAUNT",
+   "gainStats": 160
+  },
+  "343": {
+   "nom": "BALTOY",
+   "niveau": 36,
+   "vers": "CLAYDOL",
+   "gainStats": 200
+  },
+  "345": {
+   "nom": "LILEEP",
+   "niveau": 40,
+   "vers": "CRADILY",
+   "gainStats": 140
+  },
+  "347": {
+   "nom": "ANORITH",
+   "niveau": 40,
+   "vers": "ARMALDO",
+   "gainStats": 140
+  },
+  "353": {
+   "nom": "SHUPPET",
+   "niveau": 37,
+   "vers": "BANETTE",
+   "gainStats": 160
+  },
+  "355": {
+   "nom": "DUSKULL",
+   "niveau": 37,
+   "vers": "DUSCLOPS",
+   "gainStats": 160
+  },
+  "360": {
+   "nom": "WYNAUT",
+   "niveau": 15,
+   "vers": "WOBBUFFET",
+   "gainStats": 145
+  },
+  "361": {
+   "nom": "SNORUNT",
+   "niveau": 42,
+   "vers": "GLALIE",
+   "gainStats": 180
+  },
+  "363": {
+   "nom": "SPHEAL",
+   "niveau": 32,
+   "vers": "SEALEO",
+   "gainStats": 120
+  },
+  "364": {
+   "nom": "SEALEO",
+   "niveau": 44,
+   "vers": "WALREIN",
+   "gainStats": 120
+  },
+  "371": {
+   "nom": "BAGON",
+   "niveau": 30,
+   "vers": "SHELGON",
+   "gainStats": 120
+  },
+  "372": {
+   "nom": "SHELGON",
+   "niveau": 50,
+   "vers": "SALAMENCE",
+   "gainStats": 180
+  },
+  "374": {
+   "nom": "BELDUM",
+   "niveau": 20,
+   "vers": "METANG",
+   "gainStats": 120
+  },
+  "375": {
+   "nom": "METANG",
+   "niveau": 45,
+   "vers": "METAGROSS",
+   "gainStats": 180
+  },
+  "387": {
+   "nom": "TURTWIG",
+   "niveau": 18,
+   "vers": "GROTLE",
+   "gainStats": 87
+  },
+  "388": {
+   "nom": "GROTLE",
+   "niveau": 32,
+   "vers": "TORTERRA",
+   "gainStats": 120
+  },
+  "390": {
+   "nom": "CHIMCHAR",
+   "niveau": 14,
+   "vers": "MONFERNO",
+   "gainStats": 96
+  },
+  "391": {
+   "nom": "MONFERNO",
+   "niveau": 36,
+   "vers": "INFERNAPE",
+   "gainStats": 129
+  },
+  "393": {
+   "nom": "PIPLUP",
+   "niveau": 16,
+   "vers": "PRINPLUP",
+   "gainStats": 91
+  },
+  "394": {
+   "nom": "PRINPLUP",
+   "niveau": 36,
+   "vers": "EMPOLEON",
+   "gainStats": 125
+  },
+  "396": {
+   "nom": "STARLY",
+   "niveau": 14,
+   "vers": "STARAVIA",
+   "gainStats": 95
+  },
+  "397": {
+   "nom": "STARAVIA",
+   "niveau": 34,
+   "vers": "STARAPTOR",
+   "gainStats": 145
+  },
+  "399": {
+   "nom": "BIDOOF",
+   "niveau": 15,
+   "vers": "BIBAREL",
+   "gainStats": 160
+  },
+  "401": {
+   "nom": "KRICKETOT",
+   "niveau": 10,
+   "vers": "KRICKETUNE",
+   "gainStats": 190
+  },
+  "403": {
+   "nom": "SHINX",
+   "niveau": 15,
+   "vers": "LUXIO",
+   "gainStats": 100
+  },
+  "404": {
+   "nom": "LUXIO",
+   "niveau": 30,
+   "vers": "LUXRAY",
+   "gainStats": 160
+  },
+  "408": {
+   "nom": "CRANIDOS",
+   "niveau": 30,
+   "vers": "RAMPARDOS",
+   "gainStats": 145
+  },
+  "410": {
+   "nom": "SHIELDON",
+   "niveau": 30,
+   "vers": "BASTIODON",
+   "gainStats": 145
+  },
+  "418": {
+   "nom": "BUIZEL",
+   "niveau": 26,
+   "vers": "FLOATZEL",
+   "gainStats": 165
+  },
+  "420": {
+   "nom": "CHERUBI",
+   "niveau": 25,
+   "vers": "CHERRIM",
+   "gainStats": 175
+  },
+  "422": {
+   "nom": "SHELLOS",
+   "niveau": 30,
+   "vers": "GASTRODON",
+   "gainStats": 150
+  },
+  "425": {
+   "nom": "DRIFLOON",
+   "niveau": 28,
+   "vers": "DRIFBLIM",
+   "gainStats": 150
+  },
+  "431": {
+   "nom": "GLAMEOW",
+   "niveau": 38,
+   "vers": "PURUGLY",
+   "gainStats": 142
+  },
+  "434": {
+   "nom": "STUNKY",
+   "niveau": 34,
+   "vers": "SKUNTANK",
+   "gainStats": 150
+  },
+  "436": {
+   "nom": "BRONZOR",
+   "niveau": 33,
+   "vers": "BRONZONG",
+   "gainStats": 200
+  },
+  "443": {
+   "nom": "GIBLE",
+   "niveau": 24,
+   "vers": "GABITE",
+   "gainStats": 110
+  },
+  "444": {
+   "nom": "GABITE",
+   "niveau": 48,
+   "vers": "GARCHOMP",
+   "gainStats": 190
+  },
+  "449": {
+   "nom": "HIPPOPOTAS",
+   "niveau": 34,
+   "vers": "HIPPOWDON",
+   "gainStats": 195
+  },
+  "451": {
+   "nom": "SKORUPI",
+   "niveau": 40,
+   "vers": "DRAPION",
+   "gainStats": 170
+  },
+  "453": {
+   "nom": "CROAGUNK",
+   "niveau": 37,
+   "vers": "TOXICROAK",
+   "gainStats": 190
+  },
+  "456": {
+   "nom": "FINNEON",
+   "niveau": 31,
+   "vers": "LUMINEON",
+   "gainStats": 130
+  },
+  "459": {
+   "nom": "SNOVER",
+   "niveau": 40,
+   "vers": "ABOMASNOW",
+   "gainStats": 160
+  },
+  "495": {
+   "nom": "SNIVY",
+   "niveau": 17,
+   "vers": "SERVINE",
+   "gainStats": 105
+  },
+  "496": {
+   "nom": "SERVINE",
+   "niveau": 36,
+   "vers": "SERPERIOR",
+   "gainStats": 115
+  },
+  "498": {
+   "nom": "TEPIG",
+   "niveau": 17,
+   "vers": "PIGNITE",
+   "gainStats": 110
+  },
+  "499": {
+   "nom": "PIGNITE",
+   "niveau": 36,
+   "vers": "EMBOAR",
+   "gainStats": 110
+  },
+  "501": {
+   "nom": "OSHAWOTT",
+   "niveau": 17,
+   "vers": "DEWOTT",
+   "gainStats": 105
+  },
+  "504": {
+   "nom": "PATRAT",
+   "niveau": 20,
+   "vers": "WATCHOG",
+   "gainStats": 165
+  },
+  "506": {
+   "nom": "LILLIPUP",
+   "niveau": 16,
+   "vers": "HERDIER",
+   "gainStats": 95
+  },
+  "507": {
+   "nom": "HERDIER",
+   "niveau": 32,
+   "vers": "STOUTLAND",
+   "gainStats": 130
+  },
+  "509": {
+   "nom": "PURRLOIN",
+   "niveau": 20,
+   "vers": "LIEPARD",
+   "gainStats": 165
+  },
+  "519": {
+   "nom": "PIDOVE",
+   "niveau": 21,
+   "vers": "TRANQUILL",
+   "gainStats": 94
+  },
+  "520": {
+   "nom": "TRANQUILL",
+   "niveau": 32,
+   "vers": "UNFEZANT",
+   "gainStats": 130
+  },
+  "522": {
+   "nom": "BLITZLE",
+   "niveau": 27,
+   "vers": "ZEBSTRIKA",
+   "gainStats": 202
+  },
+  "524": {
+   "nom": "ROGGENROLA",
+   "niveau": 25,
+   "vers": "BOLDORE",
+   "gainStats": 110
+  },
+  "529": {
+   "nom": "DRILBUR",
+   "niveau": 31,
+   "vers": "EXCADRILL",
+   "gainStats": 180
+  },
+  "532": {
+   "nom": "TIMBURR",
+   "niveau": 25,
+   "vers": "GURDURR",
+   "gainStats": 100
+  },
+  "535": {
+   "nom": "TYMPOLE",
+   "niveau": 25,
+   "vers": "PALPITOAD",
+   "gainStats": 90
+  },
+  "536": {
+   "nom": "PALPITOAD",
+   "niveau": 36,
+   "vers": "SEISMITOAD",
+   "gainStats": 125
+  },
+  "540": {
+   "nom": "SEWADDLE",
+   "niveau": 20,
+   "vers": "SWADLOON",
+   "gainStats": 70
+  },
+  "543": {
+   "nom": "VENIPEDE",
+   "niveau": 22,
+   "vers": "WHIRLIPEDE",
+   "gainStats": 100
+  },
+  "544": {
+   "nom": "WHIRLIPEDE",
+   "niveau": 30,
+   "vers": "SCOLIPEDE",
+   "gainStats": 125
+  },
+  "551": {
+   "nom": "SANDILE",
+   "niveau": 29,
+   "vers": "KROKOROK",
+   "gainStats": 59
+  },
+  "552": {
+   "nom": "KROKOROK",
+   "niveau": 40,
+   "vers": "KROOKODILE",
+   "gainStats": 168
+  },
+  "554": {
+   "nom": "DARUMAKA",
+   "niveau": 35,
+   "vers": "DARMANITAN",
+   "gainStats": 165
+  },
+  "557": {
+   "nom": "DWEBBLE",
+   "niveau": 34,
+   "vers": "CRUSTLE",
+   "gainStats": 160
+  },
+  "559": {
+   "nom": "SCRAGGY",
+   "niveau": 39,
+   "vers": "SCRAFTY",
+   "gainStats": 140
+  },
+  "562": {
+   "nom": "YAMASK",
+   "niveau": 34,
+   "vers": "COFAGRIGUS",
+   "gainStats": 180
+  },
+  "564": {
+   "nom": "TIRTOUGA",
+   "niveau": 37,
+   "vers": "CARRACOSTA",
+   "gainStats": 140
+  },
+  "566": {
+   "nom": "ARCHEN",
+   "niveau": 37,
+   "vers": "ARCHEOPS",
+   "gainStats": 166
+  },
+  "568": {
+   "nom": "TRUBBISH",
+   "niveau": 36,
+   "vers": "GARBODOR",
+   "gainStats": 145
+  },
+  "570": {
+   "nom": "ZORUA",
+   "niveau": 30,
+   "vers": "ZOROARK",
+   "gainStats": 180
+  },
+  "574": {
+   "nom": "GOTHITA",
+   "niveau": 32,
+   "vers": "GOTHORITA",
+   "gainStats": 100
+  },
+  "575": {
+   "nom": "GOTHORITA",
+   "niveau": 41,
+   "vers": "GOTHITELLE",
+   "gainStats": 100
+  },
+  "577": {
+   "nom": "SOLOSIS",
+   "niveau": 32,
+   "vers": "DUOSION",
+   "gainStats": 80
+  },
+  "578": {
+   "nom": "DUOSION",
+   "niveau": 41,
+   "vers": "REUNICLUS",
+   "gainStats": 120
+  },
+  "580": {
+   "nom": "DUCKLETT",
+   "niveau": 35,
+   "vers": "SWANNA",
+   "gainStats": 168
+  },
+  "582": {
+   "nom": "VANILLITE",
+   "niveau": 35,
+   "vers": "VANILLISH",
+   "gainStats": 90
+  },
+  "583": {
+   "nom": "VANILLISH",
+   "niveau": 47,
+   "vers": "VANILLUXE",
+   "gainStats": 140
+  },
+  "585": {
+   "nom": "DEERLING",
+   "niveau": 34,
+   "vers": "SAWSBUCK",
+   "gainStats": 140
+  },
+  "590": {
+   "nom": "FOONGUS",
+   "niveau": 39,
+   "vers": "AMOONGUSS",
+   "gainStats": 170
+  },
+  "592": {
+   "nom": "FRILLISH",
+   "niveau": 40,
+   "vers": "JELLICENT",
+   "gainStats": 145
+  },
+  "595": {
+   "nom": "JOLTIK",
+   "niveau": 36,
+   "vers": "GALVANTULA",
+   "gainStats": 153
+  },
+  "597": {
+   "nom": "FERROSEED",
+   "niveau": 40,
+   "vers": "FERROTHORN",
+   "gainStats": 184
+  },
+  "599": {
+   "nom": "KLINK",
+   "niveau": 38,
+   "vers": "KLANG",
+   "gainStats": 140
+  },
+  "600": {
+   "nom": "KLANG",
+   "niveau": 49,
+   "vers": "KLINKLANG",
+   "gainStats": 80
+  },
+  "602": {
+   "nom": "TYNAMO",
+   "niveau": 39,
+   "vers": "EELEKTRIK",
+   "gainStats": 130
+  },
+  "605": {
+   "nom": "ELGYEM",
+   "niveau": 42,
+   "vers": "BEHEEYEM",
+   "gainStats": 150
+  },
+  "607": {
+   "nom": "LITWICK",
+   "niveau": 41,
+   "vers": "LAMPENT",
+   "gainStats": 95
+  },
+  "610": {
+   "nom": "AXEW",
+   "niveau": 38,
+   "vers": "FRAXURE",
+   "gainStats": 90
+  },
+  "611": {
+   "nom": "FRAXURE",
+   "niveau": 48,
+   "vers": "HAXORUS",
+   "gainStats": 130
+  },
+  "613": {
+   "nom": "CUBCHOO",
+   "niveau": 37,
+   "vers": "BEARTIC",
+   "gainStats": 200
+  },
+  "619": {
+   "nom": "MIENFOO",
+   "niveau": 50,
+   "vers": "MIENSHAO",
+   "gainStats": 160
+  },
+  "622": {
+   "nom": "GOLETT",
+   "niveau": 43,
+   "vers": "GOLURK",
+   "gainStats": 180
+  },
+  "624": {
+   "nom": "PAWNIARD",
+   "niveau": 52,
+   "vers": "BISHARP",
+   "gainStats": 150
+  },
+  "629": {
+   "nom": "VULLABY",
+   "niveau": 54,
+   "vers": "MANDIBUZZ",
+   "gainStats": 140
+  },
+  "633": {
+   "nom": "DEINO",
+   "niveau": 50,
+   "vers": "ZWEILOUS",
+   "gainStats": 120
+  },
+  "634": {
+   "nom": "ZWEILOUS",
+   "niveau": 64,
+   "vers": "HYDREIGON",
+   "gainStats": 180
+  },
+  "636": {
+   "nom": "LARVESTA",
+   "niveau": 59,
+   "vers": "VOLCARONA",
+   "gainStats": 190
+  },
+  "650": {
+   "nom": "CHESPIN",
+   "niveau": 16,
+   "vers": "QUILLADIN",
+   "gainStats": 92
+  },
+  "651": {
+   "nom": "QUILLADIN",
+   "niveau": 36,
+   "vers": "CHESNAUGHT",
+   "gainStats": 125
+  },
+  "653": {
+   "nom": "FENNEKIN",
+   "niveau": 16,
+   "vers": "BRAIXEN",
+   "gainStats": 102
+  },
+  "654": {
+   "nom": "BRAIXEN",
+   "niveau": 36,
+   "vers": "DELPHOX",
+   "gainStats": 125
+  },
+  "656": {
+   "nom": "FROAKIE",
+   "niveau": 16,
+   "vers": "FROGADIER",
+   "gainStats": 91
+  },
+  "657": {
+   "nom": "FROGADIER",
+   "niveau": 36,
+   "vers": "GRENINJA",
+   "gainStats": 125
+  },
+  "659": {
+   "nom": "BUNNELBY",
+   "niveau": 20,
+   "vers": "DIGGERSBY",
+   "gainStats": 186
+  },
+  "661": {
+   "nom": "FLETCHLING",
+   "niveau": 17,
+   "vers": "FLETCHINDER",
+   "gainStats": 104
+  },
+  "662": {
+   "nom": "FLETCHINDER",
+   "niveau": 35,
+   "vers": "TALONFLAME",
+   "gainStats": 117
+  },
+  "664": {
+   "nom": "SCATTERBUG",
+   "niveau": 9,
+   "vers": "SPEWPA",
+   "gainStats": 13
+  },
+  "665": {
+   "nom": "SPEWPA",
+   "niveau": 12,
+   "vers": "VIVILLON",
+   "gainStats": 198
+  },
+  "667": {
+   "nom": "LITLEO",
+   "niveau": 35,
+   "vers": "PYROAR",
+   "gainStats": 138
+  },
+  "669": {
+   "nom": "FLABEBE",
+   "niveau": 19,
+   "vers": "FLOETTE",
+   "gainStats": 68
+  },
+  "672": {
+   "nom": "SKIDDO",
+   "niveau": 32,
+   "vers": "GOGOAT",
+   "gainStats": 181
+  },
+  "679": {
+   "nom": "HONEDGE",
+   "niveau": 35,
+   "vers": "DOUBLADE",
+   "gainStats": 123
+  },
+  "688": {
+   "nom": "BINACLE",
+   "niveau": 39,
+   "vers": "BARBARACLE",
+   "gainStats": 194
+  },
+  "690": {
+   "nom": "SKRELP",
+   "niveau": 48,
+   "vers": "DRAGALGE",
+   "gainStats": 174
+  },
+  "692": {
+   "nom": "CLAUNCHER",
+   "niveau": 37,
+   "vers": "CLAWITZER",
+   "gainStats": 170
+  },
+  "714": {
+   "nom": "NOIBAT",
+   "niveau": 48,
+   "vers": "NOIVERN",
+   "gainStats": 290
+  },
+  "722": {
+   "nom": "ROWLET",
+   "niveau": 17,
+   "vers": "DARTRIX",
+   "gainStats": 100
+  },
+  "725": {
+   "nom": "LITTEN",
+   "niveau": 17,
+   "vers": "TORRACAT",
+   "gainStats": 100
+  },
+  "726": {
+   "nom": "TORRACAT",
+   "niveau": 34,
+   "vers": "INCINEROAR",
+   "gainStats": 110
+  },
+  "728": {
+   "nom": "POPPLIO",
+   "niveau": 17,
+   "vers": "BRIONNE",
+   "gainStats": 100
+  },
+  "729": {
+   "nom": "BRIONNE",
+   "niveau": 34,
+   "vers": "PRIMARINA",
+   "gainStats": 110
+  },
+  "731": {
+   "nom": "PIKIPEK",
+   "niveau": 14,
+   "vers": "TRUMBEAK",
+   "gainStats": 90
+  },
+  "732": {
+   "nom": "TRUMBEAK",
+   "niveau": 28,
+   "vers": "TOUCANNON",
+   "gainStats": 130
+  },
+  "736": {
+   "nom": "GRUBBIN",
+   "niveau": 20,
+   "vers": "CHARJABUG",
+   "gainStats": 100
+  },
+  "742": {
+   "nom": "CUTIEFLY",
+   "niveau": 25,
+   "vers": "RIBOMBEE",
+   "gainStats": 160
+  },
+  "744": {
+   "nom": "ROCKRUFF",
+   "niveau": 25,
+   "vers": "LYCANROC",
+   "gainStats": 207
+  },
+  "747": {
+   "nom": "MAREANIE",
+   "niveau": 38,
+   "vers": "TOXAPEX",
+   "gainStats": 190
+  },
+  "749": {
+   "nom": "MUDBRAY",
+   "niveau": 30,
+   "vers": "MUDSDALE",
+   "gainStats": 115
+  },
+  "751": {
+   "nom": "DEWPIDER",
+   "niveau": 22,
+   "vers": "ARAQUANID",
+   "gainStats": 185
+  },
+  "755": {
+   "nom": "MORELULL",
+   "niveau": 24,
+   "vers": "SHIINOTIC",
+   "gainStats": 120
+  },
+  "759": {
+   "nom": "STUFFUL",
+   "niveau": 27,
+   "vers": "BEWEAR",
+   "gainStats": 160
+  },
+  "761": {
+   "nom": "BOUNSWEET",
+   "niveau": 18,
+   "vers": "STEENEE",
+   "gainStats": 80
+  },
+  "767": {
+   "nom": "WIMPOD",
+   "niveau": 30,
+   "vers": "GOLISOPOD",
+   "gainStats": 300
+  },
+  "769": {
+   "nom": "SANDYGAST",
+   "niveau": 42,
+   "vers": "PALOSSAND",
+   "gainStats": 160
+  },
+  "782": {
+   "nom": "JANGMO_O",
+   "niveau": 35,
+   "vers": "HAKAMO_O",
+   "gainStats": 120
+  },
+  "783": {
+   "nom": "HAKAMO_O",
+   "niveau": 45,
+   "vers": "KOMMO_O",
+   "gainStats": 180
+  },
+  "808": {
+   "nom": "MELTAN",
+   "niveau": 30,
+   "vers": "MELMETAL",
+   "gainStats": 300
+  },
+  "810": {
+   "nom": "GROOKEY",
+   "niveau": 16,
+   "vers": "THWACKEY",
+   "gainStats": 110
+  },
+  "811": {
+   "nom": "THWACKEY",
+   "niveau": 35,
+   "vers": "RILLABOOM",
+   "gainStats": 110
+  },
+  "813": {
+   "nom": "SCORBUNNY",
+   "niveau": 16,
+   "vers": "RABOOT",
+   "gainStats": 110
+  },
+  "814": {
+   "nom": "RABOOT",
+   "niveau": 35,
+   "vers": "CINDERACE",
+   "gainStats": 110
+  },
+  "816": {
+   "nom": "SOBBLE",
+   "niveau": 16,
+   "vers": "DRIZZILE",
+   "gainStats": 110
+  },
+  "817": {
+   "nom": "DRIZZILE",
+   "niveau": 35,
+   "vers": "INTELEON",
+   "gainStats": 110
+  },
+  "819": {
+   "nom": "SKWOVET",
+   "niveau": 24,
+   "vers": "GREEDENT",
+   "gainStats": 185
+  },
+  "821": {
+   "nom": "ROOKIDEE",
+   "niveau": 18,
+   "vers": "CORVISQUIRE",
+   "gainStats": 120
+  },
+  "822": {
+   "nom": "CORVISQUIRE",
+   "niveau": 38,
+   "vers": "CORVIKNIGHT",
+   "gainStats": 130
+  },
+  "824": {
+   "nom": "BLIPBUG",
+   "niveau": 10,
+   "vers": "DOTTLER",
+   "gainStats": 155
+  },
+  "825": {
+   "nom": "DOTTLER",
+   "niveau": 30,
+   "vers": "ORBEETLE",
+   "gainStats": 170
+  },
+  "827": {
+   "nom": "NICKIT",
+   "niveau": 18,
+   "vers": "THIEVUL",
+   "gainStats": 210
+  },
+  "829": {
+   "nom": "GOSSIFLEUR",
+   "niveau": 20,
+   "vers": "ELDEGOSS",
+   "gainStats": 210
+  },
+  "831": {
+   "nom": "WOOLOO",
+   "niveau": 24,
+   "vers": "DUBWOOL",
+   "gainStats": 220
+  },
+  "833": {
+   "nom": "CHEWTLE",
+   "niveau": 22,
+   "vers": "DREDNAW",
+   "gainStats": 201
+  },
+  "835": {
+   "nom": "YAMPER",
+   "niveau": 25,
+   "vers": "BOLTUND",
+   "gainStats": 220
+  },
+  "837": {
+   "nom": "ROLYCOLY",
+   "niveau": 18,
+   "vers": "CARKOL",
+   "gainStats": 170
+  },
+  "838": {
+   "nom": "CARKOL",
+   "niveau": 34,
+   "vers": "COALOSSAL",
+   "gainStats": 100
+  },
+  "843": {
+   "nom": "SILICOBRA",
+   "niveau": 36,
+   "vers": "SANDACONDA",
+   "gainStats": 195
+  },
+  "846": {
+   "nom": "ARROKUDA",
+   "niveau": 26,
+   "vers": "BARRASKEWDA",
+   "gainStats": 210
+  },
+  "848": {
+   "nom": "TOXEL",
+   "niveau": 30,
+   "vers": "TOXTRICITY",
+   "gainStats": 260
+  },
+  "850": {
+   "nom": "SIZZLIPEDE",
+   "niveau": 28,
+   "vers": "CENTISKORCH",
+   "gainStats": 220
+  },
+  "856": {
+   "nom": "HATENNA",
+   "niveau": 32,
+   "vers": "HATTREM",
+   "gainStats": 105
+  },
+  "857": {
+   "nom": "HATTREM",
+   "niveau": 42,
+   "vers": "HATTERENE",
+   "gainStats": 140
+  },
+  "859": {
+   "nom": "IMPIDIMP",
+   "niveau": 32,
+   "vers": "MORGREM",
+   "gainStats": 105
+  },
+  "860": {
+   "nom": "MORGREM",
+   "niveau": 42,
+   "vers": "GRIMMSNARL",
+   "gainStats": 140
+  },
+  "878": {
+   "nom": "CUFANT",
+   "niveau": 34,
+   "vers": "COPPERAJAH",
+   "gainStats": 170
+  },
+  "885": {
+   "nom": "DREEPY",
+   "niveau": 50,
+   "vers": "DRAKLOAK",
+   "gainStats": 140
+  },
+  "886": {
+   "nom": "DRAKLOAK",
+   "niveau": 60,
+   "vers": "DRAGAPULT",
+   "gainStats": 190
+  },
+  "906": {
+   "nom": "SPRIGATITO",
+   "niveau": 16,
+   "vers": "FLORAGATO",
+   "gainStats": 100
+  },
+  "907": {
+   "nom": "FLORAGATO",
+   "niveau": 36,
+   "vers": "MEOWSCARADA",
+   "gainStats": 120
+  },
+  "909": {
+   "nom": "FUECOCO",
+   "niveau": 16,
+   "vers": "CROCALOR",
+   "gainStats": 101
+  },
+  "910": {
+   "nom": "CROCALOR",
+   "niveau": 36,
+   "vers": "SKELEDIRGE",
+   "gainStats": 119
+  },
+  "912": {
+   "nom": "QUAXLY",
+   "niveau": 16,
+   "vers": "QUAXWELL",
+   "gainStats": 100
+  },
+  "913": {
+   "nom": "QUAXWELL",
+   "niveau": 36,
+   "vers": "QUAQUAVAL",
+   "gainStats": 120
+  },
+  "917": {
+   "nom": "TAROUNTULA",
+   "niveau": 15,
+   "vers": "SPIDOPS",
+   "gainStats": 194
+  },
+  "919": {
+   "nom": "NYMBLE",
+   "niveau": 24,
+   "vers": "LOKIX",
+   "gainStats": 240
+  },
+  "921": {
+   "nom": "PAWMI",
+   "niveau": 18,
+   "vers": "PAWMO",
+   "gainStats": 110
+  },
+  "922": {
+   "nom": "PAWMO",
+   "niveau": 32,
+   "vers": "PAWMOT",
+   "gainStats": 140
+  },
+  "924": {
+   "nom": "TANDEMAUS",
+   "niveau": 25,
+   "vers": "MAUSHOLD",
+   "gainStats": 165
+  },
+  "926": {
+   "nom": "FIDOUGH",
+   "niveau": 26,
+   "vers": "DACHSBUN",
+   "gainStats": 165
+  },
+  "928": {
+   "nom": "SMOLIV",
+   "niveau": 25,
+   "vers": "DOLLIV",
+   "gainStats": 94
+  },
+  "929": {
+   "nom": "DOLLIV",
+   "niveau": 35,
+   "vers": "ARBOLIVA",
+   "gainStats": 156
+  },
+  "932": {
+   "nom": "NACLI",
+   "niveau": 24,
+   "vers": "NACLSTACK",
+   "gainStats": 75
+  },
+  "933": {
+   "nom": "NACLSTACK",
+   "niveau": 38,
+   "vers": "GARGANACL",
+   "gainStats": 145
+  },
+  "940": {
+   "nom": "WATTREL",
+   "niveau": 25,
+   "vers": "KILOWATTREL",
+   "gainStats": 210
+  },
+  "942": {
+   "nom": "MASCHIFF",
+   "niveau": 30,
+   "vers": "MABOSSTIFF",
+   "gainStats": 165
+  },
+  "944": {
+   "nom": "SHROODLE",
+   "niveau": 28,
+   "vers": "GRAFAIAI",
+   "gainStats": 195
+  },
+  "946": {
+   "nom": "BRAMBLIN",
+   "niveau": 30,
+   "vers": "BRAMBLEGHAST",
+   "gainStats": 205
+  },
+  "948": {
+   "nom": "TOEDSCOOL",
+   "niveau": 30,
+   "vers": "TOEDSCRUEL",
+   "gainStats": 180
+  },
+  "953": {
+   "nom": "RELLOR",
+   "niveau": 29,
+   "vers": "RABSCA",
+   "gainStats": 200
+  },
+  "955": {
+   "nom": "FLITTLE",
+   "niveau": 35,
+   "vers": "ESPATHRA",
+   "gainStats": 226
+  },
+  "957": {
+   "nom": "TINKATINK",
+   "niveau": 24,
+   "vers": "TINKATUFF",
+   "gainStats": 83
+  },
+  "958": {
+   "nom": "TINKATUFF",
+   "niveau": 38,
+   "vers": "TINKATON",
+   "gainStats": 126
+  },
+  "960": {
+   "nom": "WIGLETT",
+   "niveau": 26,
+   "vers": "WUGTRIO",
+   "gainStats": 180
+  },
+  "963": {
+   "nom": "FINIZEN",
+   "niveau": 38,
+   "vers": "PALAFIN",
+   "gainStats": 142
+  },
+  "965": {
+   "nom": "VAROOM",
+   "niveau": 40,
+   "vers": "REVAVROOM",
+   "gainStats": 200
+  },
+  "969": {
+   "nom": "GLIMMET",
+   "niveau": 35,
+   "vers": "GLIMMORA",
+   "gainStats": 175
+  },
+  "996": {
+   "nom": "FRIGIBAX",
+   "niveau": 35,
+   "vers": "ARCTIBAX",
+   "gainStats": 103
+  },
+  "997": {
+   "nom": "ARCTIBAX",
+   "niveau": 54,
+   "vers": "BAXCALIBUR",
+   "gainStats": 177
+  },
+  "2050": {
+   "nom": "ALOLA_DIGLETT",
+   "niveau": 26,
+   "vers": "ALOLA_DUGTRIO",
+   "gainStats": 160
+  },
+  "2074": {
+   "nom": "ALOLA_GEODUDE",
+   "niveau": 25,
+   "vers": "ALOLA_GRAVELER",
+   "gainStats": 90
+  },
+  "2088": {
+   "nom": "ALOLA_GRIMER",
+   "niveau": 38,
+   "vers": "ALOLA_MUK",
+   "gainStats": 175
+  },
+  "4052": {
+   "nom": "GALAR_MEOWTH",
+   "niveau": 28,
+   "vers": "PERRSERKER",
+   "gainStats": 150
+  },
+  "4077": {
+   "nom": "GALAR_PONYTA",
+   "niveau": 40,
+   "vers": "GALAR_RAPIDASH",
+   "gainStats": 90
+  },
+  "4083": {
+   "nom": "GALAR_FARFETCHD",
+   "niveau": 30,
+   "vers": "SIRFETCHD",
+   "gainStats": 130
+  },
+  "4122": {
+   "nom": "GALAR_MR_MIME",
+   "niveau": 42,
+   "vers": "MR_RIME",
+   "gainStats": 60
+  },
+  "4222": {
+   "nom": "GALAR_CORSOLA",
+   "niveau": 38,
+   "vers": "CURSOLA",
+   "gainStats": 100
+  },
+  "4263": {
+   "nom": "GALAR_ZIGZAGOON",
+   "niveau": 20,
+   "vers": "GALAR_LINOONE",
+   "gainStats": 180
+  },
+  "4562": {
+   "nom": "GALAR_YAMASK",
+   "niveau": 34,
+   "vers": "RUNERIGUS",
+   "gainStats": 180
+  },
+  "6570": {
+   "nom": "HISUI_ZORUA",
+   "niveau": 30,
+   "vers": "HISUI_ZOROARK",
+   "gainStats": 180
+  },
+  "8194": {
+   "nom": "PALDEA_WOOPER",
+   "niveau": 20,
+   "vers": "CLODSIRE",
+   "gainStats": 220
+  }
+ }
+}

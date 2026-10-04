@@ -127,6 +127,21 @@ describe("Stratégie du porteur", () => {
     expect(evaluerObjets([bonbon], avance)[0]!.cible).toBe(0); // passé 40, il aide le membre en retard
   });
 
+  it("donne le Super Bonbon au membre qui évolue au niveau suivant", () => {
+    const bonbon: ObjetPropose = { id: "RARE_CANDY", nom: "Super Bonbon", cout: 0 };
+    const equipe = [membre("Archéduc", 20, [11, 2], 60, 60, { espece: 723 }), membre("Carapuce", 15, [10], 40, 40, { espece: 7 })];
+    const option = evaluerObjets([bonbon], { equipe, balls: [5, 0, 0, 0, 0] })[0]!;
+    expect(option.cible).toBe(1);
+    expect(option.note).toBe(30);
+  });
+
+  it("garde le Super Bonbon pour le porteur quand le rival approche", () => {
+    const bonbon: ObjetPropose = { id: "RARE_CANDY", nom: "Super Bonbon", cout: 0 };
+    const equipe = [membre("Archéduc", 16, [11, 2], 50, 50, { espece: 723 }), membre("Carapuce", 15, [10], 40, 40, { espece: 7 })];
+    const ctx = { equipe, balls: [5, 0, 0, 0, 0], prochainCombat: prochainCombatImportant(21) };
+    expect(evaluerObjets([bonbon], ctx)[0]!.cible).toBe(0);
+  });
+
   it("n'empile plus les Charmes Exp quand l'équipe est au plafond", () => {
     const charme: ObjetPropose = { id: "EXP_CHARM", nom: "Charme Exp", cout: 0 };
     const equipe = [membre("Dracaufeu", 60, [9], 150, 150), membre("Tortank", 58, [10], 150, 150)];
