@@ -298,9 +298,10 @@ Le simulateur les annule (`simulateur/environnement.test.ts`, l. 390-402 ; `docs
 
 **La mesure**
 
-5. **Mesure de référence** : banc apparié `entraineur/banc_complet.py`.
+5. **Mesure de référence** : banc apparié `entraineur/banc_complet.py`, protocole figé le 04/10 (détail dans `RESULTATS.md`).
    - Mêmes 480 parties pour chaque version : graine `complet-k`, trio Plante/Feu/Eau tiré avec k, hasard du jeu fixé.
-   - Le protocole sera figé en Phase 1 et ne changera plus sans accord.
+   - Rencontres mystères au rythme du vrai jeu. Parties en erreur enregistrées et exclues.
+   - Bancs officiels sur le Mac de Carlos uniquement. Le protocole ne change plus sans accord.
 6. **Règle de décision** : on garde un changement si `moyenne(différences) > 2 × erreur-type appariée`.
    - Erreur-type appariée = écart-type des différences partie par partie ÷ √n. C'est la bonne formule pour des parties appariées.
    - La formule √(SE_A² + SE_B²) vaut pour des parties indépendantes. Elle est trop prudente ici.

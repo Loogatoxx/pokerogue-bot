@@ -906,3 +906,49 @@ phases, contraintes de code, mémoire du projet)
 **Objectif**
 Repartir sur une base écrite et vérifiée, pour qu'aucune règle du jeu ne soit plus oubliée ni
 devinée, et savoir ce qui existe déjà avant d'investir dans une phase.
+
+## 30. Phase 1 : instrumentation, protocole figé, baseline — 04/10/2026
+
+**Prompt**
+> question 1 je suis d accord, question 2 on peu faire la reponse a, 3 je suis d accord, 4 je suis
+> daccord, on est la pas pour tout refaire mais justement detecter les anomalie et tout corriger,
+> oui c'est vrai les objet non pas le meme poid/valeur selon la situation et la vague. GO
+
+**Réponse**
+- Décisions actées :
+  - le banc apparié devient le protocole figé ;
+  - les bancs officiels tournent sur le Mac ;
+  - on mesure « cerveau v5 » contre « plan seul » ;
+  - pas de commentaire dans le nouveau code, et les anciens restent.
+- Le simulateur tourne maintenant aussi dans le cloud : Node 24, jeu au tag `v1.12.0.11`, seulement
+  les données JSON du dépôt d'images. Une partie complète prend environ 4 s.
+- Instrumentation, sans changer aucune décision (vérifié : 6 parties identiques avant et après) :
+  - type du combat perdu (rencontre mystère, dresseur, sauvage) et boss ou non ;
+  - changements volontaires consécutifs (H4) ;
+  - total des stats de base des starters.
+- Banc : statistiques complètes (écart-type, erreur-type, p10/p90, histogramme, morts par type de
+  vague, argent et objets à la mort, changements, tiers de force des starters) et verdict
+  automatique « garder » ou « revenir en arrière » à 2 erreurs-types appariées.
+  - Nouvelles options : `--plan-seul`, `--mysteres` (par défaut au rythme du jeu), `--dossier`.
+  - Les parties en erreur sont enregistrées au lieu de disparaître.
+- Anomalies trouvées :
+  - l'ancien banc jouait **sans rencontres mystères** ;
+  - le pilote prend toujours **la 1re option** d'une rencontre mystère, souvent le combat
+    contre un boss : 3 morts sur 6 au premier test, 4 sur 24 au second ;
+  - un mort au champion avec 3 176 ₽ non dépensés ;
+  - 9 parties sur 24 ont au moins 3 changements d'affilée (plan seul).
+- Le cerveau v5 ne fait pas que départager : il décide aussi des captures (Ball contre attaque à
+  valeur égale). « Plan seul » utilise donc la règle de capture du planificateur.
+
+**Modifications**
+- `simulateur/environnement.test.ts` : 23 lignes ajoutées (défaite, changements, total des stats).
+- `entraineur/banc_complet.py` : statistiques via le nouveau module, plan seul, rencontres
+  mystères, erreurs enregistrées, dossier au choix.
+- Nouveaux : `entraineur/statistiques_banc.py`, `entraineur/test_statistiques_banc.py`,
+  `donnees/vagues-classique.json` (combats fixes, source citée).
+- `RESULTATS.md` (protocole figé), `REGLES.md` (C5), `BACKLOG.md` (n° 1 fait, n° 12 à 14),
+  `README.md` (jeu épinglé au tag `v1.12.0.11`).
+
+**Objectif**
+Mesurer juste et complet avant de corriger quoi que ce soit, en jouant dans les conditions du vrai
+jeu, pour que chaque correction des phases suivantes soit gardée ou rejetée sur des chiffres.
