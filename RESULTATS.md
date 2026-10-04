@@ -113,6 +113,8 @@ Aucune mesure : Phase 0 sans code. Le conteneur cloud ne peut pas lancer le banc
 
 **Vérification** :
 - k=1, k=8 et k=10 joués chacun sur 4 copies en parallèle : 4 résultats identiques.
+- Le même banc de 96 parties lancé deux fois (3 processus) : **91 parties sur 92 identiques**. Écart +0,25 ± 0,25. Les 4 parties en erreur sont les mêmes des deux côtés (k = 31, 37, 48, 82 : boucles du pilote, déterministes).
+- Avant le correctif : environ 1 partie sur 5 changeait. Il reste une partie sur 92 qui change (k=93 : vague 80 ou 57), cause non trouvée. Ce bruit résiduel est petit, et l'erreur-type appariée en tient compte.
 
 **Vérification de l'instrumentation (cloud)** : 6 parties rejouées avant et après les ajouts au simulateur donnent exactement la même vague, le même nombre de décisions et le même argent. Les ajouts ne changent aucune décision.
 
