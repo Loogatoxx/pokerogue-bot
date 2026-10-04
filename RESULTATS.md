@@ -69,7 +69,50 @@ Aucune mesure : Phase 0 sans code. Le conteneur cloud ne peut pas lancer le banc
 
 ## Phase 1 — baseline
 
-**Officielle (Mac de Carlos)** : en attente des bancs `p1-reference` et `p1-plan-seul`.
+**Officielle (Mac de Carlos, 04/10, code `d496859`)** — provisoire. Ces bancs ont été mesurés **avant** le correctif de reproductibilité (voir plus bas) : une partie sur cinq environ pouvait changer d'un lancement à l'autre sans qu'aucune décision change. Ils sont donc à relancer.
+
+| Banc | Parties valides | Vague moyenne | Médiane | Erreur-type | p10 / p90 | Rival 1 | Rival 2 | Rival 4 |
+|---|---|---|---|---|---|---|---|---|
+| `p1-reference` (cerveau v5 + plan) | 457 (17 erreurs) | **41,56** | 30 | 1,24 | 17 / 80 | 100 % | 77 % | 89 % |
+| `p1-plan-seul` | 459 (14 erreurs) | **40,54** | 28 | 1,22 | 16 / 80 | 98 % | 74 % | 59 % |
+
+**Comparaison appariée** : plan seul − référence = **−0,96 vague** (erreur-type 1,35, 445 paires) : dans le bruit.
+
+**Différences nettes de comportement** :
+
+| | Cerveau v5 + plan | Plan seul |
+|---|---|---|
+| Changements volontaires par partie | 6,9 | 13,4 |
+| Plus longue série de changements | 13 | 84 |
+| Parties avec au moins 3 changements d'affilée | 16 | 164 |
+| Rival 4 | 89 % | 59 % |
+
+**Morts par type, référence** :
+
+| Type | Part |
+|---|---|
+| Rencontre mystère | **35 %** |
+| Champion d'arène | 21 % |
+| Rival | 20 % |
+| Dresseur | 8 % |
+| Team | 7 % |
+| Boss sauvage | 5 % |
+| Sauvage | 3 % |
+
+**Argent à la mort** : médiane 488 ₽, moyenne 1 205 ₽.
+
+**Entre les machines** : le plan seul donne 40,54 sur le Mac et 40,26 dans le cloud. Les moyennes sont proches, mais on ne pourra comparer partie par partie qu'après le correctif.
+
+### Reproductibilité : anomalie trouvée et corrigée (04/10)
+
+**Constat** : la même partie (même code, même graine) lancée sur 4 copies du jeu donnait deux résultats. Exemples : k=1 finit à la vague 48 ou 95 ; k=10 à la vague 55 ou 115.
+
+**Cause** : certains tirages du jeu utilisent `Math.random()`, qui ne dépend pas de la graine. C'est le cas du combat double contre un sbire de la Team (1 chance sur 3, `getRandomTrainerFunc` dans `src/battle.ts`), et aussi de certains genres de dresseurs, de rencontres mystères et des œufs.
+
+**Correctif** : en mode « hasard du jeu fixé » (bancs), le simulateur remplace `Math.random` par un générateur initialisé avec la graine de la partie. L'entraînement normal n'est pas touché.
+
+**Vérification** :
+- k=1, k=8 et k=10 joués chacun sur 4 copies en parallèle : 4 résultats identiques.
 
 **Vérification de l'instrumentation (cloud)** : 6 parties rejouées avant et après les ajouts au simulateur donnent exactement la même vague, le même nombre de décisions et le même argent. Les ajouts ne changent aucune décision.
 

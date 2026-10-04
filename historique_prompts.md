@@ -960,3 +960,35 @@ devinée, et savoir ce qui existe déjà avant d'investir dans une phase.
 **Objectif**
 Mesurer juste et complet avant de corriger quoi que ce soit, en jouant dans les conditions du vrai
 jeu, pour que chaque correction des phases suivantes soit gardée ou rejetée sur des chiffres.
+
+## 31. Bancs officiels de la Phase 1 et reproductibilité — 04/10/2026
+
+**Prompt**
+> c'est vrai que pour les changement ya un probleme je vais aussi ajouter que a chaque rencontre on
+> peut choisir avec quel pokemon commencer mais parfois l ia faissais l etrange non pour changer de
+> pokemon mais une fois elle dois choisir les attaque elle decide de changer de pokemon et perd un
+> tour, [sortie des bancs p1-reference, p1-plan-seul et de la comparaison]
+
+**Réponse**
+- Bancs officiels (Mac) : référence (cerveau v5 + plan) 41,56 ; plan seul 40,54 ; écart −0,96 ±
+  1,35, dans le bruit.
+- Le v5 change 2 fois moins souvent de Pokémon (série maximale 13 contre 84) et passe le rival 4 à
+  89 % au lieu de 59 %.
+- Les rencontres mystères restent la 1re cause de mort (35 %), aussi avec le cerveau v5.
+- Anomalie trouvée : la même partie donnait des résultats différents d'un lancement à l'autre.
+  Cause : des tirages du jeu passent par `Math.random()` au lieu de la graine (combat double contre
+  un sbire de la Team, rencontres mystères, œufs). Corrigé dans le simulateur en mode « hasard du
+  jeu fixé » ; vérifié sur 4 copies en parallèle. Les bancs officiels sont à relancer.
+- Remarque de Carlos notée : préférer le changement gratuit du début de vague au changement en
+  combat, qui fait perdre un tour (BACKLOG n° 18).
+- Question ouverte : cerveau v5 ou plan seul pour les phases suivantes (BACKLOG n° 19).
+
+**Modifications**
+- `simulateur/environnement.test.ts` : `Math.random` initialisé avec la graine en mode
+  `hasardDuJeu`.
+- `RESULTATS.md` (bancs officiels provisoires, reproductibilité), `REGLES.md` (R13),
+  `BACKLOG.md` (n° 18, 19).
+
+**Objectif**
+Un banc vraiment apparié : sans ce correctif, une partie sur cinq changeait sans qu'aucune décision
+change, et les petits gains se perdaient dans ce bruit.
