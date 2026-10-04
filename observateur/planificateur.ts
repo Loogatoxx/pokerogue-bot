@@ -185,12 +185,20 @@ function valeurChangement(obs: Observation, partant: PokemonAllie, remplacant: P
     ? combiner(scenarios.map(x => ({ proba: x.proba, valeur: valeur(x.recu) })), options.prudence ?? 0)
     : valeur(scenarios.reduce((t, x) => t + x.proba * x.recu, 0)); // dégâts moyens
   // S'il change aussi (il décide contre celui qui part) : mon remplaçant affronte X, sans coup reçu.
-  return avecChangement(obs, lui, partant, options, reste,
+  const v = avecChangement(obs, lui, partant, options, reste,
     vers => {
       const x = vers ?? inconnuComme(lui);
       return valeurDuel(duel(obs, remplacant, pvR, x, x.pvPourcent / 100, autres)) - 0.15;
     });
+  // Le remplaçant perd aussi son duel : changer ne fait que perdre un tour et des PV. Si celui en
+  // place tombe, le remplaçant entrera ensuite sans encaisser de coup. Sans cette règle, chaque
+  // changement « esquivait » le coup prévu et paraissait meilleur qu'une attaque notée −1 ; au tour
+  // suivant, le même calcul faisait rechanger (remarque de Carlos, 04/10 : il perd des tours).
+  return reste < 0 ? Math.min(v, CHANGEMENT_PERDU) : v;
 }
+
+/** Valeur d'un changement vers un duel perdu : sous toute attaque (au pire −1). */
+const CHANGEMENT_PERDU = -1.2;
 
 /** Lancer la Ball n° `ball` : capture (combat gagné sans un coup de plus) ou échec (il frappe). */
 function valeurBall(obs: Observation, moi: PokemonAllie, lui: PokemonAdverse, ball: number): number {

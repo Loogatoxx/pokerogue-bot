@@ -992,3 +992,30 @@ jeu, pour que chaque correction des phases suivantes soit gardée ou rejetée su
 **Objectif**
 Un banc vraiment apparié : sans ce correctif, une partie sur cinq changeait sans qu'aucune décision
 change, et les petits gains se perdaient dans ce bruit.
+
+## 32. Changements de Pokémon au moment de choisir l'attaque — 04/10/2026
+
+**Prompt**
+> (fil du projet) l'IA change parfois de Pokémon au moment où elle doit choisir une attaque, et perd
+> un tour. Reprendre le travail des PR #2 et #3, reproduire, trouver la cause, proposer un correctif.
+
+**Réponse**
+- Reproduit sans le jeu : 2 000 combats tirés au hasard, le plan rejoué tour après tour. Avant le
+  correctif : des allers-retours 0 → 1 → 0 → 1, contre les dresseurs comme contre les sauvages.
+- Cause 1, moteur d'équipe (dresseurs) : dans un combat perdu d'avance, attaquer et changer ont la
+  même note ; le départage (PV × niveau de celui qui entre) favorisait toujours le changement, puis le
+  rechangement au tour suivant. Changer ne coûtait rien.
+- Cause 2, planificateur par duels (sauvages) : une attaque qui ne sauve pas le Pokémon vaut −1, alors
+  qu'un changement vers un duel perdu gardait le crédit des dégâts « qu'il infligera ensuite ». Il
+  esquivait le coup prévu, puis rechangeait, sans jamais attaquer.
+- Correctif : un changement en plein combat coûte 0,01 dans le moteur d'équipe (au-dessus des
+  départages) ; un changement vers un duel perdu vaut −1,2, sous toute attaque.
+- Après : aucune série de 2 changements sur les 2 000 combats ; changements au 1er tour 1 004 → 217
+  (dresseurs).
+
+**Modifications**
+- `observateur/combat-equipe.ts` (`COUT_CHANGEMENT`), `observateur/planificateur.ts`
+  (`CHANGEMENT_PERDU`), nouveau `tests/changements.test.ts`, `BACKLOG.md` (n° 16 et 18).
+
+**Objectif**
+Ne plus perdre de tours en changements inutiles ; à confirmer par les bancs officiels sur le Mac.

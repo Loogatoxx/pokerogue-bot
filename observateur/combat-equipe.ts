@@ -26,6 +26,14 @@ import { PRIORITES } from "./priorites";
 import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
 
 const TOURS_MAX = 40;
+/**
+ * Prix d'un changement en plein combat (remarque de Carlos, 04/10 : « au moment de choisir l'attaque,
+ * il change de Pokémon et perd un tour »). Le remplaçant encaisse un coup sans rien rendre : on ne
+ * change que si le combat simulé y gagne nettement. Sans ce prix, dans un combat perdu d'avance (même
+ * note pour toutes les actions), le départage poussait à changer, puis à rechanger au tour suivant :
+ * des séries de dizaines de changements contre des dresseurs. Il dépasse les départages (≤ 0,001).
+ */
+const COUT_CHANGEMENT = 0.01;
 const CATEGORIE_STATUT = 2;
 
 interface Coup {
@@ -352,8 +360,10 @@ export function valeursCombatEquipe(obs: Observation): number[] | null {
     } else {
       const place = action - PREMIER_CHANGEMENT;
       if (nous[place] && nous[place]!.pv > 0) {
-        // Départage : le Pokémon qui entre le plus solide (PV restants × niveau).
-        valeurs[action] = simuler(depart, remplacement ? { entree: place } : { changement: place }) + 0.001 * nous[place]!.pv * nous[place]!.poids;
+        // Départage : le Pokémon qui entre le plus solide (PV restants × niveau). Changer en plein
+        // combat coûte un tour : à note égale, attaquer passe devant.
+        valeurs[action] = simuler(depart, remplacement ? { entree: place } : { changement: place }) + 0.001 * nous[place]!.pv * nous[place]!.poids
+          - (remplacement ? 0 : COUT_CHANGEMENT);
       }
     }
   }
