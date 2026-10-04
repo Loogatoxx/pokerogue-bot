@@ -60,11 +60,34 @@ export interface ContexteObjets {
   typesAPreparer?: number[] | undefined;
   /** Plafond de niveau du moment (le jeu le relève toutes les 10 vagues), ou absent. */
   plafondNiveau?: number | undefined;
-  /** Multiplicateur d'expérience des Charmes déjà possédés (1 sans Charme), ou absent. */
-  multiplicateurExperience?: number | undefined;
+  /** L'argent du joueur, ou absent. */
+  argent?: number | undefined;
+  /** Prix de base de la boutique : l'argent d'une vague, ce que rapporte une Pépite (Potion = 0,2 × ce prix). */
+  prixBase?: number | undefined;
+  /** Prix des articles de la boutique affichée (identifiant → prix), ou absent. */
+  prixBoutique?: Record<string, number> | undefined;
+  /** Un membre de l'équipe peut se Méga-évoluer / se Gigamaxer (forme connue du Pokédex). */
+  formesSpeciales?: { mega: boolean; gigamax: boolean } | undefined;
 }
 
-const OBJETS_EXPERIENCE = new Set(["EXP_SHARE", "EXP_BALANCE", "EXP_CHARM", "SUPER_EXP_CHARM", "GOLDEN_EXP_CHARM", "LUCKY_EGG", "GOLDEN_EGG"]);
+const OBJETS_EXPERIENCE = new Set(["EXP_CHARM", "SUPER_EXP_CHARM", "GOLDEN_EXP_CHARM", "LUCKY_EGG", "GOLDEN_EGG"]);
+/**
+ * Multi Exp et Équilibreur d'Exp : l'expérience des membres qui ne combattent pas. Diagnostic du
+ * 03/10 : le banc restait 5 à 12 niveaux sous le porteur jusqu'au milieu de partie ; avec 5 Multi
+ * Exp donnés au départ, tout le banc suit le porteur et la moyenne s'envole. Leur valeur dépend du
+ * retard du banc, pas des Charmes déjà possédés.
+ */
+const OBJETS_PARTAGE = new Set(["EXP_SHARE", "EXP_BALANCE"]);
+
+/** Part du banc (tous sauf le plus avancé) encore à 3 niveaux ou plus sous le plafond. */
+function partBancEnRetard(ctx: ContexteObjets): number {
+  const vivants = ctx.equipe.filter(m => !m.ko).sort((a, b) => b.niveau - a.niveau).slice(1);
+  if (!vivants.length) {
+    return 0;
+  }
+  const plafond = ctx.plafondNiveau ?? Infinity;
+  return vivants.filter(m => m.niveau < plafond - 3).length / vivants.length;
+}
 
 /**
  * Part de l'équipe que l'expérience peut encore faire monter. En fin de partie, l'équipe est au
@@ -80,16 +103,36 @@ function partSousPlafond(ctx: ContexteObjets): number {
 }
 
 /**
- * Ce que vaut encore un objet d'expérience : beaucoup en début de partie (le niveau du porteur décide
- * du rival 1), de moins en moins quand l'expérience est déjà multipliée (rendement décroissant :
- * passé × 2, l'équipe rattrape le plafond de niveau en quelques vagues après chaque hausse) et peu
- * quand l'équipe est au plafond. À la vague 100, le bot avait en moyenne 8 Charmes Exp, 4 Super
- * Charmes et 4 Multi Exp, mais seulement 3 vitamines et moins d'un objet de type.
+ * Ce que vaut encore un objet d'expérience : peu quand l'équipe est au plafond de niveau. Pas de
+ * rendement décroissant avec les Charmes déjà possédés : ils multiplient aussi l'expérience que le
+ * Multi Exp donne au banc, qui reste 5 à 12 niveaux sous le plafond jusqu'au milieu de partie
+ * (banc apparié, 03/10).
  */
 function valeurExperience(ctx: ContexteObjets): number {
-  const saturation = Math.min(1, 2 / Math.max(ctx.multiplicateurExperience ?? 1, 1));
-  return (0.2 + 0.8 * partSousPlafond(ctx)) * saturation;
+  return 0.2 + 0.8 * partSousPlafond(ctx);
 }
+
+/**
+ * Ce que vaut une somme d'argent, en points comparables aux objets. Unité : l'argent d'une vague
+ * (le prix de base de la boutique, ce que rapporte une Pépite : 5 Potions, ou un demi-Rappel).
+ * Remarque de Carlos (04/10) : « il prend la Potion gratuite alors que s'il prend la Pépite et paye
+ * la Potion, il y gagne ». L'argent sert à ranimer et soigner avant les combats difficiles (sa
+ * partie s'est finie faute d'argent pour ranimer contre un dresseur) ; au-delà d'une bonne réserve,
+ * il vaut moins.
+ */
+export function valeurArgent(montant: number, ctx: ContexteObjets): number {
+  const base = ctx.prixBase ?? 0;
+  if (base <= 0) {
+    return 0;
+  }
+  const u = montant / base;
+  const points = u <= 3 ? 10 * u : 30 + 4 * (u - 3);
+  const reserve = (ctx.argent ?? 0) / base;
+  return points * (reserve < 4 ? 1.3 : reserve > 8 ? 0.6 : 1);
+}
+
+/** Argent rapporté par une Pépite (×1), une Grosse Pépite (×2,5) ou une Relique d'Or (×10). */
+const PEPITES: Readonly<Record<string, number>> = { NUGGET: 1, BIG_NUGGET: 2.5, RELIC_GOLD: 10 };
 
 /** Combien un soin compte de plus avant un combat important : la vague suivante, ou celle d'après. */
 export function urgenceSoin(combat: CombatImportant | undefined): number {
@@ -121,7 +164,7 @@ export const VALEURS: Readonly<Record<string, number>> = {
   // Évolutions de combat (clés : Méga-Évolution, Gigamax) et leurs pierres
   MEGA_BRACELET: 35, DYNAMAX_BAND: 25, FORM_CHANGE_ITEM: 30, RARE_FORM_CHANGE_ITEM: 30, TERA_ORB: 10,
   // Expérience (profite à toute la partie)
-  EXP_SHARE: 30, EXP_BALANCE: 15, EXP_CHARM: 25, SUPER_EXP_CHARM: 30, GOLDEN_EXP_CHARM: 35,
+  EXP_SHARE: 40, EXP_BALANCE: 20, EXP_CHARM: 25, SUPER_EXP_CHARM: 30, GOLDEN_EXP_CHARM: 35,
   LUCKY_EGG: 22, GOLDEN_EGG: 30,
   // Objets tenus
   LEFTOVERS: 28, SHELL_BELL: 22, REVIVER_SEED: 20, FOCUS_BAND: 18, MULTI_LENS: 15, EVIOLITE: 15,
@@ -136,7 +179,10 @@ export const VALEURS: Readonly<Record<string, number>> = {
   TEMP_STAT_STAGE_BOOSTER: 6, DIRE_HIT: 6,
   // Divers
   MAP: 5, IV_SCANNER: 4, MEMORY_MUSHROOM: 5, MINT: 4, TERA_SHARD: 4, ABILITY_CHARM: 3,
-  LOCK_CAPSULE: 3, SHINY_CHARM: 2, LURE: 2, SUPER_LURE: 2, MAX_LURE: 2,
+  LOCK_CAPSULE: 3, SHINY_CHARM: 2,
+  // Leurres : plus de combats doubles, donc plus de membres exposés. Mesuré le 03/10 (banc apparié) :
+  // les prendre volontiers coûte 17 vagues ; Carlos (04/10) : « mauvais dans la majorité des cas ».
+  LURE: 0, SUPER_LURE: 0, MAX_LURE: 0,
 };
 const VALEUR_INCONNUE = 5;
 /** Jusqu'à ce niveau, les Super Bonbons vont au porteur de l'équipe (son meilleur Pokémon). */
@@ -353,9 +399,28 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
   if ((objet.id === "TEMP_STAT_STAGE_BOOSTER" || objet.id === "DIRE_HIT") && vagueCourante >= 170) {
     return { note: 20, cible: null, pour: ["fin de partie : un cran de stat pour les derniers combats"], contre: [] };
   }
+  // Pépites : de l'argent, selon la réserve (voir valeurArgent).
+  if (PEPITES[objet.id] !== undefined && ctx.prixBase) {
+    return { note: valeurArgent(PEPITES[objet.id]! * ctx.prixBase, ctx), cible: null, pour: ["de l'argent pour ranimer et soigner avant les combats difficiles"], contre: [] };
+  }
+  // Bonbonnière : chaque Super Bonbon donne un niveau de plus par Bonbonnière, au-delà du plafond.
+  // Très forte en début de partie (Carlos, 04/10 : il en avait laissé passer deux vers la vague 20).
+  if (objet.id === "CANDY_JAR") {
+    return { note: 10 + 25 * Math.max(0, 1 - vagueCourante / 150), cible: null, pour: ["chaque Super Bonbon donnera un niveau de plus"], contre: [] };
+  }
+  // Méga-Gourmette, Bracelet Dynamax : utiles seulement si un membre a une Méga-Évolution ou une
+  // forme Gigamax (Carlos, 04/10 : il a préféré une CT au Bracelet Dynamax).
+  if (objet.id === "MEGA_BRACELET" || objet.id === "DYNAMAX_BAND") {
+    const utile = objet.id === "MEGA_BRACELET" ? ctx.formesSpeciales?.mega : ctx.formesSpeciales?.gigamax;
+    return utile
+      ? { note: 45, cible: null, pour: ["un membre de l'équipe peut s'en servir"], contre: [] }
+      : { note: 6, cible: null, pour: [], contre: ["personne dans l'équipe ne peut s'en servir pour l'instant"] };
+  }
   const base0 = VALEURS[objet.id];
   // L'expérience ne vaut que pour les membres encore sous le plafond de niveau.
-  const base = base0 !== undefined && OBJETS_EXPERIENCE.has(objet.id) ? base0 * valeurExperience(ctx) : base0;
+  const base = base0 === undefined ? undefined
+    : OBJETS_EXPERIENCE.has(objet.id) ? base0 * valeurExperience(ctx)
+      : OBJETS_PARTAGE.has(objet.id) ? base0 * (0.2 + 0.8 * partBancEnRetard(ctx)) : base0;
   if (base === undefined) {
     return { note: VALEUR_INCONNUE, cible: null, pour: [], contre: ["effet mal connu du pilote"] };
   }
@@ -367,9 +432,23 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
 /** Toutes les récompenses proposées, notées, avec leur receveur et leurs pour et contre. */
 export function evaluerObjets(objets: ObjetPropose[], ctx: ContexteObjets): OptionObjet[] {
   return objets.map((objet, index) => {
-    const j = juger(objet, ctx);
+    const j = plafonnerParPrix(objet, juger(objet, ctx), ctx);
     return { index, nom: objet.nom, note: Math.round(j.note * 10) / 10, cible: j.cible, pour: j.pour, contre: j.contre };
   });
+}
+
+/**
+ * Un soin, un Rappel ou des PP gratuits que la boutique vend aussi, et qu'on peut payer : ils ne
+ * valent pas plus que leur prix. Prendre la Pépite et acheter la Potion rapporte plus (une Pépite =
+ * 5 Potions). Sans boutique (vagues 10, 20…) ou trop cher, ils gardent leur valeur.
+ */
+function plafonnerParPrix(objet: ObjetPropose, j: Jugement, ctx: ContexteObjets): Jugement {
+  const prix = ctx.prixBoutique?.[objet.id];
+  if (objet.cout > 0 || prix === undefined || prix > (ctx.argent ?? 0) || j.note <= 0) {
+    return j;
+  }
+  const plafond = valeurArgent(prix, ctx);
+  return j.note <= plafond ? j : { ...j, note: plafond, contre: [...j.contre, `la boutique le vend ${prix} ₽ : mieux vaut prendre autre chose et l'acheter`] };
 }
 
 /** La meilleure récompense, ou null s'il vaut mieux passer (rien d'utile, ou tout refusé). */
@@ -383,7 +462,7 @@ export function meilleurObjet(options: OptionObjet[]): OptionObjet | null {
 /** Ce que la boutique vend d'utile pour l'équipe : soins, Rappels, PP. */
 const ACHETABLES = new Set([...SOINS, ...RAPPELS, ...PP, "SACRED_ASH", "FULL_HEAL"]);
 /** Note minimale (une fois le prix déduit) pour qu'un achat vaille la peine. */
-export const SEUIL_ACHAT = 8;
+export const SEUIL_ACHAT = 5;
 
 /**
  * Les articles de la boutique, notés comme les récompenses, moins leur prix rapporté à l'argent
@@ -391,15 +470,19 @@ export const SEUIL_ACHAT = 8;
  * avant le rival ou un champion ; il ne gaspille pas son argent quand tout le monde va bien.
  */
 export function evaluerAchats(objets: ObjetPropose[], ctx: ContexteObjets, argent: number): OptionObjet[] {
-  // Réserve : de quoi acheter un Rappel, pour ranimer le porteur s'il tombe. Remarque de Carlos
-  // (01/10) : « morte vague 66, plus d'argent pour ranimer le porteur (Zacian) ». La boutique
-  // vend un Rappel dès la vague 1 ; les soins ordinaires ne doivent pas entamer cette réserve.
-  // Pas en début de partie (l'argent est rare et les Potions comptent), ni à la veille d'un combat
-  // important (on soigne d'abord) : à partir de la vague 30.
+  // Remarques de Carlos (01/10, 04/10) : « morte vague 66, plus d'argent pour ranimer le porteur » ;
+  // « il achète quand ce n'est pas nécessaire et dépense trop sur des Pokémon plus faibles ; il
+  // devrait économiser pour les moments difficiles, pas quand il faut juste battre un Pokémon ».
+  // Donc : à la veille d'un combat important (rival, champion, boss…), on soigne et on ranime ce qu'il
+  // faut ; sinon, seulement le porteur (ou un membre de son niveau) mal en point, et on garde de quoi
+  // acheter deux Rappels. Le jeu soigne et ranime d'ailleurs toute l'équipe à chaque nouveau biome.
+  const ctxArgent = { ...ctx, argent };
   const rappels = objets.filter(o => RAPPELS.has(o.id)).map(o => o.cout);
   const combat = ctx.prochainCombat;
   const vague = combat ? combat.vague - combat.dans : 0;
-  const reserve = rappels.length && vague >= 30 && urgenceSoin(combat) === 1 ? Math.min(...rappels) : 0;
+  const urgent = urgenceSoin(combat) > 1;
+  const reserve = rappels.length && vague >= 10 && !urgent ? 2 * Math.min(...rappels) : 0;
+  const niveauMax = Math.max(...ctx.equipe.map(m => m.niveau), 1);
   return objets.map((objet, index) => {
     if (!ACHETABLES.has(objet.id)) {
       return { index, nom: objet.nom, note: 0, cible: null, pour: [], contre: ["pas utile à acheter ici"] };
@@ -408,15 +491,21 @@ export function evaluerAchats(objets: ObjetPropose[], ctx: ContexteObjets, argen
       return { index, nom: objet.nom, note: -1, cible: null, pour: [], contre: [`trop cher (${objet.cout} ₽, il reste ${argent} ₽)`] };
     }
     const j = juger(objet, ctx);
-    const entame = !RAPPELS.has(objet.id) && objet.id !== "SACRED_ASH" && objet.id !== "FULL_HEAL" && argent - objet.cout < reserve;
-    const note = j.note - 4 * (objet.cout / Math.max(argent, 1)) - (entame ? 15 : 0);
+    const m = j.cible === null ? null : ctx.equipe[j.cible];
+    const important = !m || m.niveau >= 0.85 * niveauMax;
+    const malEnPoint = !m || m.ko || m.pv < 0.5 * m.pvMax || m.statut;
+    if (!urgent && (!important || !malEnPoint)) {
+      return { index, nom: objet.nom, note: 0, cible: j.cible, pour: j.pour, contre: [...j.contre, "pas urgent : on garde l'argent pour les combats difficiles"] };
+    }
+    const entame = !RAPPELS.has(objet.id) && argent - objet.cout < reserve;
+    const note = j.note - valeurArgent(objet.cout, ctxArgent) - (entame ? 15 : 0);
     return {
       index,
       nom: objet.nom,
       note: Math.round(note * 10) / 10,
       cible: j.cible,
       pour: j.pour,
-      contre: [...j.contre, `coûte ${objet.cout} ₽ sur ${argent}`, ...(entame ? [`entamerait la réserve pour un Rappel (${reserve} ₽)`] : [])],
+      contre: [...j.contre, `coûte ${objet.cout} ₽ sur ${argent}`, ...(entame ? [`entamerait la réserve pour deux Rappels (${reserve} ₽)`] : [])],
     };
   });
 }

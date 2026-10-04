@@ -165,24 +165,33 @@ function contexte(scene: ScenePokerogue): ContexteObjets {
     typesAPreparer: typesAPreparer((scene.currentBattle?.waveIndex ?? 0) + 1),
     // Le plafond de niveau du moment (affiché par le jeu quand il monte) : au-delà, l'expérience ne sert plus.
     plafondNiveau: (scene as unknown as { getMaxExpLevel?: () => number }).getMaxExpLevel?.(),
-    multiplicateurExperience: multiplicateurExperience(scene),
+    argent: scene.money,
+    prixBase: scene.getWaveMoneyAmount?.(1),
+    prixBoutique: prixBoutique(scene),
+    formesSpeciales: formesSpeciales(scene),
   };
 }
 
-/**
- * Le multiplicateur d'expérience des Charmes déjà possédés. Le jeu les multiplie entre eux : chaque
- * sorte de Charme donne (1 + nombre × bonus) — 8 Charmes Exp (+25 %) et 4 Super Charmes (+60 %),
- * l'équipe type du bot à la vague 100, font déjà × 3 × 3,4 ≈ × 10.
- */
-function multiplicateurExperience(scene: ScenePokerogue): number {
-  let total = 1;
-  for (const m of scene.modifiers ?? []) {
-    if (["EXP_CHARM", "SUPER_EXP_CHARM", "GOLDEN_EXP_CHARM"].includes(m.type?.id ?? "")) {
-      const bonus = Number(m.getArgs?.()[0] ?? 0) / 100;
-      total *= 1 + (m.stackCount ?? 1) * bonus;
-    }
+/** Prix des articles de la boutique affichée (le moins cher par identifiant), ou undefined. */
+function prixBoutique(scene: ScenePokerogue): Record<string, number> | undefined {
+  const articles = boutiqueAffichee(scene);
+  if (!articles?.length) {
+    return undefined;
   }
-  return total;
+  const prix: Record<string, number> = {};
+  for (const a of articles) {
+    prix[a.objet.id] = Math.min(prix[a.objet.id] ?? Infinity, a.objet.cout);
+  }
+  return prix;
+}
+
+/**
+ * Un membre a-t-il une Méga-Évolution ou une forme Gigamax (formes connues du Pokédex) ? Le
+ * Méga-Gourmette et le Bracelet Dynamax ne servent qu'à eux.
+ */
+function formesSpeciales(scene: ScenePokerogue): { mega: boolean; gigamax: boolean } {
+  const cles = scene.getPlayerParty().flatMap(p => p.species.forms?.map(f => f.formKey) ?? []);
+  return { mega: cles.some(c => c.includes("mega")), gigamax: cles.some(c => c.includes("gigantamax")) };
 }
 
 /** Les récompenses affichées, notées d'après l'état de l'équipe ; null hors de cet écran. */

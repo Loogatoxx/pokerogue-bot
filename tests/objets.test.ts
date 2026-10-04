@@ -82,6 +82,42 @@ describe("Note des objets", () => {
   });
 });
 
+describe("Argent et objets (retours de Carlos, 04/10)", () => {
+  const pepite: ObjetPropose = { id: "NUGGET", nom: "Pépite", cout: 0 };
+  const argent = { argent: 1000, prixBase: 500 };
+
+  it("prend la Pépite et laisse la Potion gratuite quand la boutique la vend moins cher", () => {
+    const ctx: ContexteObjets = { equipe: [membre("Kaiminus", 20, [10], 20, 60)], balls: [5, 0, 0, 0, 0], ...argent, prixBoutique: { POTION: 100 } };
+    expect(meilleurObjet(evaluerObjets([potion, pepite], ctx))!.nom).toBe("Pépite");
+    // Sans boutique (vague 10, 20…), la Potion garde sa valeur.
+    const sansBoutique: ContexteObjets = { ...ctx, prixBoutique: undefined };
+    expect(meilleurObjet(evaluerObjets([potion, pepite], sansBoutique))!.nom).toBe("Potion");
+  });
+
+  it("ne prend jamais de Leurre (plus de combats doubles)", () => {
+    const leurre: ObjetPropose = { id: "LURE", nom: "Leurre", cout: 0 };
+    expect(meilleurObjet(evaluerObjets([leurre], { equipe: [membre("Kaiminus", 20, [10], 60, 60)], balls: [5, 0, 0, 0, 0] }))).toBeNull();
+  });
+
+  it("Bracelet Dynamax : précieux seulement si un membre peut se Gigamaxer", () => {
+    const bracelet: ObjetPropose = { id: "DYNAMAX_BAND", nom: "Bracelet Dynamax", cout: 0 };
+    const equipe = [membre("Dracaufeu", 50, [9, 2], 150, 150)];
+    const avec = evaluerObjets([bracelet], { equipe, balls: [0, 0, 0, 0, 0], formesSpeciales: { mega: true, gigamax: true } })[0]!.note;
+    const sans = evaluerObjets([bracelet], { equipe, balls: [0, 0, 0, 0, 0], formesSpeciales: { mega: false, gigamax: false } })[0]!.note;
+    expect(avec).toBeGreaterThan(30);
+    expect(sans).toBeLessThan(10);
+  });
+
+  it("hors combat important, n'achète pas pour un membre faible ou à peine touché", () => {
+    const enBoutique = { ...potion, cout: 100 };
+    const porteur = membre("Aligatueur", 40, [10], 150, 150);
+    const faibleBlesse: ContexteObjets = { equipe: [porteur, membre("Rattata", 20, [0], 10, 60)], balls: [5, 0, 0, 0, 0], ...argent };
+    expect(meilleurAchat(evaluerAchats([enBoutique], faibleBlesse, 1000))).toBeNull();
+    const porteurBlesse: ContexteObjets = { equipe: [membre("Aligatueur", 40, [10], 40, 150)], balls: [5, 0, 0, 0, 0], ...argent };
+    expect(meilleurAchat(evaluerAchats([enBoutique], porteurBlesse, 1000))?.cible).toBe(0);
+  });
+});
+
 describe("Stratégie du porteur", () => {
   it("donne le Super Bonbon au meilleur Pokémon tant qu'il est sous le niveau 40", () => {
     const bonbon: ObjetPropose = { id: "RARE_CANDY", nom: "Super Bonbon", cout: 0 };
@@ -91,14 +127,12 @@ describe("Stratégie du porteur", () => {
     expect(evaluerObjets([bonbon], avance)[0]!.cible).toBe(0); // passé 40, il aide le membre en retard
   });
 
-  it("n'empile plus les Charmes Exp quand l'expérience est déjà multipliée ou l'équipe au plafond", () => {
+  it("n'empile plus les Charmes Exp quand l'équipe est au plafond", () => {
     const charme: ObjetPropose = { id: "EXP_CHARM", nom: "Charme Exp", cout: 0 };
     const equipe = [membre("Dracaufeu", 60, [9], 150, 150), membre("Tortank", 58, [10], 150, 150)];
-    const debut = evaluerObjets([charme], { equipe, balls: [0, 0, 0, 0, 0], plafondNiveau: 78, multiplicateurExperience: 1 })[0]!.note;
-    const sature = evaluerObjets([charme], { equipe, balls: [0, 0, 0, 0, 0], plafondNiveau: 78, multiplicateurExperience: 10 })[0]!.note;
-    const auPlafond = evaluerObjets([charme], { equipe, balls: [0, 0, 0, 0, 0], plafondNiveau: 60, multiplicateurExperience: 1 })[0]!.note;
+    const debut = evaluerObjets([charme], { equipe, balls: [0, 0, 0, 0, 0], plafondNiveau: 78 })[0]!.note;
+    const auPlafond = evaluerObjets([charme], { equipe, balls: [0, 0, 0, 0, 0], plafondNiveau: 60 })[0]!.note;
     expect(debut).toBe(25);
-    expect(sature).toBeLessThan(6);
     expect(auPlafond).toBeLessThan(6);
   });
 });

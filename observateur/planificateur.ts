@@ -227,6 +227,12 @@ const MARGE_POTENTIEL = 30;       // équipe pleine : l'espèce doit dépasser l
 const MASTER_BALL = 4;
 const CHANCE_SURE = 0.5;          // au-dessus, une Ball termine souvent le combat : toujours permise
 const POTENTIEL_MASTER = 580;     // la Master Ball reste pour les espèces d'exception
+/**
+ * Équipe pleine : une Ball « utile » (le Pokémon remplacerait un membre) n'est permise qu'à partir de
+ * cette chance. Remarque de Carlos (04/10) : il lançait une Poké Ball sur un Pokémon en pleine forme
+ * qu'il pouvait mettre K.O. d'un coup, puis devait racheter des Balls.
+ */
+const CHANCE_MIN_EQUIPE_PLEINE = 0.3;
 
 /** L'équipe n'est pas pleine, ou l'espèce remplacerait avantageusement la plus faible des six, ou
  * elle comble un trou face aux starters possibles du rival qui approche. */
@@ -459,7 +465,10 @@ export function planifier(obs: Observation, options: OptionsPlan = {}): number[]
   const exceptionnel = (connaissance(sauvage.espece)?.totalFinal ?? 0) >= POTENTIEL_MASTER || !!sauvage.boss;
   for (let action = PREMIERE_BALL; action < NOMBRE_ACTIONS; action++) {
     const ball = action - PREMIERE_BALL;
-    const permis = ball === MASTER_BALL ? exceptionnel : utileEtSure || chanceCapture(sauvage, ball) >= CHANCE_SURE;
+    const chance = chanceCapture(sauvage, ball);
+    const pleine = obs.equipe.length >= 6 && !exceptionnel;
+    const permis = ball === MASTER_BALL ? exceptionnel
+      : (utileEtSure && (!pleine || chance >= CHANCE_MIN_EQUIPE_PLEINE)) || chance >= CHANCE_SURE;
     valeurs[action] = !masque[action] ? 0 : permis ? meilleureAttaque : ratee;
   }
   return valeurs;

@@ -35,7 +35,7 @@ export interface PokemonJeu {
   shiny: boolean;
   nature: number;
   ivs: number[];
-  species: { speciesId: number };
+  species: { speciesId: number; forms?: { formKey: string }[] };
   status?: { effect: number } | null;
   summonData?: {
     illusion?: { species: number; name: string; shiny: boolean } | null;
@@ -103,6 +103,8 @@ export interface ScenePokerogue {
   gameData: { dexData: Record<number, { caughtAttr: bigint } | undefined> };
   /** Objets possédés par le joueur (Charmes Exp, objets tenus…). */
   modifiers?: { type?: { id?: string }; stackCount?: number; getArgs?: () => unknown[] }[];
+  /** L'argent d'une vague ordinaire × multiplicateur (le prix de base de la boutique : une Pépite). */
+  getWaveMoneyAmount?(multiplicateur: number): number;
   getPlayerParty(): PokemonJeu[];
   getPlayerField(): PokemonJeu[];
   getEnemyParty(): PokemonJeu[];
