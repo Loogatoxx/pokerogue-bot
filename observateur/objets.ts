@@ -21,7 +21,6 @@ import type { CombatImportant } from "./combats";
 import type { Membre } from "./equipe";
 import { PokeballType, PokemonType } from "./noms";
 import { type AttaqueNotee, evaluerApprentissage, meilleureOption, noterJeu } from "./synergie";
-import EVOLUTIONS from "../donnees/evolutions.json";
 
 export interface ObjetPropose {
   /** Identifiant du jeu (POTION, TM_ULTRA, ATTACK_TYPE_BOOSTER…), stable même sur le site en ligne. */
@@ -188,13 +187,6 @@ export const VALEURS: Readonly<Record<string, number>> = {
 const VALEUR_INCONNUE = 5;
 /** Jusqu'à ce niveau, les Super Bonbons vont au porteur de l'équipe (son meilleur Pokémon). */
 const NIVEAU_PORTEUR = 40;
-const NOTE_BONBON_EVOLUTION = 30;
-
-function gainEvolutionAuNiveauSuivant(m: MembreObjets): number {
-  const evolutions: Record<string, { niveau: number; gainStats: number }> = EVOLUTIONS.evolutions;
-  const evolution = evolutions[String(m.espece)];
-  return !m.ko && evolution && evolution.niveau === m.niveau + 1 ? evolution.gainStats : 0;
-}
 
 const SOINS = new Set(["POTION", "SUPER_POTION", "HYPER_POTION", "MAX_POTION", "FULL_RESTORE"]);
 const RAPPELS = new Set(["REVIVE", "MAX_REVIVE"]);
@@ -325,11 +317,6 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
     // bot préférait 5 Poké Balls (note 30 à 45) au Super Bonbon (18).
     const rivalProche = ctx.prochainCombat?.genre === "rival" && ctx.prochainCombat.dans <= 8;
     const noteBonbonPorteur = rivalProche ? 50 : 18;
-    const evolution = rivalProche ? null : meilleurReceveur(objet, ctx, gainEvolutionAuNiveauSuivant);
-    if (evolution && evolution.valeur > 0) {
-      const evolue = equipe[evolution.place]!;
-      return { note: Math.max(noteBonbonPorteur, NOTE_BONBON_EVOLUTION), cible: evolution.place, pour: [`fait évoluer ${evolue.nom} (+${evolution.valeur} aux stats de base)`], contre: [] };
-    }
     const r = meilleurReceveur(objet, ctx, m => {
       if (m.ko) {
         return 0;
