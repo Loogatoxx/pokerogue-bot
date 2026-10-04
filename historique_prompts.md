@@ -939,6 +939,14 @@ devinée, et savoir ce qui existe déjà avant d'investir dans une phase.
   - 9 parties sur 24 ont au moins 3 changements d'affilée (plan seul).
 - Le cerveau v5 ne fait pas que départager : il décide aussi des captures (Ball contre attaque à
   valeur égale). « Plan seul » utilise donc la règle de capture du planificateur.
+- Aperçu cloud (plan seul, 480 parties, à confirmer sur le Mac) :
+  - avec les rencontres mystères 40,26, sans 54,69 : **−14,24 ± 1,44 vagues** ;
+  - les rencontres mystères sont la 1re cause de mort (35 %) ;
+  - 34 à 49 % des parties ont au moins 3 changements d'affilée, avec des séries jusqu'à 91 contre
+    des dresseurs (H4 confirmée) ;
+  - 15 parties bloquées dans une boucle du pilote (rencontre mystère, écran de résumé).
+- Correctif du banc : une partie bloquée au démarrage (copie du jeu en mauvais état) est rejouée au
+  lieu d'être comptée comme erreur.
 
 **Modifications**
 - `simulateur/environnement.test.ts` : 23 lignes ajoutées (défaite, changements, total des stats).

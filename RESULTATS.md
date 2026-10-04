@@ -34,7 +34,11 @@ On ne le change plus sans prévenir Carlos.
 .venv/bin/python -m entraineur.banc_complet --nom p1-reference
 .venv/bin/python -m entraineur.banc_complet --nom p1-plan-seul --plan-seul
 .venv/bin/python -m entraineur.banc_complet --comparer p1-plan-seul p1-reference
+.venv/bin/python -m entraineur.banc_complet --nom p1-reference-sans-mysteres --mysteres aucune
+.venv/bin/python -m entraineur.banc_complet --comparer p1-reference p1-reference-sans-mysteres
 ```
+
+Le 3e banc est facultatif. Il relie la nouvelle référence à l'ancienne (58,6, sans rencontres mystères) et chiffre ce que les rencontres mystères coûtent avec le cerveau v5.
 
 Si des parties manquent (copie du jeu redémarrée en cours de route), relancer la même commande : elle complète les parties manquantes sans refaire les autres.
 
@@ -68,3 +72,38 @@ Aucune mesure : Phase 0 sans code. Le conteneur cloud ne peut pas lancer le banc
 **Officielle (Mac de Carlos)** : en attente des bancs `p1-reference` et `p1-plan-seul`.
 
 **Vérification de l'instrumentation (cloud)** : 6 parties rejouées avant et après les ajouts au simulateur donnent exactement la même vague, le même nombre de décisions et le même argent. Les ajouts ne changent aucune décision.
+
+### Aperçu cloud, plan seul (04/10, à confirmer sur le Mac)
+
+Ces bancs ne servent pas à décider (autre machine). Ils servent à repérer les anomalies.
+- Code : commit `e96a9de`.
+- 3 processus, 480 parties, `--plan-seul`.
+
+| Banc | Parties valides | Vague moyenne | Médiane | Erreur-type | p10 / p90 | Rival 2 | Rival 4 |
+|---|---|---|---|---|---|---|---|
+| Plan seul, rencontres mystères au rythme du jeu | 440 (15 boucles du pilote ; 23 blocages au démarrage, rejoués désormais) | **40,26** | 28 | 1,23 | 16 / 80 | 75 % | 65 % |
+| Plan seul, sans rencontres mystères | 478 (2 erreurs) | **54,69** | 50 | 1,44 | 22 / 108 | 75 % | 65 % |
+
+**Comparaison appariée** : avec les rencontres mystères **−14,24 vagues** (erreur-type 1,44, 438 paires ; 70 parties meilleures, 149 identiques, 219 pires).
+
+**Morts par type, avec les rencontres mystères** :
+
+| Type | Morts | Part |
+|---|---|---|
+| Rencontre mystère | 154 | **35 %** |
+| Rival | 110 | 25 % |
+| Champion d'arène | 68 | 15 % |
+| Dresseur | 44 | 10 % |
+| Team | 38 | 9 % |
+| Boss sauvage | 21 | 5 % |
+| Sauvage | 5 | 1 % |
+
+**Ce que ça dit** :
+- **Les rencontres mystères sont la 1re cause de mort.** Le pilote y prend toujours la 1re option (`BACKLOG.md` n° 12) et boucle parfois sur l'écran de résumé (n° 15). L'ancien banc ne les voyait pas : il jouait sans elles.
+- **H4 est confirmée en plan seul.**
+  - Avec les rencontres mystères : 148 parties sur 440 ont au moins 3 changements volontaires d'affilée (série maximale 58).
+  - Sans elles : 234 parties sur 478 (série maximale 91).
+  - Les pires séries ont lieu contre des dresseurs et finissent en défaite (n° 16).
+- **Argent à la mort** : médiane 501 ₽ avec les rencontres mystères, 250 ₽ sans ; moyenne autour de 1 050-1 120 ₽.
+- **Tiers de force des starters** : aucun effet visible. Le total des stats varie trop peu dans un trio Plante/Feu/Eau (n° 17).
+- Le plan seul sans rencontres mystères (54,7) est sous la dernière mesure du cerveau v5 dans les mêmes conditions (58,6, Mac). Si le Mac le confirme, on garde le cerveau v5 dans la boucle.
