@@ -199,3 +199,22 @@ Mesuré dans le cloud, en plan seul, code reproductible, 480 parties appariées 
 
 **Nouvelles premières causes de mort** : rivaux 33 %, champions d'arène 24 %.
 
+## Expert Breeder et Super Bonbon vers l'évolution (04-05/10) — deux essais rejetés
+
+| Essai | Écart apparié | Verdict |
+|---|---|---|
+| Expert Breeder : combattre avec le Pokémon de plus haut niveau parmi les trois proposés (`76092c3`) | +0,62 ± 0,55 (416 paires) | dans le bruit → **annulé** (`dc1080d`) |
+| Super Bonbon au membre qui évolue au niveau suivant, sauf rival proche (`fd87dba`) | −0,60 ± 0,70 (474 paires) | dans le bruit → **annulé** (`0b2b41e`) ; l'export `donnees/evolutions.json` est gardé |
+
+**Nouvelle référence** (plan seul, rencontres corrigées, boucle du pilote corrigée) : **57,7** de vague moyenne sur 474 parties valides (6 en erreur).
+- Rival 1 : 99 %. Rival 2 : 79 %. Rival 3 : 92 %. Rival 4 : 72 %.
+- Morts : rivaux 30 %, champions d'arène 27 %, rencontres mystères 15 %, team 14 %.
+
+Le 52,35 mesuré avant comptait seulement les parties valides des deux côtés. Les parties que la boucle bloquait vont maintenant au bout.
+
+**Analyse du rival 2** (vague 25) :
+- les équipes arrivent avec leurs PV au complet ;
+- le porteur est au même niveau que chez les gagnants ;
+- le banc a 4 à 6 niveaux de retard (11 à 15 contre 16 à 18) et reste sous sa première évolution ;
+- dans un combat perdu d'avance, le moteur d'équipe note toutes les actions à peu près pareil et choisit presque au hasard.
+

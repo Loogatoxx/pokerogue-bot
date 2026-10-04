@@ -1077,3 +1077,25 @@ le combat au cerveau.
 Retirer la première cause de mort, venue d'une règle trop simple (« toujours l'option 1 »), avec un
 choix lisible et sourcé pour chaque rencontre.
 
+## 35. Deux essais rejetés par le banc — 05/10/2026
+
+**Prompt**
+> (suite de l'entrée 34, travail autonome vers la vague 200)
+
+**Réponse**
+- Expert Breeder (combattre avec le Pokémon de plus haut niveau) : +0,62 ± 0,55, dans le bruit :
+  annulé. La boucle du pilote corrigée en même temps est gardée (57 parties en erreur → 6).
+- Super Bonbon au membre qui évolue au niveau suivant : −0,60 ± 0,70, dans le bruit : annulé.
+  L'export des niveaux d'évolution du jeu (`donnees/evolutions.json`) est gardé pour la suite.
+- Nouvelle référence en plan seul : 57,7 de vague moyenne (474 parties valides).
+- Analyse du rival 2 : équipe en pleine forme, porteur au niveau ; le banc a 4 à 6 niveaux de
+  retard. Le moteur d'équipe joue presque au hasard quand il se croit perdant.
+
+**Modifications**
+- Annulations `dc1080d` et `0b2b41e` ; nouveaux : `simulateur/exporter-evolutions.test.ts`,
+  `donnees/evolutions.json` ; `RESULTATS.md`.
+
+**Objectif**
+Ne garder que ce que le banc confirme : deux idées plausibles ne passent pas la règle des 2
+erreurs-types, elles sortent du code.
+
