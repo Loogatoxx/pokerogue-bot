@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+from collections import Counter
 from pathlib import Path
 
 import torch
@@ -76,12 +77,19 @@ def jouer_banc(args, cerveau) -> None:
     faites = set(lire_resultats(args.nom, dossier, avec_erreurs=True)) if sortie.exists() else set()
     a_faire = [k for k in range(args.parties) if k not in faites]
     reglages = {"mysteres": args.mysteres} if args.mysteres != "aucune" else {}
+    essais_depart = Counter()
 
     def travail(pont, i, k, verrou):
         partie = {"especes": args.trio or trio_de(k), "graine": f"complet-{k}", "hasard_du_jeu": True, "recit": True,
                   **reglages, **({"objets_depart": args.objets} if args.objets else {})}
         simulateur = pont.entretenir(i)
         info = jouer_plan_seul(simulateur, **partie) if cerveau is None else jouer(simulateur, cerveau, **partie)
+        if info.get("erreur") and info.get("vague", 0) == 0 and essais_depart[k] < 2:
+            pont.redemarrer(i)
+            with verrou:
+                essais_depart[k] += 1
+                a_faire.append(k)
+            return
         recit = info.get("recit") or []
         ligne = {
             "k": k, "vague": info.get("vague", 0), "victoire": info.get("victoire", False), "starters": args.trio or trio_de(k),
