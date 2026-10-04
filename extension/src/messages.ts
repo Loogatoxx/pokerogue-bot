@@ -21,7 +21,7 @@ export type ContenuCapteur =
 
 /** Ce que le panneau demande au capteur. */
 export type ContenuPanneau =
-  | { type: "pilotage"; auto: boolean; delaiMs: number }
+  | { type: "pilotage"; auto: boolean; objetsALaMain: boolean; delaiMs: number }
   | { type: "action"; cle: string; action: number };
 
 export type MessageCapteur = ContenuCapteur & { source: typeof SOURCE; origine: "capteur" };
