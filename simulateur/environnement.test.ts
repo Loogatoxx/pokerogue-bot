@@ -65,6 +65,7 @@ const ATTENTE_MAX_MS = 30 * 60_000;
 const BLOCAGE_MS = 60_000;
 /** Le tirage du combat du jeu lui-même (graine de la vague), avant notre remplacement par vraiHasard. */
 const RAND_BATTLE_DU_JEU = BattleScene.prototype.randBattleSeedInt;
+const MATH_RANDOM_DU_JEU = Math.random;
 /** Actions du pilote d'affilée sans décision du cerveau, au-delà desquelles on crie à la boucle. */
 const ACTIONS_PILOTE_MAX = 3_000;
 const DECISIONS_MAX = 20_000;
@@ -250,6 +251,19 @@ type SceneRecit = {
   modifiers: { type: { id: string }; getStackCount(): number }[];
 };
 
+function hasardDeLaGraine(graine: string): () => number {
+  let etat = 0x811c9dc5;
+  for (let i = 0; i < graine.length; i++) {
+    etat = Math.imul(etat ^ graine.charCodeAt(i), 0x01000193) >>> 0;
+  }
+  return () => {
+    etat = (etat + 0x6d2b79f5) >>> 0;
+    let melange = Math.imul(etat ^ (etat >>> 15), etat | 1);
+    melange ^= melange + Math.imul(melange ^ (melange >>> 7), melange | 61);
+    return ((melange ^ (melange >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 function dresseurDe(scene: SceneRecit): string | null {
   const type = scene.currentBattle?.trainer?.config.trainerType;
   return type === undefined ? null : (TrainerType[type] ?? String(type));
@@ -388,6 +402,7 @@ async function jouerPartie(
   // le même résultat) ; le simulateur les tire au vrai hasard, sauf demande contraire (hasardDuJeu :
   // rejouer une vague à l'identique, pour le professeur).
   BattleScene.prototype.randBattleSeedInt = demande.hasardDuJeu ? RAND_BATTLE_DU_JEU : vraiHasard;
+  Math.random = MATH_RANDOM_DU_JEU;
   game.override.normalizeIVs = false;
   game.override.normalizeNatures = false;
   game.override.disableShinies = false;
@@ -412,6 +427,9 @@ async function jouerPartie(
   const carnet = new Carnet();
   const etat = nouvelEtatPilote(carnet);
   const graine = demande.graine ?? Math.random().toString(36).slice(2, 12);
+  if (demande.hasardDuJeu) {
+    Math.random = hasardDeLaGraine(graine);
+  }
   const debut = performance.now();
   let decisions = 0;
   let phases = 0;

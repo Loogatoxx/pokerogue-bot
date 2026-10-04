@@ -234,6 +234,15 @@ Le simulateur les annule (`simulateur/environnement.test.ts`, l. 390-402 ; `docs
 
 **Isolement** : le simulateur ne parle jamais au serveur public. L'outil de test remplace `fetch` et saute la connexion (`test/framework/game-manager.ts` l. 116, `game-wrapper.ts` l. 32-33).
 
+### R13. Tirages du jeu qui ne dépendent pas de la graine ✅
+
+Une partie des tirages du jeu passe par `Math.random()` (`randInt`, `src/utils/common.ts` l. 88-93), pas par la graine de la vague :
+- combat double contre un sbire de la Team (1 chance sur 3) et genre du sbire (`src/battle.ts`, `getRandomTrainerFunc`) ;
+- certaines rencontres mystères ;
+- les œufs.
+
+Dans le vrai jeu, c'est du vrai hasard. Pour qu'un banc soit apparié, le simulateur initialise `Math.random` avec la graine de la partie en mode `hasardDuJeu` (`simulateur/environnement.test.ts`).
+
 ---
 
 ## B. Règles de Carlos (non négociables)
