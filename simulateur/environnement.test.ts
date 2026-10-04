@@ -471,6 +471,7 @@ async function jouerPartie(
   // Pokémon de l'équipe qui commencent une vague avec un problème de statut (paralysie…).
   const achats: Record<string, number> = {};
   const recompenses: Record<string, number> = {};
+  const rencontres: Record<string, number> = {};
   const statuts = { vagues: 0, membresAvecStatut: 0, porteurAvecStatut: 0 };
   let derniereVagueStatuts = 0;
   const sceneRecit = game.scene as unknown as SceneRecit;
@@ -595,6 +596,9 @@ async function jouerPartie(
           achats[detail] = (achats[detail] ?? 0) + 1;
         } else if (detail && fait === "récompense") {
           recompenses[detail] = (recompenses[detail] ?? 0) + 1;
+        } else if (detail && fait === "rencontre mystère") {
+          const cle = `${MysteryEncounterType[game.scene.currentBattle?.mysteryEncounter?.encounterType ?? -1] ?? "?"} : ${detail}`;
+          rencontres[cle] = (rencontres[cle] ?? 0) + 1;
         }
         if (fait) {
           derniereActivite = performance.now();
@@ -774,6 +778,7 @@ async function jouerPartie(
             objets: objetsPortes(sceneRecit),
             typeCombat: BattleType[game.scene.currentBattle?.battleType ?? BattleType.WILD],
             boss: game.scene.getEnemyParty().some(p => p.isBoss()),
+            rencontre: MysteryEncounterType[game.scene.currentBattle?.mysteryEncounter?.encounterType ?? -1] ?? null,
           };
         }
         break;
@@ -932,6 +937,7 @@ async function jouerPartie(
     },
     achats,
     recompenses,
+    rencontres,
     offertes: etat.offertes,
     statuts,
     changements,

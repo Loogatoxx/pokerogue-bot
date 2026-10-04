@@ -95,6 +95,7 @@ def jouer_banc(args, cerveau) -> None:
             "k": k, "vague": info.get("vague", 0), "victoire": info.get("victoire", False), "starters": args.trio or trio_de(k),
             "totalStatsDepart": info.get("totalStatsDepart"), "changements": info.get("changements"),
             "recompenses": info.get("recompenses"), "offertes": info.get("offertes"), "achats": info.get("achats"),
+            "rencontres": info.get("rencontres"),
             "bilan": info.get("bilan"),
             "niveaux": {r["vague"]: r["equipe"] for r in recit},
             "defaite": info.get("defaite"),
