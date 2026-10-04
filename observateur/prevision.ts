@@ -17,6 +17,7 @@
  * connaître à son niveau (Pokédex, observateur/especes.ts), et des statistiques estimées (IV
  * moyens, nature neutre) — jamais son vrai jeu d'attaques ni ses vrais IVs.
  */
+import { facteurAttaque } from "./contraintes-attaques";
 import { attaquesPossibles } from "./especes";
 import { EFFICACITE_TYPES } from "./noms";
 import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
@@ -225,7 +226,7 @@ export function prevoir(obs: Observation, adversaire: PokemonAdverse, cibleImpos
     // Son attaque est choisie contre la cible actuelle ; si un autre membre entre, c'est lui qui la reçoit.
     degatsSiEntre: obs.equipe.map(p => (p.ko ? 0 : esperance(c => degats(lui, combattantAllie(p), c.attaque)))),
     mesDegats: cible.attaques.map(a =>
-      degats(moi, lui, { type: a.type.id, categorie: a.categorie.id, puissance: a.puissance }) / pvAdverse),
+      degats(moi, lui, { type: a.type.id, categorie: a.categorie.id, puissance: a.puissance * facteurAttaque(a.id) }) / pvAdverse),
     plusRapide: vitesse(moi) > vitesse(lui),
   };
 }

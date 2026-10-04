@@ -21,7 +21,7 @@ import type { AttaqueNotee } from "./synergie";
 import { ECRAN } from "./valeurs";
 
 const versNotee = (m: MoveJeu): AttaqueNotee => ({
-  nom: m.name, type: m.type, categorie: m.category, puissance: m.power, precision: m.accuracy,
+  id: m.id, nom: m.name, type: m.type, categorie: m.category, puissance: m.power, precision: m.accuracy,
 });
 
 export function membreDe(p: PokemonJeu): MembreObjets {

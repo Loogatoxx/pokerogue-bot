@@ -19,7 +19,7 @@
  * et ceux du panneau ne se mélangent pas.
  */
 import { type Cerveau, lireCerveau, meilleureAction, penser, type Reponse } from "../../cerveau/cerveau";
-import { decrireAction, NOMBRE_ACTIONS } from "../../observateur/actions";
+import { decrireAction, NOMBRE_ACTIONS, PREMIERE_BALL } from "../../observateur/actions";
 import { encoder, TAILLES_ENCODAGE, VERSION_ENCODAGE } from "../../observateur/encodeur";
 import { attaquesPossibles, connaissance, immunitesPossibles, nomTalent } from "../../observateur/especes";
 import { chanceCapture } from "../../observateur/capture";
@@ -438,7 +438,6 @@ function libelleAction(index: number, obs: Observation): string {
   return cible ? `${attaque} → ${cible.nom} (${cible.position + 1})` : attaque;
 }
 
-/** Le choix du cerveau en gros, puis ses autres options les plus probables. */
 /** Les trios conseillés à l'écran de choix des starters (observateur/constructeur-equipe.ts). */
 function afficherEquipesConseillees(equipes: EquipeConseillee[], nombre: number): string {
   if (!equipes.length) {
@@ -454,26 +453,38 @@ function afficherEquipesConseillees(equipes: EquipeConseillee[], nombre: number)
     <div class="discret">Le 1er est le porteur : mets-le en tête. Force = vague moyenne mesurée comme porteur au simulateur.</div>`;
 }
 
+/**
+ * Le choix du cerveau en gros, puis ses autres options. Demande de Carlos (04/10) : ne jamais
+ * afficher 100 % quand une autre action est possible, et toujours montrer une alternative. Quand le
+ * cerveau conseille une Ball, l'alternative est la meilleure action sans capturer (ce qu'il ferait
+ * contre un dresseur) : Carlos peut préférer attaquer.
+ */
 function afficherReflexion(obs: Observation, reponse: Reponse, choisie: number): string {
   const pourcent = (p: number) => Math.round(p * 100);
+  const permises = reponse.probabilites.map((q, i) => ({ q, i })).filter(({ i }) => i !== choisie && obs.decision.masque?.[i]);
+  const parProbabilite = [...permises].sort((a, b) => b.q - a.q);
+  // L'alternative de référence : sans Ball si le choix est une Ball, sinon la deuxième option.
+  const sansBall = choisie >= PREMIERE_BALL ? parProbabilite.find(({ i }) => i < PREMIERE_BALL) : undefined;
+  const reference = sansBall ?? parProbabilite[0];
+  const autres = [
+    ...(reference ? [reference] : []),
+    ...parProbabilite.filter(x => x !== reference && x.q >= 0.01),
+  ].slice(0, 3);
+  // Jamais 100 % s'il existe une autre action ; chaque alternative affichée compte au moins 1 %.
   const p = reponse.probabilites[choisie] ?? 0;
-  const autres = reponse.probabilites
-    .map((q, i) => ({ q, i }))
-    .filter(({ q, i }) => i !== choisie && obs.decision.masque?.[i] && q >= 0.01)
-    .sort((a, b) => b.q - a.q)
-    .slice(0, 3)
-    .map(({ q, i }) => `
+  const affichee = (q: number) => Math.max(1, pourcent(q));
+  const principale = autres.length ? Math.max(1, Math.min(pourcent(p), 100 - autres.reduce((s, x) => s + affichee(x.q), 0))) : pourcent(p);
+  const lignes = autres.map((x, k) => `
       <div class="autre">
-        <span>${echapper(libelleAction(i, obs))}</span>
-        <div class="barre"><div style="width:${(q * 100).toFixed(1)}%;background:#c73625"></div></div>
-        <span class="num">${pourcent(q)} %</span>
-      </div>`)
-    .join("");
+        <span>${k === 0 && x === sansBall ? "sans capturer : " : ""}${echapper(libelleAction(x.i, obs))}</span>
+        <div class="barre"><div style="width:${Math.max(1, x.q * 100).toFixed(1)}%;background:#c73625"></div></div>
+        <span class="num">${affichee(x.q)} %</span>
+      </div>`).join("");
   return `
     ${enteteChoix(obs)}
     <div class="gros">▶ ${echapper(libelleAction(choisie, obs))}</div>
-    <div class="jauge"><div style="width:${(p * 100).toFixed(1)}%"></div><span>${pourcent(p)} %</span></div>
-    ${autres}`;
+    <div class="jauge"><div style="width:${principale.toFixed(1)}%"></div><span>${principale} %</span></div>
+    ${lignes}`;
 }
 
 // ─── Construction du panneau ──────────────────────────────────────────────────────────────────

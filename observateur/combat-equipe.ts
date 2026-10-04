@@ -20,6 +20,7 @@
 import { NOMBRE_ACTIONS, PREMIER_CHANGEMENT, PREMIERE_BALL } from "./actions";
 import { combatDeLaVague } from "./combats";
 import { candidates, combattantAdverse, combattantAllie, type Combattant, degats, statsEstimees } from "./prevision";
+import { facteurAttaque } from "./contraintes-attaques";
 import { EFFETS_STATUT } from "./effets-statut";
 import { PRIORITES } from "./priorites";
 import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
@@ -118,7 +119,7 @@ function allie(p: PokemonAllie, enJeu: boolean): Acteur {
     c: combattant,
     pv: p.pv / Math.max(p.pvMax, 1),
     // Mêmes indices que les actions du cerveau : une attaque sans PP reste, mais ne fait rien.
-    coups: p.attaques.map(a => coupDe(a.id, a.type.id, a.categorie.id, a.pp > 0 ? a.puissance : 0, a.precision > 0 ? a.precision / 100 : 1)),
+    coups: p.attaques.map(a => coupDe(a.id, a.type.id, a.categorie.id, a.pp > 0 ? a.puissance * facteurAttaque(a.id) : 0, a.precision > 0 ? a.precision / 100 : 1)),
     vitesse: vitesseDe(combattant),
     poids: 1,
     barres: 1,

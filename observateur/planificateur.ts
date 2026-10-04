@@ -22,6 +22,7 @@
 import { NOMBRE_ACTIONS, PREMIER_CHANGEMENT, PREMIERE_BALL } from "./actions";
 import { chanceCapture } from "./capture";
 import { valeursCombatEquipe } from "./combat-equipe";
+import { facteurAttaque } from "./contraintes-attaques";
 import { connaissance } from "./especes";
 import { cibleDe, combattantAdverse, combattantAllie, type Combattant, degats, efficacite, prevoir, prevoirChangement } from "./prevision";
 import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
@@ -53,7 +54,7 @@ function mesDegats(moi: PokemonAllie, lui: PokemonAdverse, pvLui: number): numbe
   const a = combattantAllie(moi);
   const d = combattantAdverse(lui);
   return moi.attaques.map(x =>
-    x.pp > 0 ? degats(a, d, { type: x.type.id, categorie: x.categorie.id, puissance: x.puissance }) / Math.max(pvLui, 0.01) : 0);
+    x.pp > 0 ? degats(a, d, { type: x.type.id, categorie: x.categorie.id, puissance: x.puissance * facteurAttaque(x.id) }) / Math.max(pvLui, 0.01) : 0);
 }
 
 /** Ses dégâts attendus par tour sur `cible`, en fraction des PV restants de la cible. */

@@ -17,12 +17,15 @@
  * Ce n'est pas encore le cerveau qui juge : c'est une formule lisible. Plus tard, le cerveau
  * pourra décider lui-même, en recevant cette note comme un avis parmi d'autres.
  */
+import { facteurAttaque } from "./contraintes-attaques";
 import { typesAPreparer } from "./combats";
 import type { MoveJeu, PokemonJeu, ScenePokerogue } from "./jeu";
 import { EFFICACITE_TYPES, MoveCategory, PokemonType } from "./noms";
 import { ECRAN } from "./valeurs";
 
 export interface AttaqueNotee {
+  /** Identifiant du jeu, s'il est connu (attaques trompeuses : contraintes-attaques.ts). */
+  id?: number;
   nom: string;
   type: number;
   categorie: number;
@@ -72,7 +75,9 @@ function puissanceUtile(a: AttaqueNotee, porteur: Porteur): number {
   const attaque = porteur.stats[1] ?? 1;
   const attaqueSpe = porteur.stats[3] ?? 1;
   const adequation = (a.categorie === PHYSIQUE ? attaque : attaqueSpe) / Math.max(attaque, attaqueSpe, 1);
-  return a.puissance * precision * stab * adequation;
+  // Explosion, Ultralaser, Lance-Soleil… : la puissance affichée trompe (remarque de Carlos, 04/10 :
+  // des CT faisaient oublier des attaques plus utiles).
+  return a.puissance * precision * stab * adequation * facteurAttaque(a.id);
 }
 
 const efficacite = (typeAttaque: number, typeDefense: number) => EFFICACITE_TYPES[typeAttaque]?.[typeDefense] ?? 1;
@@ -208,7 +213,7 @@ export function meilleureOption(options: OptionApprentissage[]): OptionApprentis
 // ─── Depuis le jeu ────────────────────────────────────────────────────────────────────────────
 
 const versNotee = (m: MoveJeu): AttaqueNotee => ({
-  nom: m.name, type: m.type, categorie: m.category, puissance: m.power, precision: m.accuracy,
+  id: m.id, nom: m.name, type: m.type, categorie: m.category, puissance: m.power, precision: m.accuracy,
 });
 const porteurDe = (p: PokemonJeu): Porteur => ({ types: p.getTypes(), stats: [0, 1, 2, 3, 4, 5].map(s => p.getStat(s)) });
 

@@ -43,4 +43,15 @@ describe("Note de synergie des attaques", () => {
     const oublierMimiQueue = options.find(o => o.oublier === 1)!;
     expect(oublierMimiQueue.contre.some(c => c.includes("Mimi-Queue"))).toBe(true);
   });
+
+  it("n'oublie pas une bonne attaque pour Explosion (le lanceur tombe K.O.)", () => {
+    // Racaillou (Roche/Sol) : Éboulement 75, Séisme 100 ; Explosion 250 affichée, mais il tombe K.O.
+    const racaillou = { types: [5, 4], stats: [40, 80, 100, 30, 30, 20] };
+    const eboulement = attaque("Éboulement", 5, 0, 75, 90);
+    const seisme = attaque("Séisme", 4, 0, 100);
+    const explosion = { ...attaque("Explosion", 0, 0, 250), id: 153 };
+    const choix = meilleureOption(evaluerApprentissage(racaillou, [charge, mimiQueue, eboulement, seisme], explosion));
+    expect(choix.oublier === null || choix.nom.includes("Charge") || choix.nom.includes("Mimi-Queue")).toBe(true);
+    expect(choix.nom).not.toMatch(/Séisme|Éboulement/);
+  });
 });
