@@ -22,6 +22,7 @@ import { observer } from "../observateur/observateur";
 import { changerAuDebut } from "../observateur/planificateur";
 import { meilleureOption, optionsApprentissageAffichees } from "../observateur/synergie";
 import { BOUTON, CIBLE, COMMANDE, ECRAN, OPTION_EQUIPE, USAGE_ATTAQUE_NORMAL } from "../observateur/valeurs";
+import RENCONTRES from "../donnees/rencontres-mysteres.json";
 
 /** Écran du jeu, vu par le pilote (sous-ensemble prudent des différents écrans). */
 interface Ecran {
@@ -265,7 +266,7 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
   }
 
   if (mode === ECRAN.MYSTERY_ENCOUNTER) {
-    return choisirRencontreMystere(e);
+    return choisirRencontreMystere(scene, e);
   }
 
   // Œufs reçus d'une rencontre mystère, qui éclosent pendant la partie : passer l'animation, puis
@@ -371,7 +372,13 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
  * choisit la première option dont les conditions sont remplies. Une règle simple en attendant que
  * le cerveau juge lui-même chaque rencontre.
  */
-function choisirRencontreMystere(e: Ecran): string | null {
+export function optionRencontre(type: number | undefined, possibles: number[]): number {
+  const rencontres: Record<string, { options: number[] }> = RENCONTRES.rencontres;
+  const preferees = type === undefined ? [] : (rencontres[String(type)]?.options ?? []).map(option => option - 1);
+  return preferees.find(option => possibles.includes(option)) ?? possibles[0]!;
+}
+
+function choisirRencontreMystere(scene: ScenePokerogue, e: Ecran): string | null {
   const ecranRencontre = e as Ecran & { blockInput?: boolean; optionsMeetsReqs?: boolean[]; encounterOptions?: unknown[] };
   if (ecranRencontre.blockInput) {
     return null;
@@ -385,7 +392,7 @@ function choisirRencontreMystere(e: Ecran): string | null {
     e.processInput(BOUTON.CANCEL);
     return "rencontre mystère : aucune option possible";
   }
-  const choix = possibles[0]!;
+  const choix = optionRencontre(scene.currentBattle?.mysteryEncounter?.encounterType, possibles);
   e.setCursor(choix);
   e.processInput(BOUTON.ACTION);
   return `rencontre mystère : option ${choix + 1}`;

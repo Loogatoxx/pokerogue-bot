@@ -113,6 +113,8 @@ Aucune mesure : Phase 0 sans code. Le conteneur cloud ne peut pas lancer le banc
 
 **Vérification** :
 - k=1, k=8 et k=10 joués chacun sur 4 copies en parallèle : 4 résultats identiques.
+- Le même banc de 96 parties lancé deux fois (3 processus) : **91 parties sur 92 identiques**. Écart +0,25 ± 0,25. Les 4 parties en erreur sont les mêmes des deux côtés (k = 31, 37, 48, 82 : boucles du pilote, déterministes).
+- Avant le correctif : environ 1 partie sur 5 changeait. Il reste une partie sur 92 qui change (k=93 : vague 80 ou 57), cause non trouvée. Ce bruit résiduel est petit, et l'erreur-type appariée en tient compte.
 
 **Vérification de l'instrumentation (cloud)** : 6 parties rejouées avant et après les ajouts au simulateur donnent exactement la même vague, le même nombre de décisions et le même argent. Les ajouts ne changent aucune décision.
 
@@ -150,3 +152,25 @@ Ces bancs ne servent pas à décider (autre machine). Ils servent à repérer le
 - **Argent à la mort** : médiane 501 ₽ avec les rencontres mystères, 250 ₽ sans ; moyenne autour de 1 050-1 120 ₽.
 - **Tiers de force des starters** : aucun effet visible. Le total des stats varie trop peu dans un trio Plante/Feu/Eau (n° 17).
 - Le plan seul sans rencontres mystères (54,7) est sous la dernière mesure du cerveau v5 dans les mêmes conditions (58,6, Mac). Si le Mac le confirme, on garde le cerveau v5 dans la boucle.
+
+## Phase 3 (anticipée) — changements en plein combat (commit `f531ba0`, PR #4)
+
+Correctif venu d'une autre session à la demande de Carlos :
+- un changement en plein combat coûte un tour dans le moteur d'équipe ;
+- un changement vers un duel perdu vaut moins qu'une attaque.
+
+Mesuré dans le cloud, en plan seul, code reproductible, 480 parties appariées :
+
+| | Avant (`22292f2`) | Après | Écart |
+|---|---|---|---|
+| Vague moyenne | 40,52 | **44,43** | **+3,91** (erreur-type 1,33, seuil 2,66) |
+| Parties meilleures / identiques / pires | — | — | 150 / 202 / 93 |
+| Changements volontaires par partie | 13,0 | 9,3 | |
+| Parties avec au moins 3 changements d'affilée | 153 | 23 | |
+| Plus longue série de changements | 84 | 66 | |
+| Rival 2 | 74 % | 77 % | |
+| Rival 4 | 69 % | 59 % (peu de parties) | |
+
+**Verdict : GARDER.**
+
+Il reste quelques longues séries de changements (66 au maximum), à chercher (BACKLOG n° 16). À confirmer avec le cerveau v5 sur le Mac.

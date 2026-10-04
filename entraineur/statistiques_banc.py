@@ -93,6 +93,14 @@ def argent_et_objets_a_la_mort(resultats: list[dict]) -> list[str]:
     ]
 
 
+def rencontres_mortelles(resultats: list[dict]) -> str | None:
+    morts = Counter((r.get("defaite") or {}).get("rencontre") for r in resultats if type_de_mort(r) == "rencontre mystère")
+    morts.pop(None, None)
+    if not morts:
+        return None
+    return "rencontres mystères mortelles : " + ", ".join(f"{nom} {nombre}" for nom, nombre in morts.most_common(8))
+
+
 def changements_consecutifs(resultats: list[dict]) -> str | None:
     avec_compteur = [r["changements"] for r in resultats if r.get("changements")]
     if not avec_compteur:
@@ -140,6 +148,9 @@ def resume(resultats: list[dict]) -> str:
         "morts par type : " + ", ".join(morts_par_type(valides)),
         *argent_et_objets_a_la_mort(valides),
     ]
+    ligne_rencontres = rencontres_mortelles(valides)
+    if ligne_rencontres:
+        lignes.append(ligne_rencontres)
     ligne_changements = changements_consecutifs(valides)
     if ligne_changements:
         lignes.append(ligne_changements)

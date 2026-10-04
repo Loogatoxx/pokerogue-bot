@@ -1019,3 +1019,27 @@ change, et les petits gains se perdaient dans ce bruit.
 
 **Objectif**
 Ne plus perdre de tours en changements inutiles ; à confirmer par les bancs officiels sur le Mac.
+
+## 33. Extension : mode semi-auto — 04/10/2026
+
+**Prompt**
+> on es sur 1h deja, sinon en paralelle tu peu modifier l extension et mettre un entre deux en auto
+> et conseil un semi auto ou on choisi les objet et le combat est auto
+
+**Réponse**
+- Nouveau mode **SEMI**, entre CONSEIL et AUTO : le cerveau et le pilote jouent tout comme en auto,
+  sauf l'écran des récompenses et de la boutique (`SelectModifierPhase`, avec le choix du Pokémon
+  qui reçoit l'objet), laissé au joueur. Le Daily Run reste interdit, comme en auto.
+- Hors périmètre des phases : fait à la demande de Carlos. Seuls les fichiers de l'extension
+  changent : pas le pilote ni l'observateur, qui servaient au banc en cours.
+- Vérifié : types (`pnpm run verifier`), 47 tests unitaires, construction de l'extension. Pas
+  encore essayé dans Brave.
+
+**Modifications**
+- `extension/src/capteur.ts` (règles du pilote suspendues sur l'écran des récompenses en semi-auto),
+  `extension/src/messages.ts` (`objetsALaMain`), `extension/src/panneau.ts` (bouton SEMI, état
+  « direct · semi-auto »), `extension/manifest.json` (0.11.0).
+
+**Objectif**
+Que Carlos garde la main sur les objets, la partie où le bot est le plus faible, tout en laissant
+le combat au cerveau.

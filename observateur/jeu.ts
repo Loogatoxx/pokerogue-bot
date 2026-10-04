@@ -90,6 +90,7 @@ export interface ScenePokerogue {
       /** Spécialité d'un champion d'arène, du Conseil 4… (connaissance publique : un champion = un type). */
       config?: { specialtyType?: number; hasSpecialtyType?(): boolean };
     } | null;
+    mysteryEncounter?: { encounterType: number } | undefined;
   } | null;
   arena?: {
     biomeId: number;
