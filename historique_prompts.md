@@ -864,3 +864,45 @@ avant d'y investir.
 
 **Objectif**
 Corriger les décisions hors combat qu'un joueur voit tout de suite, et dont la partie dépendait.
+
+## 29. Nouveau cadre de travail et Phase 0 (audit sans code) — 04/10/2026
+
+**Prompt** (résumé : prompt structuré en sections rôle, objectif, situation, règles du jeu, règles
+perso, diagnostic H1-H7, architecture cible, matrices M0-M4, state, RL, évaluation, méthode par
+phases, contraintes de code, mémoire du projet)
+> Tu es mon ingénieur senior […] Un bot qui décide comme un joueur humain […] Cible de départ : faire
+> monter la vague moyenne de façon mesurable […] Ne code rien. Fais la Phase 0 : 1. Reformule le
+> projet en 10 lignes maximum […] 2. Pose-moi tes questions manquantes en une seule fois (5 maximum)
+> […] 3. Vérifie dans le code du jeu chaque règle de <regles_du_jeu_immuables> […] 4. Donne le plan
+> de phases avec l'effort estimé, les risques, et ce qui te semble infaisable. 5. Crée REGLES.md.
+> Puis attends mon "GO phase 1".
+
+**Réponse**
+- Règles vérifiées dans PokéRogue `v1.12.0.11` (cloné au tag exact) :
+  - confirmées : 200 vagues, biomes de 10 vagues, soin gratuit complet (PV, PP, statut, K.O.) au
+    passage X0 → X1, boutique d'abord puis récompense, pas de boutique aux X0, overrides présents ;
+  - différentes de ce qui était écrit : champion d'arène seulement toutes les 30 vagues (20/50/80…
+    ou 30/60/90…, une chance sur deux par graine) ; aucune récompense au choix aux vagues X0 (Charme
+    Exp imposé) ; un gros coup peut casser plusieurs segments ; un boss de dresseur ne gagne pas
+    de boost ; les légendaires sauvages sont des boss à toute vague ; aucun inventaire de soins
+    (appliqués tout de suite) ; les crans durent entre sauvages du même biome, mais pas avant un
+    dresseur, une rencontre mystère ou un nouveau biome.
+- Audit : l'architecture cible existe déjà en grande partie (state versionné, pilote, garde-fous
+  boutique, règles d'objets, planificateur, moteur d'équipe, banc apparié). Manques : variables du
+  state (pièges, objets passifs, historique des changements, prochain soin), segments contre les boss
+  sauvages, relances, transferts, biome, statistiques de mesure (écart-type, p10/p90, morts par
+  type).
+- Corrections : la mesure n'est pas « starters aléatoires » mais un banc apparié (trio
+  Plante/Feu/Eau par graine) ; la dernière mesure est 58,6, pas 57 ; l'erreur-type à utiliser
+  est celle des différences appariées.
+- Plan de phases avec efforts et risques ; vague 200 jugée hors de portée à court terme.
+- Question GitHub : déjà réglée (dépôt Loogatoxx/pokerogue-bot, entrée 3).
+
+**Modifications**
+- Nouveaux : `REGLES.md` (règles du jeu sourcées, règles de Carlos, décisions d'architecture),
+  `BACKLOG.md` (11 idées hors phase), `RESULTATS.md` (mesures d'avant protocole).
+- Aucun code modifié.
+
+**Objectif**
+Repartir sur une base écrite et vérifiée, pour qu'aucune règle du jeu ne soit plus oubliée ni
+devinée, et savoir ce qui existe déjà avant d'investir dans une phase.
