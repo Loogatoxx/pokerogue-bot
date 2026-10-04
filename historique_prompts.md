@@ -839,3 +839,28 @@ Passer le rival 1 à 100 % en corrigeant les vraies décisions fautives, mesuré
 **Objectif**
 Mesurer assez juste pour voir des gains d'une demi-vague, et trouver la vraie cause du plafond
 avant d'y investir.
+
+## 28. Retours de jeu : objets et argent — 04/10/2026
+
+**Prompts**
+> je suis de retours on peut continuer alors a savoir j ai fais le test du cerveau, on peu nottament apercevoir des mauvaise gestion des objet […] il devrais economiser pour les moment difficile […] il n a pas pris le dynamax et a preferer une CT […] il prend la potion gratuite alors que si il paye la potion et prend la pepite il y gagne […] il decide d envoyer une pokeball au pokemon full life […] mauvais choix sur les CT […] il esquivais les charme exp […] parfum de double combat […] il a skip 2 bonboniere […] la partie c'est fini puisque j avais plus d argent pour reanimer […] y a un fosser entre ce que un humain arrive a analyser […] peut etre on commence a arriver a un moment ou l ia dois juste s entrainer et s apercevoir par elle meme […]
+>
+> petit truc pour que tu regle a un autre moment c'est que quand l equipe est pas a 100% complete l extension me met 100% de capture […] plutot ecrire 99% et 1% avec une alternative […] imaginon s'il etait contre un dresseur il aurait fait quoi
+
+**Réponse**
+- Ces décisions (objets, boutique, CT) sont des règles écrites, pas apprises : chaque remarque a
+  été corrigée directement, puis mesurée sur le banc apparié.
+- Règles du jeu vérifiées : Pépite = l'argent d'une vague = prix de base de la boutique ; soin et
+  réanimation complets à chaque nouveau biome.
+- Objets et argent : +2,29 ± 1,37 vague (55,7 → 58,0) ; attaques trompeuses : +0,65 (58,6).
+- Panneau : jamais 100 % s'il existe une autre action ; alternative « sans capturer ».
+
+**Modifications**
+- `observateur/objets.ts` (valeur de l'argent, Pépites, soins gratuits plafonnés par leur prix,
+  boutique économe, Bonbonnière, Leurres, bracelets selon l'équipe, Charmes et Multi Exp),
+  `decisions-jeu.ts` (argent, prix, formes Méga/Gigamax), `planificateur.ts` (Balls équipe pleine),
+  nouveaux `observateur/generer-attaques.py` et `contraintes-attaques.ts` (synergie, moteur,
+  prévision), `extension/src/panneau.ts`, tests, `docs/etape-16-retours-objets.md`, extension 0.10.1.
+
+**Objectif**
+Corriger les décisions hors combat qu'un joueur voit tout de suite, et dont la partie dépendait.
