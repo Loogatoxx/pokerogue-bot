@@ -174,3 +174,28 @@ Mesuré dans le cloud, en plan seul, code reproductible, 480 parties appariées 
 **Verdict : GARDER.**
 
 Il reste quelques longues séries de changements (66 au maximum), à chercher (BACKLOG n° 16). À confirmer avec le cerveau v5 sur le Mac.
+
+## Rencontres mystères : option choisie par un fichier de données (commit `207008a`, PR #6)
+
+Avant, le pilote prenait toujours la 1re option possible. Maintenant, il suit `donnees/rencontres-mysteres.json` : pour chacune des 31 rencontres, l'ordre de préférence des options et la raison, tirée du code du jeu.
+
+Mesuré dans le cloud, en plan seul, code reproductible, 480 parties appariées :
+
+| | Avant (`fb29312`) | Après | Écart |
+|---|---|---|---|
+| Vague moyenne (paires valides) | 43,04 | **52,35** | **+9,31** (erreur-type 1,44, seuil 2,87) |
+| Parties meilleures / identiques / pires | — | — | 156 / 173 / 67 |
+| Médiane | 30 | 48 | |
+| p90 | 90 | 104 | |
+| Morts en rencontre mystère | 35 % | 17 % | |
+
+**Verdict : GARDER.**
+
+**Rencontres les plus mortelles** :
+- avant : Training Session 55, Expert Breeder 35, Ronflex 16 ;
+- après : Expert Breeder 39, Berries Abound 11, Uncommon Breed 9.
+
+**Effet de bord découvert** : 57 parties en erreur au lieu de 28. Uncommon Breed (amadouer) et The Pokémon Salesman (acheter) donnent un Pokémon. Avec l'équipe pleine, le pilote ne voyait pas le Pokémon offert et ouvrait le résumé en boucle. Corrigé dans `1e002ac` : dans ce cas, il ne garde pas le Pokémon (k = 20, 48, 53 vont maintenant jusqu'aux vagues 55, 112 et 112).
+
+**Nouvelles premières causes de mort** : rivaux 33 %, champions d'arène 24 %.
+

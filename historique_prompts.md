@@ -1043,3 +1043,37 @@ Ne plus perdre de tours en changements inutiles ; à confirmer par les bancs off
 **Objectif**
 Que Carlos garde la main sur les objets, la partie où le bot est le plus faible, tout en laissant
 le combat au cerveau.
+
+## 34. Viser la vague 200 : les rencontres mystères — 04/10/2026
+
+**Prompt**
+> c'est fusionner, et l extension a merveille, fais le optimal pour augmenter les resultat pour que
+> un jour l ia puisse finir le jeu sans probleme
+>
+> (en cours) c'est normal le verdict ça fait 20min il tourne?
+
+**Réponse**
+- Le plus gros levier mesuré passe en premier : les rencontres mystères (35 % des morts).
+- Le banc enregistre maintenant le type de rencontre mortelle et l'option choisie.
+- `donnees/rencontres-mysteres.json` : l'option à préférer pour chacune des 31 rencontres, avec la
+  raison tirée du code du jeu. Exemples : ne jamais vendre son Pokémon le plus fort ; refuser un
+  défi brutal quand refuser soigne toute l'équipe ; ne pas fuir le Rêve Étrange, qui fait perdre
+  10 % des niveaux.
+- Banc apparié : **+9,31 ± 1,44 vagues** (43,0 → 52,4), morts en rencontre mystère 35 % → 17 %.
+  Gardé.
+- Boucle du pilote corrigée : équipe pleine quand une rencontre donne un Pokémon.
+- Expert Breeder : combattre avec le Pokémon de plus haut niveau parmi les trois proposés (banc en
+  cours).
+- Les commits non fusionnés de la PR #3 (extension semi-auto, reproductibilité) ont été réintégrés.
+
+**Modifications**
+- Nouveaux : `donnees/rencontres-mysteres.json`, `tests/rencontres.test.ts`.
+- Modifiés : `pilote/pilote.ts` (`optionRencontre`, plus haut niveau pour l'éleveur, équipe
+  pleine dans une rencontre), `observateur/jeu.ts` (`mysteryEncounter`, `friendship`),
+  `tsconfig.json` (`resolveJsonModule`), `simulateur/environnement.test.ts`, `entraineur/` (banc),
+  `RESULTATS.md`, `BACKLOG.md`.
+
+**Objectif**
+Retirer la première cause de mort, venue d'une règle trop simple (« toujours l'option 1 »), avec un
+choix lisible et sourcé pour chaque rencontre.
+
