@@ -378,24 +378,10 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
  * choisit la première option dont les conditions sont remplies. Une règle simple en attendant que
  * le cerveau juge lui-même chaque rencontre.
  */
-export function optionRencontre(type: number | undefined, possibles: number[], niveaux: number[] = []): number {
-  const rencontres: Record<string, { options: number[]; choix?: string }> = RENCONTRES.rencontres;
-  const rencontre = type === undefined ? undefined : rencontres[String(type)];
-  if (rencontre?.choix === "plus-haut-niveau") {
-    const parNiveau = possibles.filter(option => niveaux[option] !== undefined).sort((a, b) => niveaux[b]! - niveaux[a]!);
-    if (parNiveau.length) {
-      return parNiveau[0]!;
-    }
-  }
-  const preferees = (rencontre?.options ?? []).map(option => option - 1);
+export function optionRencontre(type: number | undefined, possibles: number[]): number {
+  const rencontres: Record<string, { options: number[] }> = RENCONTRES.rencontres;
+  const preferees = type === undefined ? [] : (rencontres[String(type)]?.options ?? []).map(option => option - 1);
   return preferees.find(option => possibles.includes(option)) ?? possibles[0]!;
-}
-
-function niveauxParAffection(scene: ScenePokerogue): number[] {
-  return scene.getPlayerParty()
-    .filter(pokemon => !pokemon.isFainted())
-    .sort((a, b) => a.friendship - b.friendship)
-    .map(pokemon => pokemon.level);
 }
 
 function choisirRencontreMystere(scene: ScenePokerogue, e: Ecran): string | null {
@@ -412,7 +398,7 @@ function choisirRencontreMystere(scene: ScenePokerogue, e: Ecran): string | null
     e.processInput(BOUTON.CANCEL);
     return "rencontre mystère : aucune option possible";
   }
-  const choix = optionRencontre(scene.currentBattle?.mysteryEncounter?.encounterType, possibles, niveauxParAffection(scene));
+  const choix = optionRencontre(scene.currentBattle?.mysteryEncounter?.encounterType, possibles);
   e.setCursor(choix);
   e.processInput(BOUTON.ACTION);
   return `rencontre mystère : option ${choix + 1}`;

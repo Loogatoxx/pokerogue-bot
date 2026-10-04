@@ -32,6 +32,6 @@
     "27": { "nom": "FUN_AND_GAMES", "options": [2, 1], "raison": "payant ; partir ne coûte rien" },
     "28": { "nom": "UNCOMMON_BREED", "options": [3, 2, 1], "raison": "l'amadouer sans combat ; le 1 est un combat difficile" },
     "29": { "nom": "GLOBAL_TRADE_SYSTEM", "options": [4, 3, 1, 2], "raison": "un échange peut faire perdre un membre de l'équipe ; partir ne coûte rien" },
-    "30": { "nom": "THE_EXPERT_POKEMON_BREEDER", "options": [1, 2, 3], "choix": "plus-haut-niveau", "raison": "pas d'option pour partir ; les 3 options sont les 3 Pokémon les moins affectueux, on combat avec celui de plus haut niveau (expert-pokemon-breeder-encounter.ts, tri par friendship)" }
+    "30": { "nom": "THE_EXPERT_POKEMON_BREEDER", "options": [1, 2, 3], "raison": "pas d'option pour partir" }
   }
 }

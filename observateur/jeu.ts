@@ -32,7 +32,6 @@ export interface PokemonJeu {
   name: string;
   level: number;
   hp: number;
-  friendship: number;
   shiny: boolean;
   nature: number;
   ivs: number[];
