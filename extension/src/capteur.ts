@@ -32,7 +32,7 @@ type Phaser = { Scenes?: { Systems?: { prototype: SystemesPhaser } } };
 let scene: ScenePokerogue | null = null;
 const carnet = new Carnet();
 const etatPilote = nouvelEtatPilote(carnet);
-const pilotage = { auto: false, delaiMs: 700, derniereAction: 0 };
+const pilotage = { auto: false, objetsALaMain: false, delaiMs: 700, derniereAction: 0 };
 
 function envoyer(message: ContenuCapteur): void {
   window.postMessage({ source: SOURCE, origine: "capteur", ...message }, window.location.origin);
@@ -58,6 +58,10 @@ function intercepterScene(phaser: Phaser): void {
 /** Le mode auto est-il permis ici ? Jamais en Daily Run (classement partagé avec d'autres). */
 function autoPermis(s: ScenePokerogue): boolean {
   return pilotage.auto && !s.gameMode.isDaily;
+}
+
+function objetsLaissesAuJoueur(s: ScenePokerogue): boolean {
+  return pilotage.objetsALaMain && s.phaseManager.getCurrentPhase()?.phaseName === "SelectModifierPhase";
 }
 
 function observerUneFois(): void {
@@ -86,7 +90,7 @@ function observerUneFois(): void {
 
     // Mode auto : tout ce qui n'est pas une décision du cerveau suit les règles du pilote,
     // au rythme choisi pour qu'un humain puisse suivre.
-    if (autoPermis(scene) && !decisionCerveauEnAttente(scene) && Date.now() - pilotage.derniereAction >= pilotage.delaiMs / 3) {
+    if (autoPermis(scene) && !objetsLaissesAuJoueur(scene) && !decisionCerveauEnAttente(scene) && Date.now() - pilotage.derniereAction >= pilotage.delaiMs / 3) {
       const fait = repondreParRegles(scene, etatPilote);
       if (fait) {
         pilotage.derniereAction = Date.now();
@@ -123,6 +127,7 @@ function ecouterPanneau(): void {
     const message = evenement.data;
     if (message.type === "pilotage") {
       pilotage.auto = message.auto;
+      pilotage.objetsALaMain = message.objetsALaMain;
       pilotage.delaiMs = message.delaiMs;
     } else if (message.type === "action") {
       executerSiToujoursAttendue(message.cle, message.action);

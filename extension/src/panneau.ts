@@ -3,7 +3,7 @@
  * ce que le cerveau voit (observation envoyée par le capteur) et ce qu'il en pense.
  *
  * Rangé du plus important au moins important, pour ne jamais avoir à chercher :
- * - En-tête : état du jeu, mode Conseil / Auto (et vitesse en auto), bouton pour replier.
+ * - En-tête : état du jeu, mode Conseil / Semi / Auto (et vitesse), bouton pour replier.
  * - Le choix : ce que le jeu attend et ce que le cerveau (ou le pilote) choisit, en gros.
  * - Le duel : adversaires et équipe en une ligne chacun (nom, niveau, PV).
  * - Le reste replié : partie, fiches détaillées (IVs, nature, attaques…), carnet, cerveau.
@@ -590,7 +590,7 @@ function demarrer(): void {
   let messageCerveau = "";
   let messagePilote = "";
   let horsPartie = "Lance une partie pour voir ce que le cerveau pense.";
-  const reglages = { auto: false, vitesse: "normale" };
+  const reglages = { auto: false, semi: false, vitesse: "normale" };
   const affichage = { replie: false, ouverts: [] as string[] };
   // Mode auto : décision déjà confiée au capteur, et actions refusées par le jeu pour elle.
   let cleEnvoyee = "";
@@ -601,7 +601,7 @@ function demarrer(): void {
   const envoyer = (message: ContenuPanneau) =>
     window.postMessage({ source: SOURCE, origine: "panneau", ...message }, window.location.origin);
   const transmettrePilotage = () =>
-    envoyer({ type: "pilotage", auto: reglages.auto && !!cerveau, delaiMs: VITESSES[reglages.vitesse] ?? 700 });
+    envoyer({ type: "pilotage", auto: reglages.auto && !!cerveau, objetsALaMain: reglages.semi, delaiMs: VITESSES[reglages.vitesse] ?? 700 });
 
   function chargerCerveau(tampon: ArrayBuffer): string | null {
     try {
@@ -626,7 +626,7 @@ function demarrer(): void {
           .join("")}</span>`
       : "";
     remplir(ui.outils, `
-      <span class="groupe">${bouton("mode:conseil", "CONSEIL", !reglages.auto)}${bouton("mode:auto", "AUTO", reglages.auto)}</span>
+      <span class="groupe">${bouton("mode:conseil", "CONSEIL", !reglages.auto)}${bouton("mode:semi", "SEMI", reglages.auto && reglages.semi)}${bouton("mode:auto", "AUTO", reglages.auto && !reglages.semi)}</span>
       ${vitesses}`);
   }
 
@@ -767,7 +767,8 @@ function demarrer(): void {
         ui.fichier.click();
         return;
       case "mode":
-        reglages.auto = valeur === "auto";
+        reglages.auto = valeur !== "conseil";
+        reglages.semi = valeur === "semi";
         messageCerveau = reglages.auto && !cerveau ? "Importe d'abord un cerveau : c'est lui qui joue les combats en mode auto." : "";
         cleEnvoyee = "";
         enregistrerReglages();
@@ -864,7 +865,7 @@ function demarrer(): void {
         return;
       case "observation": {
         ui.etat.className = "etat direct";
-        ui.etat.textContent = reglages.auto && cerveau ? (message.observation.partie.quotidien ? "Daily : auto coupé" : "direct · auto") : "direct";
+        ui.etat.textContent = reglages.auto && cerveau ? (message.observation.partie.quotidien ? "Daily : auto coupé" : reglages.semi ? "direct · semi-auto" : "direct · auto") : "direct";
         const avant = derniereObservation ? JSON.stringify(derniereObservation) : "";
         derniereObservation = message.observation;
         // On ne recalcule que si quelque chose a changé (4 observations par seconde).
