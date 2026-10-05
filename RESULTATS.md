@@ -290,3 +290,16 @@ Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au ri
 | Écart apparié | — | **−0,05** (erreur-type 0,44, 474 paires) · mieux 25, pareil 422, pire 27 |
 
 **Verdict : annulé.** 422 parties sur 474 sont identiques : la règle ne change presque jamais une décision. Les remplacements ne sont pas un levier. Avec les captures (−13,14), la composition de l'équipe est écartée pour l'instant : le prochain levier à chercher est dans les combats.
+
+## Effets des attaques dans le moteur de combat d'équipe (05/10) — rejeté, essais séparés en cours
+
+**Idée** (remarque de Carlos : « l'IA ne mesure que la puissance ») : table générée depuis le jeu (`generer-effets-attaques.py`, 220 attaques) ; contre les dresseurs, le moteur compte en espérance le contrecoup, le drainage, les crans sur soi et sur la cible, la brûlure, la paralysie, le poison et la peur, plus les statuts déjà présents (`b22d316`).
+
+| | Référence `p7-ref` | Avec effets |
+|---|---|---|
+| Vague moyenne | 60,03 | 57,92 |
+| Écart apparié | — | **−2,08** (erreur-type 1,50, 473 paires) · mieux 146, pareil 165, pire 162 |
+| Rival 3 / rival 4 | 92 % / 75 % | 88 % / 65 % |
+| Parties avec 3 changements d'affilée ou plus | 36 | 41 |
+
+**Verdict : annulé** (dans le bruit, mais négatif). Plusieurs effets étaient regroupés : deux essais séparés suivent, effets sur soi (contrecoup, drainage, crans sur soi) et effets sur l'adversaire (statuts, peur, crans sur la cible).
