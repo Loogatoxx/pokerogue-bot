@@ -41,6 +41,14 @@ describe("Planificateur par duels (sans le combat d'équipe)", () => {
     expect(meilleure(valeurs, obs.decision.masque!)).toBeLessThan(8); // une attaque, pas un changement
     expect(Math.max(...valeurs.slice(0, 8))).toBeGreaterThanOrEqual(1.5);
   });
+
+  it("pour achever, préfère l'attaque sûre à l'attaque puissante qui peut rater", () => {
+    const obs = situation(5);
+    obs.equipe[0]!.modifStats = [0, 0, 0, 0, 0, 0, 0];
+    obs.equipe[0]!.attaques[2] = { ...obs.equipe[0]!.attaques[2]!, puissance: 120, precision: 50 };
+    const valeurs = planifier(obs, duels)!;
+    expect(valeurs[2]!).toBeGreaterThan(valeurs[4]!);
+  });
 });
 
 describe("Combat d'équipe (contre un dresseur)", () => {

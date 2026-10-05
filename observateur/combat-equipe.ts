@@ -57,7 +57,7 @@ const coupDe = (id: number, type: number, categorie: number, puissance: number, 
 });
 
 /** Multiplicateur de précision selon les crans (Précision de l'attaquant, Esquive du défenseur). */
-const multiplicateurPrecision = (cran: number) => (cran >= 0 ? (3 + cran) / 3 : 3 / (3 - cran));
+export const multiplicateurPrecision = (cran: number) => (cran >= 0 ? (3 + cran) / 3 : 3 / (3 - cran));
 
 /**
  * Une attaque de statut qui change des crans (table générée du jeu : observateur/effets-statut.ts).
