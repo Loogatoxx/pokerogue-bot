@@ -109,12 +109,12 @@ fusionnée telle quelle.
 
 ## 4. Prochains chantiers (par ordre de priorité, un seul à la fois, chacun mesuré)
 
+0. **Décider le ciblage + prix de changement 0,05** (section « Verdicts », `p15-ciblage-prix`) : +1,9
+   sur deux lots de graines, juste sous le seuil ; décision finale avec 1440 parties sur le Mac.
 1. **Le retrait de l'IA adverse dans le moteur d'équipe.** Lire la logique du jeu
    (`jeu/src/phases/enemy-command-phase.ts` : score de duel et seuil de changement des dresseurs) et
    la reproduire dans `observateur/combat-equipe.ts` (le planificateur a déjà `prevoirChangement`).
    Cas test : rival 2, k=41, décision 1.
-0. **Décider le ciblage + prix de changement 0,05** (section « Verdicts », `p15-ciblage-prix`) : +1,9
-   sur deux lots de graines, juste sous le seuil ; décision finale avec 1440 parties sur le Mac.
 2. **Épargner le Pokémon qui contre** : dans un combat jugé perdu, le moteur ne cherche que les
    dégâts ; valoriser le membre qui bat le plus fort adversaire restant, et le niveau proche d'une
    évolution (`donnees/evolutions.json`) quand des K.O. vont donner de l'expérience.
