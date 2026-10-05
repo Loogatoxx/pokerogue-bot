@@ -313,3 +313,18 @@ Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au ri
 | Effets sur l'adversaire (statuts, peur, crans sur la cible, statuts de départ) | −2,61 (erreur-type 1,38) | 86 % / 60 % | 44 |
 
 **Verdict : annulés tous les deux.** Plus de réalisme dans le moteur ne le fait pas mieux jouer : les trois essais vont dans le même sens (négatif) et le rival 4 recule à chaque fois. Hypothèses non vérifiées : les effets en espérance (une « fraction » de brûlure) rendent le moteur trop optimiste ; ils font paraître des changements meilleurs qu'ils ne sont. Prochaine méthode : chercher avec le juge (`entraineur/juge.py`, triche permise au diagnostic) quelles décisions perdent vraiment au rival 4 et contre les champions, au lieu d'ajouter des règles à l'aveugle.
+
+## Juge des défaites et ciblage de l'IA adverse au tour d'un changement (05/10) — rejeté
+
+**Juge** (`entraineur/juge_banc.py`, 36 défaites de `p7-ref` : rival 2, rival 4, champions 50-110) : depuis la photo de la vague fatale, le bot gagne ~1/3 de ces combats avec d'autres tirages. Erreurs fortes revérifiées sur 16 avenirs neufs : coup du bot 28 %, coup du juge 57 % (+4,6 victoires sur 16, erreur-type 0,53). Erreurs réelles : changements de Pokémon (« aurait dû changer » 24 → 62 %, « mauvais Pokémon envoyé » 29 → 56 %) ; pas les attaques de statut (36 → 32 %).
+
+**Idée** : dans le jeu, l'IA adverse choisit son attaque contre le Pokémon qui part (`EnemyCommandPhase` avant `TurnStartPhase`) ; le moteur d'équipe la faisait choisir contre le remplaçant (`45e2f0d`).
+
+| | Référence `p7-ref` | Ciblage corrigé |
+|---|---|---|
+| Vague moyenne | 60,03 | 58,99 |
+| Écart apparié | — | **−0,93** (erreur-type 1,26, 470 paires) · mieux 113, pareil 234, pire 123 |
+| Changements volontaires par partie | 13,7 | 15,5 |
+| Parties avec 3 changements d'affilée ou plus | 36 | **77** |
+
+**Verdict : annulé** (partie moteur ; l'option de diagnostic `observationBrute` reste). Les changements devenus plus justes sont aussi plus attirants, et les séries de changements reviennent : toute correction des changements doit venir avec un garde-fou contre les séries (prix d'un changement plus élevé, ou pas de rechangement au tour suivant).

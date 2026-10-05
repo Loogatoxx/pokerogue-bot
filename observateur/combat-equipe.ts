@@ -265,7 +265,6 @@ function simuler(depart: Combat, premier: { attaque: number } | { changement: nu
   for (let tour = 0; tour < TOURS_MAX; tour++) {
     const lui = c.eux[c.actifEux]!;
     let moi = c.nous[c.actif]!;
-    const vise = moi;
     let monCoup = -1;
     if (tour === 0 && "changement" in premier) {
       c.actif = premier.changement; // le changement passe avant toute attaque
@@ -276,7 +275,7 @@ function simuler(depart: Combat, premier: { attaque: number } | { changement: nu
         monCoup = -1; // aucune attaque utile : il ne fait rien ce tour-ci
       }
     }
-    const sonCoup = meilleurCoup(lui, vise);
+    const sonCoup = meilleurCoup(lui, moi);
     const frapper = (att: Acteur, def: Acteur, i: number) => {
       if (i >= 0 && att.pv > 0) {
         infliger(def, attendus(att, def, att.coups[i]!));

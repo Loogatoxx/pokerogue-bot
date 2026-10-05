@@ -20,7 +20,7 @@ est, ce qui reste à décider, comment le décider, et ce qu'on a appris. Mettre
 
 | Commit | Changement | Banc | Comparé à |
 |---|---|---|---|
-| `45e2f0d` | Moteur d'équipe : au tour d'un changement, l'IA adverse vise le Pokémon **qui part** (comme le jeu : `EnemyCommandPhase` avant `TurnStartPhase`) | `p13-ciblage` | `p7-ref` |
+| `45e2f0d` (**annulé**, voir Verdicts) | Moteur d'équipe : au tour d'un changement, l'IA adverse vise le Pokémon **qui part** (comme le jeu : `EnemyCommandPhase` avant `TurnStartPhase`) | `p13-ciblage` | `p7-ref` |
 | `0fff884` | Moteur d'équipe : Pokémon pas encore vus d'un **rival** joués avec le niveau et les stats de leur emplacement (`donnees/rivaux.json`, exporté du jeu ; rival 2 : 3e Pokémon niveau 16, pas une copie du starter) | `p14-rivaux` (mesuré **sans** `45e2f0d`) | `p7-ref` |
 
 Ces deux bancs tournaient dans le cloud au moment où les crédits s'épuisaient. Si la section
@@ -42,17 +42,12 @@ git -C jeu describe --tags                      # doit afficher v1.12.0.11
 git checkout --detach 77dabf3
 .venv/bin/python -m entraineur.banc_complet --nom p7-ref --plan-seul --processus 8
 
-# Changement 1 : ciblage
-git checkout --detach 45e2f0d
-.venv/bin/python -m entraineur.banc_complet --nom p13-ciblage --plan-seul --processus 8
-
 # Changement 2 : équipe des rivaux, SANS le ciblage
 git checkout --detach 0fff884
 git show 45e2f0d -- observateur/combat-equipe.ts | git apply -R
 .venv/bin/python -m entraineur.banc_complet --nom p14-rivaux --plan-seul --processus 8
 git checkout -- . && git checkout claude/pokerogue-bot-macro-strategy-33yi1e
 
-.venv/bin/python -m entraineur.banc_complet --comparer p13-ciblage p7-ref
 .venv/bin/python -m entraineur.banc_complet --comparer p14-rivaux p7-ref
 ```
 
@@ -130,6 +125,9 @@ Fusionner après les verdicts et les éventuels `git revert`.
    (`jeu/src/phases/enemy-command-phase.ts` : score de duel et seuil de changement des dresseurs) et
    la reproduire dans `observateur/combat-equipe.ts` (le planificateur a déjà `prevoirChangement`).
    Cas test : rival 2, k=41, décision 1.
+1 bis. **Ciblage au tour d'un changement + garde-fou contre les séries** : le ciblage seul (`45e2f0d`)
+   a donné −0,93 avec deux fois plus de séries de changements. Le refaire avec, par exemple, un prix
+   de changement plus élevé quand le Pokémon vient d'entrer.
 2. **Épargner le Pokémon qui contre** : dans un combat jugé perdu, le moteur ne cherche que les
    dégâts ; valoriser le membre qui bat le plus fort adversaire restant, et le niveau proche d'une
    évolution (`donnees/evolutions.json`) quand des K.O. vont donner de l'expérience.
@@ -153,5 +151,5 @@ Fusionner après les verdicts et les éventuels `git revert`.
 
 ## 6. Verdicts (à remplir)
 
-- `p13-ciblage` contre `p7-ref` : _en cours au moment du point de reprise_
+- `p13-ciblage` contre `p7-ref` : **−0,93 ± 1,26 → annulé** (fait dans le cloud, partie moteur retirée). Les séries de 3 changements ou plus passent de 36 à 77 parties : à recombiner plus tard avec un garde-fou contre les séries (chantier n° 1 bis).
 - `p14-rivaux` contre `p7-ref` : _en cours au moment du point de reprise_
