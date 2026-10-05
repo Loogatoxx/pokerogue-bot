@@ -1099,3 +1099,20 @@ choix lisible et sourcé pour chaque rencontre.
 Ne garder que ce que le banc confirme : deux idées plausibles ne passent pas la règle des 2
 erreurs-types, elles sortent du code.
 
+## 36. Moteur de combat avec hasard : rejeté — 05/10/2026
+
+**Prompt**
+> (fusion de la PR #7 ; suite du travail autonome vers la vague 200)
+
+**Réponse**
+- Idée : le moteur d'équipe joue chaque combat avec les dégâts moyens ; en position perdante, toutes
+  les actions se valent. Essai : noter chaque action sur 16 combats tirés avec le hasard du jeu.
+- Banc apparié : −3,20 ± 1,51 vagues, plus de séries de changements (64 contre 33). Annulé.
+
+**Modifications**
+- `observateur/combat-equipe.ts` modifié puis remis comme avant (`4d99858` puis son annulation) ;
+  `RESULTATS.md`.
+
+**Objectif**
+Tester une idée de combat sur le banc avant de la garder : celle-ci fait perdre, elle sort.
+
