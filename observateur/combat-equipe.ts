@@ -35,19 +35,6 @@ const TOURS_MAX = 40;
  */
 const COUT_CHANGEMENT = 0.01;
 const CATEGORIE_STATUT = 2;
-const TIRAGES = 16;
-const TIRAGE_MOYEN = 0.925;
-const CHANCE_CRITIQUE = 1 / 24;
-
-function hasardFixe(graine: number): () => number {
-  let etat = graine >>> 0;
-  return () => {
-    etat = (etat + 0x6d2b79f5) >>> 0;
-    let melange = Math.imul(etat ^ (etat >>> 15), etat | 1);
-    melange ^= melange + Math.imul(melange ^ (melange >>> 7), melange | 61);
-    return ((melange ^ (melange >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 interface Coup {
   type: number;
@@ -204,19 +191,6 @@ function attendus(att: Acteur, def: Acteur, coup: Coup): number {
   return degats(att.c, def.c, { type: coup.type, categorie: coup.categorie, puissance: coup.puissance }) * touche;
 }
 
-function degatsTires(att: Acteur, def: Acteur, coup: Coup, hasard: () => number): number {
-  if (coup.categorie === CATEGORIE_STATUT || coup.puissance <= 0) {
-    return 0;
-  }
-  const touche = Math.min(1, coup.precision * multiplicateurPrecision((att.c.crans[5] ?? 0) - (def.c.crans[6] ?? 0)));
-  if (hasard() >= touche) {
-    return 0;
-  }
-  const tirage = (0.85 + 0.15 * hasard()) / TIRAGE_MOYEN;
-  const critique = hasard() < CHANCE_CRITIQUE ? 1.5 : 1;
-  return degats(att.c, def.c, { type: coup.type, categorie: coup.categorie, puissance: coup.puissance }) * tirage * critique;
-}
-
 /** La meilleure attaque : celle qui met K.O. (la plus sûre), sinon les plus gros dégâts attendus. */
 function meilleurCoup(att: Acteur, def: Acteur): number {
   let meilleur = -1;
@@ -270,7 +244,7 @@ const copier = (c: Combat): Combat => ({ ...c, nous: c.nous.map(a => ({ ...a }))
 
 /** Joue le combat jusqu'au bout ; `premier` : l'action du premier tour (attaque i, ou changement), ou
  * le remplaçant qui entre après un K.O. (sans coup reçu). */
-function simuler(depart: Combat, premier: { attaque: number } | { changement: number } | { entree: number }, hasard?: () => number): number {
+function simuler(depart: Combat, premier: { attaque: number } | { changement: number } | { entree: number }): number {
   const c = copier(depart);
   if ("entree" in premier) {
     c.actif = premier.entree;
@@ -291,7 +265,7 @@ function simuler(depart: Combat, premier: { attaque: number } | { changement: nu
     const sonCoup = meilleurCoup(lui, moi);
     const frapper = (att: Acteur, def: Acteur, i: number) => {
       if (i >= 0 && att.pv > 0) {
-        infliger(def, hasard ? degatsTires(att, def, att.coups[i]!, hasard) : attendus(att, def, att.coups[i]!));
+        infliger(def, attendus(att, def, att.coups[i]!));
         appliquerEffet(att, def, att.coups[i]!);
       }
     };
@@ -370,14 +344,6 @@ export function valeursCombatEquipe(obs: Observation): number[] | null {
   const eux = [lui, ...banc, ...inconnusJoues];
   const depart: Combat = { nous, eux, actif, actifEux: 0 };
   const valeurs = new Array<number>(NOMBRE_ACTIONS).fill(0);
-  const graine = obs.partie.vague * 1000 + obs.partie.tour;
-  const moyenne = (premier: { attaque: number } | { changement: number } | { entree: number }) => {
-    let total = 0;
-    for (let tirage = 0; tirage < TIRAGES; tirage++) {
-      total += simuler(depart, premier, hasardFixe(graine * TIRAGES + tirage));
-    }
-    return total / TIRAGES;
-  };
   for (let action = 0; action < PREMIERE_BALL; action++) {
     if (!masque[action]) {
       continue;
@@ -389,14 +355,14 @@ export function valeursCombatEquipe(obs: Observation): number[] | null {
       const attaque = Math.floor(action / 2);
       if (attaque < nous[actif]!.coups.length) {
         // Départage des égalités (souvent exactes, le calcul étant sans hasard) : les dégâts de ce tour.
-        valeurs[action] = moyenne({ attaque }) + 0.001 * Math.min(1, attendus(nous[actif]!, lui, nous[actif]!.coups[attaque]!));
+        valeurs[action] = simuler(depart, { attaque }) + 0.001 * Math.min(1, attendus(nous[actif]!, lui, nous[actif]!.coups[attaque]!));
       }
     } else {
       const place = action - PREMIER_CHANGEMENT;
       if (nous[place] && nous[place]!.pv > 0) {
         // Départage : le Pokémon qui entre le plus solide (PV restants × niveau). Changer en plein
         // combat coûte un tour : à note égale, attaquer passe devant.
-        valeurs[action] = moyenne(remplacement ? { entree: place } : { changement: place }) + 0.001 * nous[place]!.pv * nous[place]!.poids
+        valeurs[action] = simuler(depart, remplacement ? { entree: place } : { changement: place }) + 0.001 * nous[place]!.pv * nous[place]!.poids
           - (remplacement ? 0 : COUT_CHANGEMENT);
       }
     }
