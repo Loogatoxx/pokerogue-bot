@@ -216,9 +216,6 @@ function valeurBall(obs: Observation, moi: PokemonAllie, lui: PokemonAdverse, ba
   const pvLui = lui.pvPourcent / 100;
   const d = duel(obs, moi, pvMoi, lui, pvLui);
   const echec = d.parTourLui >= 1 ? -1 : valeurDuel(duel(obs, moi, pvMoi * (1 - d.parTourLui), lui, pvLui)) - 0.1;
-  if (!captureSensee(obs, lui)) {
-    return echec - 0.2;
-  }
   return p * gain + (1 - p) * echec;
 }
 
@@ -248,17 +245,7 @@ const CHANCE_MIN_EQUIPE_PLEINE = 0.3;
 
 /** L'équipe n'est pas pleine, ou l'espèce remplacerait avantageusement la plus faible des six, ou
  * elle comble un trou face aux starters possibles du rival qui approche. */
-const POTENTIEL_CAPTURE = 480;
-const EQUIPE_DE_BASE = 3;
-
-export function captureSensee(obs: Observation, lui: PokemonAdverse): boolean {
-  return obs.equipe.length < EQUIPE_DE_BASE || lui.shiny || !!lui.boss || (connaissance(lui.espece)?.totalFinal ?? 0) >= POTENTIEL_CAPTURE;
-}
-
 function captureUtile(obs: Observation, lui: PokemonAdverse): boolean {
-  if (!captureSensee(obs, lui)) {
-    return false;
-  }
   if (obs.equipe.length < 6) {
     return true;
   }
@@ -490,7 +477,6 @@ export function planifier(obs: Observation, options: OptionsPlan = {}): number[]
     const chance = chanceCapture(sauvage, ball);
     const pleine = obs.equipe.length >= 6 && !exceptionnel;
     const permis = ball === MASTER_BALL ? exceptionnel
-      : !captureSensee(obs, sauvage) ? false
       : (utileEtSure && (!pleine || chance >= CHANCE_MIN_EQUIPE_PLEINE)) || chance >= CHANCE_SURE;
     valeurs[action] = !masque[action] ? 0 : permis ? meilleureAttaque : ratee;
   }

@@ -1170,27 +1170,3 @@ proposer la prochaine règle, et pouvoir mesurer avec le cerveau v5 ici.
 
 **Objectif**
 Corriger, une mesure à la fois, ce que le planificateur ne voit pas dans un combat.
-
-## 39. Parties gagnantes sur internet, captures et composition d'équipe — 05/10/2026
-
-**Prompt**
-> attend comme prevue le verdict, juste te donner une idee, analyse sur internet toutes less données
-> d une partie gagnante […] prend peut etre un echantillon […] a mon avis ça ce joue vraiment sur les
-> çapture et le team buil […] verifie les pokemon utiliser au moment de mourir et analayse se y avais
-> pas des compos cheater qu il aurais ratera çause de capture pousser
-
-**Réponse**
-- Verdict précision : +0,76 ± 1,00, annulée.
-- Internet : 13 victoires trouvées (7 avec l'équipe), aucun historique vague par vague accessible
-  (Reddit, wiki et YouTube bloqués par le réseau du cloud : seulement des résumés de recherche).
-  Consensus : un porteur et 2-3 vrais membres, pas besoin de 6 ; capturer seulement ce qui finit fort.
-- Nos parties : équipe pleine dès la vague 4, 2,4 membres sur 6 finissent sous 500 de stats ;
-  morts avant 40 avec une équipe non évoluée (312 de stats, 502 possibles).
-- Règle à mesurer : après les 3 premiers membres, ne capturer que si l'espèce finit à 480 ou plus,
-  sauf chromatique ou boss.
-
-**Modifications**
-- `observateur/planificateur.ts` (`captureSensee`), `tests/planificateur.test.ts`.
-
-**Objectif**
-Tester l'idée de Carlos : les captures sans intérêt affaiblissent l'équipe.

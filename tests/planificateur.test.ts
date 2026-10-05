@@ -80,20 +80,4 @@ describe("Planificateur et capture", () => {
     const valeurs = planifier(obs, { capture: true })!;
     expect(valeurs[14]!).toBeGreaterThan(1);
   });
-
-  it("ne capture pas une espèce qui restera faible (Rattata), même presque K.O.", () => {
-    const obs = sauvage(3);
-    obs.equipe = obs.equipe.slice(0, 3);
-    obs.adversaires[0] = { ...obs.adversaires[0]!, espece: 19, nom: "Rattata", types: [{ id: 0, nom: "Normal" }], statsDeBase: [30, 56, 35, 25, 35, 72] };
-    const valeurs = planifier(obs, { capture: true })!;
-    expect(valeurs[14]!).toBeLessThan(Math.max(...valeurs.slice(0, 8)));
-  });
-
-  it("capture quand même un chromatique faible (chance de l'équipe)", () => {
-    const obs = sauvage(3);
-    obs.equipe = obs.equipe.slice(0, 3);
-    obs.adversaires[0] = { ...obs.adversaires[0]!, espece: 19, nom: "Rattata", shiny: true, types: [{ id: 0, nom: "Normal" }], statsDeBase: [30, 56, 35, 25, 35, 72] };
-    const valeurs = planifier(obs, { capture: true })!;
-    expect(valeurs[14]!).toBeGreaterThan(1);
-  });
 });
