@@ -14,15 +14,13 @@
  * gros dégâts). Les Pokémon pas encore vus sont joués comme des Pokémon de même force, sans type connu.
  *
  * Simplifications : dégâts moyens (tirage 0,925) multipliés par la précision, ordre par la priorité
- * puis la vitesse ; effets des attaques en espérance (contrecoup, drainage, crans, brûlure, paralysie,
- * poison, peur : observateur/effets-attaques.ts) ; les deux camps frappent avec leur meilleure attaque,
- * et remplacent un K.O. par leur meilleur Pokémon. Seulement en combat simple (un contre un).
+ * puis la vitesse, pas de statut ni de boost ; les deux camps frappent avec leur meilleure attaque, et
+ * remplacent un K.O. par leur meilleur Pokémon. Seulement en combat simple (un contre un).
  */
 import { NOMBRE_ACTIONS, PREMIER_CHANGEMENT, PREMIERE_BALL } from "./actions";
 import { combatDeLaVague } from "./combats";
 import { candidates, combattantAdverse, combattantAllie, type Combattant, degats, statsEstimees } from "./prevision";
 import { facteurAttaque } from "./contraintes-attaques";
-import { EFFETS_ATTAQUES, type EffetsAttaque } from "./effets-attaques";
 import { EFFETS_STATUT } from "./effets-statut";
 import { PRIORITES } from "./priorites";
 import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
@@ -37,7 +35,6 @@ const TOURS_MAX = 40;
  */
 const COUT_CHANGEMENT = 0.01;
 const CATEGORIE_STATUT = 2;
-const CATEGORIE_PHYSIQUE = 0;
 
 interface Coup {
   type: number;
@@ -51,14 +48,12 @@ interface Coup {
   premierTourSeulement: boolean;
   /** Attaque de statut qui change des crans (Rugissement, Danse-Lames…) : [crans, étapes, sur soi]. */
   effet?: readonly [readonly number[], number, boolean];
-  effets?: EffetsAttaque | undefined;
 }
 
 const PREMIER_TOUR_SEULEMENT = new Set([252, 660]); // Bluff (Fake Out), Escarmouche (First Impression)
 const coupDe = (id: number, type: number, categorie: number, puissance: number, precision: number): Coup => ({
   type, categorie, puissance, precision, priorite: PRIORITES[id] ?? 0, premierTourSeulement: PREMIER_TOUR_SEULEMENT.has(id),
   ...(EFFETS_STATUT[id] ? { effet: EFFETS_STATUT[id] } : {}),
-  ...(EFFETS_ATTAQUES[id] ? { effets: EFFETS_ATTAQUES[id] } : {}),
 });
 
 /** Multiplicateur de précision selon les crans (Précision de l'attaquant, Esquive du défenseur). */
@@ -80,7 +75,7 @@ function appliquerEffet(att: Acteur, def: Acteur, coup: Coup): void {
     nouveaux[i] = Math.max(-6, Math.min(6, (nouveaux[i] ?? 0) + etapes));
   }
   cible.c = { ...cible.c, crans: nouveaux };
-  cible.vitesse = vitesseActeur(cible);
+  cible.vitesse = vitesseDe(cible.c);
 }
 
 interface Acteur {
@@ -93,95 +88,6 @@ interface Acteur {
   poids: number;
   /** Barres de PV d'un boss (1 sinon) : un coup ne peut pas en briser plus d'une sans gros surplus. */
   barres: number;
-  brulure: number;
-  paralysie: number;
-  poison: number;
-}
-
-const POISON = 1;
-const TOXIK = 2;
-const PARALYSIE = 3;
-const BRULURE = 6;
-const TYPE_POISON = 3;
-const TYPE_ACIER = 8;
-const TYPE_FEU = 9;
-const TYPE_ELECTRIK = 12;
-
-const statutsDe = (statut: number) => ({
-  brulure: statut === BRULURE ? 1 : 0,
-  paralysie: statut === PARALYSIE ? 1 : 0,
-  poison: statut === POISON || statut === TOXIK ? 1 : 0,
-});
-
-function immunise(a: Acteur, statut: number): boolean {
-  const types = a.c.types;
-  if (statut === BRULURE) {
-    return types.includes(TYPE_FEU);
-  }
-  if (statut === PARALYSIE) {
-    return types.includes(TYPE_ELECTRIK);
-  }
-  return types.includes(TYPE_POISON) || types.includes(TYPE_ACIER);
-}
-
-function changerCrans(cible: Acteur, crans: readonly number[], etapes: number): void {
-  const nouveaux = [...cible.c.crans];
-  for (const i of crans) {
-    nouveaux[i] = Math.max(-6, Math.min(6, (nouveaux[i] ?? 0) + etapes));
-  }
-  cible.c = { ...cible.c, crans: nouveaux };
-  cible.vitesse = vitesseActeur(cible);
-}
-
-function infligerStatut(def: Acteur, statut: number, p: number): void {
-  if (p <= 0 || def.pv <= 0 || immunise(def, statut)) {
-    return;
-  }
-  const nouveau = (1 - Math.min(1, def.brulure + def.paralysie + def.poison)) * p;
-  if (statut === BRULURE) {
-    def.brulure += nouveau;
-  } else if (statut === PARALYSIE) {
-    def.paralysie += nouveau;
-    def.vitesse = vitesseActeur(def);
-  } else {
-    def.poison += nouveau;
-  }
-}
-
-function effetsDuCoup(att: Acteur, def: Acteur, coup: Coup, touche: number, pvAvant: number): void {
-  const e = coup.effets;
-  if (!e) {
-    return;
-  }
-  const inflige = Math.max(0, pvAvant - Math.max(def.pv, 0)) * (def.c.stats[0] ?? 1) / Math.max(att.c.stats[0] ?? 1, 1);
-  if (e.recul) {
-    att.pv -= inflige * e.recul;
-  }
-  if (e.reculPv) {
-    att.pv -= e.reculPv;
-  }
-  if (e.drain && att.pv > 0) {
-    att.pv = Math.min(1, att.pv + inflige * e.drain);
-  }
-  if (att.pv > 0) {
-    for (const [crans, etapes, p] of e.soi ?? []) {
-      changerCrans(att, crans, etapes * p * touche);
-    }
-  }
-  if (def.pv > 0) {
-    for (const [crans, etapes, p] of e.cible ?? []) {
-      changerCrans(def, crans, etapes * p * touche);
-    }
-  }
-  if (e.statut) {
-    infligerStatut(def, e.statut[0], e.statut[1] * touche);
-  }
-}
-
-function finDeTour(a: Acteur): void {
-  if (a.pv > 0) {
-    a.pv -= a.brulure / 16 + a.poison / 8;
-  }
 }
 
 /**
@@ -212,7 +118,6 @@ function infliger(def: Acteur, dmg: number): void {
 
 const multiplicateurCran = (cran: number) => (cran >= 0 ? (2 + cran) / 2 : 2 / (2 - cran));
 const vitesseDe = (c: Combattant) => (c.stats[5] ?? 0) * multiplicateurCran(c.crans[4] ?? 0);
-const vitesseActeur = (a: Acteur) => vitesseDe(a.c) * (1 - 0.5 * a.paralysie);
 
 function allie(p: PokemonAllie, enJeu: boolean): Acteur {
   const c = combattantAllie(p);
@@ -223,10 +128,9 @@ function allie(p: PokemonAllie, enJeu: boolean): Acteur {
     pv: p.pv / Math.max(p.pvMax, 1),
     // Mêmes indices que les actions du cerveau : une attaque sans PP reste, mais ne fait rien.
     coups: p.attaques.map(a => coupDe(a.id, a.type.id, a.categorie.id, a.pp > 0 ? a.puissance * facteurAttaque(a.id) : 0, a.precision > 0 ? a.precision / 100 : 1)),
-    vitesse: vitesseDe(combattant) * (p.statut.id === PARALYSIE ? 0.5 : 1),
+    vitesse: vitesseDe(combattant),
     poids: 1,
     barres: 1,
-    ...statutsDe(p.statut.id),
   };
 }
 
@@ -236,10 +140,9 @@ function adverse(a: PokemonAdverse): Acteur {
     c,
     pv: a.pvPourcent / 100,
     coups: candidates(a).map(x => coupDe(x.id, x.type, x.categorie, x.puissance, 1)),
-    vitesse: vitesseDe(c) * (a.statut.id === PARALYSIE ? 0.5 : 1),
+    vitesse: vitesseDe(c),
     poids: 1,
     barres: a.boss ? Math.max(1, a.boss.segments) : 1,
-    ...statutsDe(a.statut.id),
   };
 }
 
@@ -254,7 +157,7 @@ function oiseauDuRival(starter: Acteur, evolue: boolean): Acteur {
   const niveau = Math.max(1, starter.c.niveau - 1);
   const c: Combattant = { niveau, types: [0, 2], stats: statsEstimees(base, niveau), crans: [0, 0, 0, 0, 0, 0, 0] };
   return {
-    c, pv: 1, vitesse: vitesseDe(c), poids: 1, barres: 1, brulure: 0, paralysie: 0, poison: 0,
+    c, pv: 1, vitesse: vitesseDe(c), poids: 1, barres: 1,
     coups: [coupDe(-1, 2, 0, evolue ? 60 : 40, 1), coupDe(-1, 0, 0, evolue ? 50 : 40, 1)], // Vol (Picpic, Cru-Ailes…), Normal
   };
 }
@@ -272,26 +175,20 @@ function inconnu(modele: Acteur, specialite?: number): Acteur {
     c: { ...modele.c, types: specialite === undefined ? [] : [specialite], crans: modele.c.crans.map(() => 0) },
     pv: 1,
     // type inconnu : efficacité neutre, sans bonus de type
-    coups: modele.coups.map((x, i) => ({ ...x, type: specialite !== undefined && i === plusForte ? specialite : -1, effets: undefined })),
-    vitesse: vitesseDe(modele.c),
+    coups: modele.coups.map((x, i) => ({ ...x, type: specialite !== undefined && i === plusForte ? specialite : -1 })),
+    vitesse: modele.vitesse,
     poids: 1,
     barres: 1,
-    brulure: 0,
-    paralysie: 0,
-    poison: 0,
   };
 }
-
-const toucheDe = (att: Acteur, def: Acteur, coup: Coup) =>
-  Math.min(1, coup.precision * multiplicateurPrecision((att.c.crans[5] ?? 0) - (def.c.crans[6] ?? 0))) * (1 - att.paralysie / 8);
 
 /** Dégâts attendus d'un coup (fraction des PV max de la cible), précision comprise. */
 function attendus(att: Acteur, def: Acteur, coup: Coup): number {
   if (coup.categorie === CATEGORIE_STATUT || coup.puissance <= 0) {
     return 0;
   }
-  const brule = coup.categorie === CATEGORIE_PHYSIQUE ? 1 - 0.5 * att.brulure : 1;
-  return degats(att.c, def.c, { type: coup.type, categorie: coup.categorie, puissance: coup.puissance }) * toucheDe(att, def, coup) * brule;
+  const touche = Math.min(1, coup.precision * multiplicateurPrecision((att.c.crans[5] ?? 0) - (def.c.crans[6] ?? 0)));
+  return degats(att.c, def.c, { type: coup.type, categorie: coup.categorie, puissance: coup.puissance }) * touche;
 }
 
 /** La meilleure attaque : celle qui met K.O. (la plus sûre), sinon les plus gros dégâts attendus. */
@@ -366,16 +263,11 @@ function simuler(depart: Combat, premier: { attaque: number } | { changement: nu
       }
     }
     const sonCoup = meilleurCoup(lui, moi);
-    const frapper = (att: Acteur, def: Acteur, i: number, part = 1): number => {
-      if (i < 0 || att.pv <= 0) {
-        return 0;
+    const frapper = (att: Acteur, def: Acteur, i: number) => {
+      if (i >= 0 && att.pv > 0) {
+        infliger(def, attendus(att, def, att.coups[i]!));
+        appliquerEffet(att, def, att.coups[i]!);
       }
-      const coup = att.coups[i]!;
-      const pvAvant = def.pv;
-      infliger(def, attendus(att, def, coup) * part);
-      appliquerEffet(att, def, coup);
-      effetsDuCoup(att, def, coup, toucheDe(att, def, coup) * part, pvAvant);
-      return def.pv > 0 ? (coup.effets?.peur ?? 0) * toucheDe(att, def, coup) : 0;
     };
     // Bluff et Escarmouche ratent après le premier tour sur le terrain (simplifié : après le tour 0).
     if (tour > 0 && monCoup >= 0 && moi.coups[monCoup]!.premierTourSeulement) {
@@ -385,14 +277,12 @@ function simuler(depart: Combat, premier: { attaque: number } | { changement: nu
     const prioLui = sonCoup >= 0 ? lui.coups[sonCoup]!.priorite : 0;
     const moiDAbord = prioMoi !== prioLui ? prioMoi > prioLui : moi.vitesse >= lui.vitesse;
     if (monCoup >= 0 && moiDAbord) {
-      const peur = frapper(moi, lui, monCoup);
-      frapper(lui, moi, sonCoup, 1 - peur);
+      frapper(moi, lui, monCoup);
+      frapper(lui, moi, sonCoup);
     } else {
-      const peur = frapper(lui, moi, sonCoup);
-      frapper(moi, lui, monCoup, 1 - peur);
+      frapper(lui, moi, sonCoup);
+      frapper(moi, lui, monCoup);
     }
-    finDeTour(moi);
-    finDeTour(lui);
     if (lui.pv <= 0) {
       const suivant = c.eux.findIndex(a => a.pv > 0);
       if (suivant < 0) {
