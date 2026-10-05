@@ -248,3 +248,15 @@ Banc de référence `p5-ref` (`c58e673`, plan seul, même décisions que `40f13e
 Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au rival 2. Les objets non plus (presque les mêmes des deux côtés).
 
 **Bug du banc trouvé** : 44 morts sur 475 (9 %) étaient comptées dans l'Éleveur expert, alors que le jeu continue après une défaite dans cette rencontre (REGLES R14). Corrigé dans le simulateur. Parties rejouées : k=72 passe de la vague 28 à 66, k=112 de 28 à 90. Le vrai niveau du bot était sous-estimé. Ce changement modifie le protocole : une nouvelle référence est nécessaire.
+
+## Précision des attaques dans le planificateur (05/10) — rejeté
+
+**Idée** : contre les sauvages, les boss sauvages et en double, compter la précision (et les crans précision/esquive) : valeur = précision × valeur si l'attaque touche + (1 − précision) × valeur si elle rate (`7b747dc`).
+
+| | Référence `p5-ref` | Avec précision |
+|---|---|---|
+| Vague moyenne | 57,92 | 58,72 |
+| Écart apparié | — | **+0,76** (erreur-type 1,00, 472 paires) · mieux 105, pareil 286, pire 81 |
+| Rival 4 | 73 % | 82 % |
+
+**Verdict : annulé** (moins de 2 erreurs-types). Le rival 4 progresse, mais l'écart total reste dans le bruit.
