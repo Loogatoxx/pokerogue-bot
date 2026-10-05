@@ -3,6 +3,7 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { adversairesSupposes } from "../observateur/combat-equipe";
 import { planifier } from "../observateur/planificateur";
 import type { Observation } from "../observateur/types";
 
@@ -67,6 +68,19 @@ describe("Combat d'équipe (contre un dresseur)", () => {
     obs.equipe[0]!.stats[5] = 99;
     const valeurs = planifier(obs)!;
     expect(meilleure(valeurs, obs.decision.masque!)).toBeLessThan(8);
+  });
+});
+
+describe("Équipe supposée du rival", () => {
+  it("au rival 2, le 3e Pokémon pas encore vu est joué au niveau 16 (emplacement fixé par le jeu)", () => {
+    const obs = situation();
+    obs.partie.vague = 25;
+    obs.partie.starterRival = 10;
+    obs.partie.dresseur = { nom: "Rival", pokemonRestants: 3 };
+    obs.adversaires[0] = { ...obs.adversaires[0]!, espece: 657, nom: "Croâporal", niveau: 18, types: [{ id: 10, nom: "Eau" }], statsDeBase: [54, 63, 52, 83, 56, 97] };
+    const eux = adversairesSupposes(obs);
+    expect(eux).toHaveLength(3);
+    expect(eux[2]!.c.niveau).toBe(16);
   });
 });
 

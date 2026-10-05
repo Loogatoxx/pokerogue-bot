@@ -23,6 +23,7 @@ import { candidates, combattantAdverse, combattantAllie, type Combattant, degats
 import { facteurAttaque } from "./contraintes-attaques";
 import { EFFETS_STATUT } from "./effets-statut";
 import { PRIORITES } from "./priorites";
+import RIVAUX from "../donnees/rivaux.json";
 import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
 
 const TOURS_MAX = 40;
@@ -78,7 +79,7 @@ function appliquerEffet(att: Acteur, def: Acteur, coup: Coup): void {
   cible.vitesse = vitesseDe(cible.c);
 }
 
-interface Acteur {
+export interface Acteur {
   c: Combattant;
   /** PV restants, en fraction des PV max. */
   pv: number;
@@ -180,6 +181,18 @@ function inconnu(modele: Acteur, specialite?: number): Acteur {
     poids: 1,
     barres: 1,
   };
+}
+
+interface EmplacementRival {
+  niveau: number | null;
+  statsDeBase: number[];
+}
+
+function membreDuRival(modele: Acteur, emplacement: EmplacementRival): Acteur {
+  const base = inconnu(modele);
+  const niveau = emplacement.niveau ?? modele.c.niveau;
+  const c = { ...base.c, niveau, stats: statsEstimees(emplacement.statsDeBase, niveau) };
+  return { ...base, c, vitesse: vitesseDe(c) };
 }
 
 /** Dégâts attendus d'un coup (fraction des PV max de la cible), précision comprise. */
@@ -306,6 +319,30 @@ function simuler(depart: Combat, premier: { attaque: number } | { changement: nu
   return 0;
 }
 
+export function adversairesSupposes(obs: Observation): Acteur[] {
+  const enFace = obs.adversaires.filter(a => !a.ko);
+  const lui = adverse(enFace[0]!);
+  const banc = (obs.banc ?? []).filter(b => !b.ko).map(adverse);
+  const restants = obs.partie.dresseur?.pokemonRestants ?? 1;
+  const inconnus = Math.max(0, restants - 1 - banc.length);
+  // Rival 1 ou 2 : l'oiseau, s'il n'est pas encore sorti, est le premier des Pokémon inconnus.
+  const rival = combatDeLaVague(obs.partie.vague)?.genre === "rival" && obs.partie.vague <= 25;
+  const oiseauVu = [...enFace, ...(obs.banc ?? [])].some(a => a.types.some(t => t.id === 2));
+  // Son starter garde la même lignée toute la partie (vu au rival 1, retenu par le carnet) : s'il
+  // n'est pas encore sorti, un des inconnus a son type.
+  const typeStarter = combatDeLaVague(obs.partie.vague)?.genre === "rival" ? obs.partie.starterRival : undefined;
+  const starterVu = typeStarter !== undefined && [...enFace, ...(obs.banc ?? [])].some(a => a.types[0]?.id === typeStarter);
+  const emplacements: EmplacementRival[] = (RIVAUX.rivaux as Record<string, EmplacementRival[]>)[obs.partie.vague] ?? [];
+  const rivalAvecDonnees = combatDeLaVague(obs.partie.vague)?.genre === "rival";
+  const avant = (rival && !oiseauVu ? 1 : 0) + (typeStarter !== undefined && !starterVu ? 1 : 0);
+  const inconnusJoues = Array.from({ length: inconnus }, (_, k) =>
+    rival && !oiseauVu && k === 0 ? oiseauDuRival(lui, obs.partie.vague > 8)
+      : typeStarter !== undefined && !starterVu && k === (rival && !oiseauVu ? 1 : 0) ? inconnu(lui, typeStarter)
+        : rivalAvecDonnees && emplacements[2 + k - avant] ? membreDuRival(lui, emplacements[2 + k - avant]!)
+          : inconnu(lui, obs.partie.dresseur!.specialite));
+  return [lui, ...banc, ...inconnusJoues];
+}
+
 /**
  * La valeur de chaque action (attaques et changements) d'après le combat d'équipe simulé, ou null
  * si ce n'est pas un combat simple contre un dresseur. Les autres actions (Balls) gardent 0.
@@ -327,22 +364,8 @@ export function valeursCombatEquipe(obs: Observation): number[] | null {
       a.pv = 0;
     }
   });
-  const lui = adverse(enFace[0]!);
-  const banc = (obs.banc ?? []).filter(b => !b.ko).map(adverse);
-  const restants = obs.partie.dresseur.pokemonRestants;
-  const inconnus = Math.max(0, restants - 1 - banc.length);
-  // Rival 1 ou 2 : l'oiseau, s'il n'est pas encore sorti, est le premier des Pokémon inconnus.
-  const rival = combatDeLaVague(obs.partie.vague)?.genre === "rival" && obs.partie.vague <= 25;
-  const oiseauVu = [...enFace, ...(obs.banc ?? [])].some(a => a.types.some(t => t.id === 2));
-  // Son starter garde la même lignée toute la partie (vu au rival 1, retenu par le carnet) : s'il
-  // n'est pas encore sorti, un des inconnus a son type.
-  const typeStarter = combatDeLaVague(obs.partie.vague)?.genre === "rival" ? obs.partie.starterRival : undefined;
-  const starterVu = typeStarter !== undefined && [...enFace, ...(obs.banc ?? [])].some(a => a.types[0]?.id === typeStarter);
-  const inconnusJoues = Array.from({ length: inconnus }, (_, k) =>
-    rival && !oiseauVu && k === 0 ? oiseauDuRival(lui, obs.partie.vague > 8)
-      : typeStarter !== undefined && !starterVu && k === (rival && !oiseauVu ? 1 : 0) ? inconnu(lui, typeStarter)
-        : inconnu(lui, obs.partie.dresseur!.specialite));
-  const eux = [lui, ...banc, ...inconnusJoues];
+  const eux = adversairesSupposes(obs);
+  const lui = eux[0]!;
   const depart: Combat = { nous, eux, actif, actifEux: 0 };
   const valeurs = new Array<number>(NOMBRE_ACTIONS).fill(0);
   for (let action = 0; action < PREMIERE_BALL; action++) {

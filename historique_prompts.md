@@ -1214,3 +1214,26 @@ Trouver quelles décisions perdent vraiment (triche permise au diagnostic) avant
 
 **Objectif**
 Corriger les changements de Pokémon, l'erreur que le juge confirme.
+
+## 44. Équipe des rivaux connue (emplacements fixés par le jeu) — 05/10/2026
+
+**Prompt**
+> Vasy je te laisse faire (suite)
+
+**Réponse**
+- Trace d'une défaite au rival 2 (k=41) : l'IA du rival retire son starter dès qu'il est menacé ;
+  la branche gagnante sacrifie Feunnec contre l'oiseau et garde Brindibou, qui évolue en plein
+  combat et bat le starter. Le moteur ne prévoit ni le retrait adverse, ni l'évolution, et joue le
+  3e Pokémon du rival comme une copie du starter (niveau 18) alors que c'est un bébé niveau 16.
+- Nouvel export `simulateur/exporter-rivaux.test.ts` → `donnees/rivaux.json` : pour chaque combat
+  de rival, la liste de chaque emplacement, son niveau fixé et les stats de base moyennes.
+- Moteur d'équipe : les Pokémon pas encore vus d'un rival sont joués avec ces niveaux et ces stats
+  (`adversairesSupposes`, testée).
+
+**Modifications**
+- `simulateur/exporter-rivaux.test.ts`, `donnees/rivaux.json`, `observateur/combat-equipe.ts`,
+  `tests/planificateur.test.ts`.
+
+**Objectif**
+Le rival 2 est la première cause de mort (86 parties sur 475) : mieux connaître son équipe, avec ce
+qui est public.
