@@ -33,7 +33,6 @@ export interface Membre {
   /** PV, Attaque, Défense, Attaque Spé., Défense Spé., Vitesse (valeurs réelles). */
   stats: number[];
   attaques: AttaqueNotee[];
-  chromatique?: boolean;
 }
 
 export interface OptionEquipe {
@@ -228,9 +227,9 @@ function comparer(nouvelle: Membre[], actuelle: Membre[], arrivant: Membre, part
  * Options quand l'équipe est pleine et que `arrivant` vient d'être capturé : ne pas le garder,
  * ou remplacer l'un des membres. Chacune avec sa note, ses pour et ses contre.
  */
-/** Chaque niveau perdu en remplaçant un membre par un arrivant plus bas coûte autant, à toute vague :
- * le niveau du membre le plus faible prédit la suite de la partie, pas le potentiel de l'espèce
- * (banc du 05/10). */
+/** À l'approche d'un rival, chaque niveau perdu en remplaçant un membre par un arrivant plus bas coûte
+ * autant (au rival 1, un niveau de porteur en moins triple presque le risque) ; ailleurs, le potentiel
+ * de l'espèce prime (un Embrylex niveau 12 pour un Salamèche niveau 15, les niveaux se rattrapent). */
 const COUT_NIVEAU_PERDU = 3;
 
 export function evaluerArrivee(equipe: Membre[], arrivant: Membre, cibles?: number[]): OptionEquipe[] {
@@ -240,11 +239,11 @@ export function evaluerArrivee(equipe: Membre[], arrivant: Membre, cibles?: numb
   ];
   equipe.forEach((parti, place) => {
     // Jamais le porteur (le plus haut niveau) : bug du 02/10, il était relâché avant le rival.
-    if (parti.niveau >= reference || parti.chromatique) {
+    if (parti.niveau >= reference) {
       return;
     }
     const nouvelle = equipe.map((m, i) => (i === place ? arrivant : m));
-    const perdus = Math.max(0, parti.niveau - arrivant.niveau);
+    const perdus = cibles?.length ? Math.max(0, parti.niveau - arrivant.niveau) : 0;
     const detail = comparer(nouvelle, equipe, arrivant, parti);
     options.push({
       remplacer: place,

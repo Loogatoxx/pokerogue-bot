@@ -38,7 +38,6 @@ export function membreDe(p: PokemonJeu): MembreObjets {
     ko: p.isFainted(),
     statut: !p.isFainted() && (p.status?.effect ?? 0) !== 0,
     ppRatios: attaques.map(a => (a.getMovePp() > 0 ? (a.getMovePp() - a.ppUsed) / a.getMovePp() : 1)),
-    chromatique: p.shiny,
   };
 }
 
