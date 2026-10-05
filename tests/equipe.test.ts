@@ -51,11 +51,25 @@ describe("Note d'équipe", () => {
   });
 });
 
+describe("Remplacements", () => {
+  const equipe = [salameche, reptincel, carapuce, tiplouf, roucool, chenipan];
+
+  it("ne relâche jamais un chromatique", () => {
+    const options = evaluerArrivee(equipe.map(m => ({ ...m, chromatique: m !== reptincel })), membre("Pikachu", 25, 15, [12], [attaque("Éclair", 12, 1, 40)]));
+    expect(options.map(o => o.remplacer)).toEqual([null]);
+  });
+
+  it("ne remplace pas un membre entraîné par une capture de bien plus bas niveau", () => {
+    const pikachu = membre("Pikachu", 25, 5, [12], [attaque("Éclair", 12, 1, 40)], 3);
+    expect(meilleureOptionEquipe(evaluerArrivee(equipe, pikachu)).remplacer).toBeNull();
+  });
+});
+
 describe("Potentiel des espèces", () => {
   const equipe = [salameche, reptincel, carapuce, tiplouf, roucool, chenipan];
 
   it("garde un Embrylex prometteur à la place d'un membre faible", () => {
-    const embrylex = membre("Embrylex", 246, 12, [5, 4], [attaque("Morsure", 15, 0, 60)]);
+    const embrylex = membre("Embrylex", 246, 15, [5, 4], [attaque("Morsure", 15, 0, 60)]);
     const choix = meilleureOptionEquipe(evaluerArrivee(equipe, embrylex));
     expect(choix.remplacer).not.toBeNull();
     expect(choix.pour.join(" ")).toMatch(/potentiel/);

@@ -1170,3 +1170,21 @@ proposer la prochaine règle, et pouvoir mesurer avec le cerveau v5 ici.
 
 **Objectif**
 Corriger, une mesure à la fois, ce que le planificateur ne voit pas dans un combat.
+
+## 40. Remplacements dans l'équipe — 05/10/2026
+
+**Prompt**
+> Oui commence par le remplacement
+
+**Réponse**
+- Données (`p7-ref`) : 6 remplacements par partie, surtout avant la vague 30, pour +11 points de
+  potentiel final en moyenne. Le nombre de membres « faibles même évolués » ne prédit pas la suite ;
+  le meilleur prédicteur est le niveau du membre le plus faible (corrélation +0,25 à +0,31).
+- Règle à mesurer : le coût de 3 par niveau perdu en remplaçant s'applique à toute vague (avant :
+  seulement avant un rival) ; un chromatique n'est jamais relâché.
+
+**Modifications**
+- `observateur/equipe.ts`, `observateur/decisions-jeu.ts` (`chromatique`), `tests/equipe.test.ts`.
+
+**Objectif**
+Arrêter d'affaiblir l'équipe avec des captures de bas niveau, et garder la chance des chromatiques.
