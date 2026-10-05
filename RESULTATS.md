@@ -260,3 +260,20 @@ Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au ri
 | Rival 4 | 73 % | 82 % |
 
 **Verdict : annulé** (moins de 2 erreurs-types). Le rival 4 progresse, mais l'écart total reste dans le bruit.
+
+## Nouvelle référence (simulateur corrigé, 05/10)
+
+`p7-ref` (`cc7a855`, plan seul, Éleveur expert corrigé) : **60,03** sur 475 parties valides. Rival 2 : 79 %, rival 4 : 75 %. Morts en rencontre mystère : 76 → 32. **C'est la référence actuelle.**
+
+## Captures limitées aux espèces fortes (05/10) — rejeté
+
+**Idée** (Carlos + consensus des victoires trouvées en ligne) : après 3 membres, ne capturer que les espèces qui finissent à 480 de stats ou plus, sauf chromatique ou boss (`7e72118`).
+
+| | Référence `p7-ref` | Captures limitées |
+|---|---|---|
+| Vague moyenne | 60,03 | 46,87 |
+| Écart apparié | — | **−13,14** (erreur-type 1,93, 473 paires) · mieux 121, pareil 99, pire 253 |
+| Rival 1 | 99 % | 94 % |
+| Morts contre des sauvages | 10 | 46 |
+
+**Verdict : annulé.** Pour ce bot, sur un compte neuf, les captures nombreuses du début aident : une capture termine le combat sans encaisser de coup et donne des membres de plus pour encaisser et gagner de l'expérience. Cela confirme une ancienne mesure (v4, voir `valeurBall`). Le problème n'est donc pas « trop de captures », mais peut-être « garder les faibles trop longtemps » : à tester par le remplacement, pas par la capture.
