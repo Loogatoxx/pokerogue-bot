@@ -277,3 +277,16 @@ Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au ri
 | Morts contre des sauvages | 10 | 46 |
 
 **Verdict : annulé.** Pour ce bot, sur un compte neuf, les captures nombreuses du début aident : une capture termine le combat sans encaisser de coup et donne des membres de plus pour encaisser et gagner de l'expérience. Cela confirme une ancienne mesure (v4, voir `valeurBall`). Le problème n'est donc pas « trop de captures », mais peut-être « garder les faibles trop longtemps » : à tester par le remplacement, pas par la capture.
+
+## Remplacements : niveaux perdus comptés à toute vague, chromatiques gardés (05/10) — rejeté
+
+**Données avant l'essai** (`p7-ref`) : 6 remplacements par partie (surtout avant la vague 30), +11 points de potentiel final en moyenne. Le nombre de membres « faibles même évolués » à la vague 30 ne prédit pas la suite (vague finale 79,0 / 78,7 / 75,1 / 78,6 pour 0 / 1 / 2 / 3+). Meilleur prédicteur : le niveau du membre le plus faible (corrélation +0,25 à +0,31).
+
+**Idée** : coût de 3 par niveau perdu en remplaçant à toute vague (avant : seulement avant un rival) ; jamais de chromatique relâché (`badce99`).
+
+| | Référence `p7-ref` | Remplacements |
+|---|---|---|
+| Vague moyenne | 60,03 | 59,98 |
+| Écart apparié | — | **−0,05** (erreur-type 0,44, 474 paires) · mieux 25, pareil 422, pire 27 |
+
+**Verdict : annulé.** 422 parties sur 474 sont identiques : la règle ne change presque jamais une décision. Les remplacements ne sont pas un levier. Avec les captures (−13,14), la composition de l'équipe est écartée pour l'instant : le prochain levier à chercher est dans les combats.
