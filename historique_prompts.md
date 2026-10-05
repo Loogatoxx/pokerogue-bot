@@ -1170,3 +1170,23 @@ proposer la prochaine règle, et pouvoir mesurer avec le cerveau v5 ici.
 
 **Objectif**
 Corriger, une mesure à la fois, ce que le planificateur ne voit pas dans un combat.
+
+## 42. Juge des défaites du banc — 05/10/2026
+
+**Prompt**
+> Vasy je te laisse faire
+
+**Réponse**
+- Effets des attaques rejetés aussi en essais séparés (soi −1,05 ± 0,96 ; adversaire −2,61 ± 1,38).
+- Nouvel outil `entraineur/juge_banc.py` : pour chaque défaite d'un banc (plan seul, parties
+  reproductibles), photo au début de la vague fatale, vérification que la défaite se reproduit,
+  taux de victoire du bot depuis la photo sur 8 autres tirages, puis chaque décision du combat
+  jugée (tous les coups permis × 3 avenirs, mêmes tirages pour tous les coups).
+- Essai (rival 2, k=0) : 8 min, 23 décisions ; le coup habituel gagnait 2 avenirs sur 3 dès la
+  première décision : une part de la défaite est de la malchance.
+
+**Modifications**
+- `entraineur/juge_banc.py`.
+
+**Objectif**
+Trouver quelles décisions perdent vraiment (triche permise au diagnostic) avant toute nouvelle règle.
