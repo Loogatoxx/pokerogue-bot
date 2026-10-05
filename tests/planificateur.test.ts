@@ -59,6 +59,38 @@ describe("Combat d'équipe (contre un dresseur)", () => {
   });
 });
 
+describe("Effets des attaques dans le combat d'équipe", () => {
+  const normale = { type: { id: 0, nom: "Normal" }, categorie: { id: 0, nom: "Physique" }, puissance: 60, precision: 100, pp: 10, ppMax: 10 };
+  function avec(attaques: Observation["equipe"][number]["attaques"], pv = 36): Observation {
+    const obs = situation(60);
+    const griffe = { id: 10, nom: "Griffe", type: { id: 0, nom: "Normal" }, categorie: { id: 0, nom: "Physique" }, puissance: 40, precision: 100 };
+    const statut = { type: { id: 0, nom: "Normal" }, categorie: { id: 2, nom: "Statut" }, puissance: -1, precision: 100 };
+    obs.adversaires[0]!.attaquesVues = [griffe, { ...statut, id: 45, nom: "Rugissement" }, { ...statut, id: 43, nom: "Groz'Yeux" }, { ...statut, id: 108, nom: "Brouillard" }];
+    obs.partie.dresseur = { nom: "Gamin", pokemonRestants: 1 };
+    obs.equipe[0]!.attaques = attaques;
+    obs.equipe[0]!.pv = pv;
+    obs.equipe[0]!.stats[5] = 99;
+    obs.decision.masque = [true, false, true, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, false];
+    return obs;
+  }
+
+  it("préfère l'attaque qui draine à la même attaque sans effet", () => {
+    const valeurs = planifier(avec([{ ...normale, id: 202, nom: "Giga-Sangsue" }, { ...normale, id: 33, nom: "Charge" }], 18))!;
+    expect(valeurs[0]!).toBeGreaterThan(valeurs[2]!);
+  });
+
+  it("évite le contrecoup quand la même attaque existe sans", () => {
+    const valeurs = planifier(avec([{ ...normale, id: 38, nom: "Damoclès" }, { ...normale, id: 33, nom: "Charge" }]))!;
+    expect(valeurs[2]!).toBeGreaterThan(valeurs[0]!);
+  });
+
+  it("voit l'intérêt de paralyser l'adversaire (Cage-Éclair) plutôt que de ne rien faire", () => {
+    const statut = { type: { id: 12, nom: "Électrik" }, categorie: { id: 2, nom: "Statut" }, puissance: -1, precision: 90, pp: 10, ppMax: 10 };
+    const valeurs = planifier(avec([{ ...statut, id: 86, nom: "Cage-Éclair" }, { ...statut, type: { id: 0, nom: "Normal" }, id: 150, nom: "Trempette", precision: -1 }, { ...normale, id: 33, nom: "Charge" }]))!;
+    expect(valeurs[0]!).toBeGreaterThan(valeurs[2]!);
+  });
+});
+
 describe("Planificateur et capture", () => {
   // Un Embrylex sauvage (taux de capture 45) face à Bulbizarre, Poké Balls en stock.
   function sauvage(pv: number): Observation {

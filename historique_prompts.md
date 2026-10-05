@@ -1170,3 +1170,25 @@ proposer la prochaine règle, et pouvoir mesurer avec le cerveau v5 ici.
 
 **Objectif**
 Corriger, une mesure à la fois, ce que le planificateur ne voit pas dans un combat.
+
+## 41. Effets des attaques dans le moteur de combat d'équipe — 05/10/2026
+
+**Prompt**
+> GO
+
+**Réponse**
+- Nouveau générateur `observateur/generer-effets-attaques.py` : lit dans le code du jeu, pour 220
+  attaques, le contrecoup, le drainage, les crans sur soi et sur la cible (avec leur chance), la
+  brûlure, la paralysie, le poison et la peur.
+- Moteur d'équipe (contre les dresseurs) : ces effets en espérance ; brûlure (1/16 par tour, dégâts
+  physiques ÷ 2), poison (1/8), paralysie (Vitesse ÷ 2, 1 chance sur 8 de ne pas agir), immunités
+  par type ; statuts déjà présents lus dans l'observation. Les Pokémon adverses inconnus n'héritent
+  pas des effets des attaques du Pokémon vu.
+- Trois tests : drainage préféré, contrecoup évité, paralysie utile.
+
+**Modifications**
+- `observateur/generer-effets-attaques.py`, `observateur/effets-attaques.ts` (généré),
+  `observateur/combat-equipe.ts`, `tests/planificateur.test.ts`.
+
+**Objectif**
+Répondre à la remarque de Carlos : le bot ne mesurait que la puissance, jamais les effets.
