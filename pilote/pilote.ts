@@ -344,6 +344,12 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
       e.processInput(BOUTON.ACTION);
       return choix.remplacer === null ? "équipe pleine, ne garde pas" : "équipe pleine, remplace";
     }
+    const nombreOptions = (e as Ecran & { config?: { options?: unknown[] } }).config?.options?.length ?? 0;
+    if (phase.startsWith("MysteryEncounter") && nombreOptions > 2) {
+      e.setCursor(nombreOptions - 1);
+      e.processInput(BOUTON.ACTION);
+      return "équipe pleine, ne garde pas";
+    }
   }
 
   if (mode === ECRAN.CONFIRM && phase === "CheckSwitchPhase") {

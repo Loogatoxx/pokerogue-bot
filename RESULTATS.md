@@ -174,3 +174,47 @@ Mesuré dans le cloud, en plan seul, code reproductible, 480 parties appariées 
 **Verdict : GARDER.**
 
 Il reste quelques longues séries de changements (66 au maximum), à chercher (BACKLOG n° 16). À confirmer avec le cerveau v5 sur le Mac.
+
+## Rencontres mystères : option choisie par un fichier de données (commit `207008a`, PR #6)
+
+Avant, le pilote prenait toujours la 1re option possible. Maintenant, il suit `donnees/rencontres-mysteres.json` : pour chacune des 31 rencontres, l'ordre de préférence des options et la raison, tirée du code du jeu.
+
+Mesuré dans le cloud, en plan seul, code reproductible, 480 parties appariées :
+
+| | Avant (`fb29312`) | Après | Écart |
+|---|---|---|---|
+| Vague moyenne (paires valides) | 43,04 | **52,35** | **+9,31** (erreur-type 1,44, seuil 2,87) |
+| Parties meilleures / identiques / pires | — | — | 156 / 173 / 67 |
+| Médiane | 30 | 48 | |
+| p90 | 90 | 104 | |
+| Morts en rencontre mystère | 35 % | 17 % | |
+
+**Verdict : GARDER.**
+
+**Rencontres les plus mortelles** :
+- avant : Training Session 55, Expert Breeder 35, Ronflex 16 ;
+- après : Expert Breeder 39, Berries Abound 11, Uncommon Breed 9.
+
+**Effet de bord découvert** : 57 parties en erreur au lieu de 28. Uncommon Breed (amadouer) et The Pokémon Salesman (acheter) donnent un Pokémon. Avec l'équipe pleine, le pilote ne voyait pas le Pokémon offert et ouvrait le résumé en boucle. Corrigé dans `1e002ac` : dans ce cas, il ne garde pas le Pokémon (k = 20, 48, 53 vont maintenant jusqu'aux vagues 55, 112 et 112).
+
+**Nouvelles premières causes de mort** : rivaux 33 %, champions d'arène 24 %.
+
+## Expert Breeder et Super Bonbon vers l'évolution (04-05/10) — deux essais rejetés
+
+| Essai | Écart apparié | Verdict |
+|---|---|---|
+| Expert Breeder : combattre avec le Pokémon de plus haut niveau parmi les trois proposés (`76092c3`) | +0,62 ± 0,55 (416 paires) | dans le bruit → **annulé** (`dc1080d`) |
+| Super Bonbon au membre qui évolue au niveau suivant, sauf rival proche (`fd87dba`) | −0,60 ± 0,70 (474 paires) | dans le bruit → **annulé** (`0b2b41e`) ; l'export `donnees/evolutions.json` est gardé |
+
+**Nouvelle référence** (plan seul, rencontres corrigées, boucle du pilote corrigée) : **57,7** de vague moyenne sur 474 parties valides (6 en erreur).
+- Rival 1 : 99 %. Rival 2 : 79 %. Rival 3 : 92 %. Rival 4 : 72 %.
+- Morts : rivaux 30 %, champions d'arène 27 %, rencontres mystères 15 %, team 14 %.
+
+Le 52,35 mesuré avant comptait seulement les parties valides des deux côtés. Les parties que la boucle bloquait vont maintenant au bout.
+
+**Analyse du rival 2** (vague 25) :
+- les équipes arrivent avec leurs PV au complet ;
+- le porteur est au même niveau que chez les gagnants ;
+- le banc a 4 à 6 niveaux de retard (11 à 15 contre 16 à 18) et reste sous sa première évolution ;
+- dans un combat perdu d'avance, le moteur d'équipe note toutes les actions à peu près pareil et choisit presque au hasard.
+

@@ -1043,3 +1043,59 @@ Ne plus perdre de tours en changements inutiles ; à confirmer par les bancs off
 **Objectif**
 Que Carlos garde la main sur les objets, la partie où le bot est le plus faible, tout en laissant
 le combat au cerveau.
+
+## 34. Viser la vague 200 : les rencontres mystères — 04/10/2026
+
+**Prompt**
+> c'est fusionner, et l extension a merveille, fais le optimal pour augmenter les resultat pour que
+> un jour l ia puisse finir le jeu sans probleme
+>
+> (en cours) c'est normal le verdict ça fait 20min il tourne?
+
+**Réponse**
+- Le plus gros levier mesuré passe en premier : les rencontres mystères (35 % des morts).
+- Le banc enregistre maintenant le type de rencontre mortelle et l'option choisie.
+- `donnees/rencontres-mysteres.json` : l'option à préférer pour chacune des 31 rencontres, avec la
+  raison tirée du code du jeu. Exemples : ne jamais vendre son Pokémon le plus fort ; refuser un
+  défi brutal quand refuser soigne toute l'équipe ; ne pas fuir le Rêve Étrange, qui fait perdre
+  10 % des niveaux.
+- Banc apparié : **+9,31 ± 1,44 vagues** (43,0 → 52,4), morts en rencontre mystère 35 % → 17 %.
+  Gardé.
+- Boucle du pilote corrigée : équipe pleine quand une rencontre donne un Pokémon.
+- Expert Breeder : combattre avec le Pokémon de plus haut niveau parmi les trois proposés (banc en
+  cours).
+- Les commits non fusionnés de la PR #3 (extension semi-auto, reproductibilité) ont été réintégrés.
+
+**Modifications**
+- Nouveaux : `donnees/rencontres-mysteres.json`, `tests/rencontres.test.ts`.
+- Modifiés : `pilote/pilote.ts` (`optionRencontre`, plus haut niveau pour l'éleveur, équipe
+  pleine dans une rencontre), `observateur/jeu.ts` (`mysteryEncounter`, `friendship`),
+  `tsconfig.json` (`resolveJsonModule`), `simulateur/environnement.test.ts`, `entraineur/` (banc),
+  `RESULTATS.md`, `BACKLOG.md`.
+
+**Objectif**
+Retirer la première cause de mort, venue d'une règle trop simple (« toujours l'option 1 »), avec un
+choix lisible et sourcé pour chaque rencontre.
+
+## 35. Deux essais rejetés par le banc — 05/10/2026
+
+**Prompt**
+> (suite de l'entrée 34, travail autonome vers la vague 200)
+
+**Réponse**
+- Expert Breeder (combattre avec le Pokémon de plus haut niveau) : +0,62 ± 0,55, dans le bruit :
+  annulé. La boucle du pilote corrigée en même temps est gardée (57 parties en erreur → 6).
+- Super Bonbon au membre qui évolue au niveau suivant : −0,60 ± 0,70, dans le bruit : annulé.
+  L'export des niveaux d'évolution du jeu (`donnees/evolutions.json`) est gardé pour la suite.
+- Nouvelle référence en plan seul : 57,7 de vague moyenne (474 parties valides).
+- Analyse du rival 2 : équipe en pleine forme, porteur au niveau ; le banc a 4 à 6 niveaux de
+  retard. Le moteur d'équipe joue presque au hasard quand il se croit perdant.
+
+**Modifications**
+- Annulations `dc1080d` et `0b2b41e` ; nouveaux : `simulateur/exporter-evolutions.test.ts`,
+  `donnees/evolutions.json` ; `RESULTATS.md`.
+
+**Objectif**
+Ne garder que ce que le banc confirme : deux idées plausibles ne passent pas la règle des 2
+erreurs-types, elles sortent du code.
+
