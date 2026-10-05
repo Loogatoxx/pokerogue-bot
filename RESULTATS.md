@@ -291,7 +291,7 @@ Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au ri
 
 **Verdict : annulé.** 422 parties sur 474 sont identiques : la règle ne change presque jamais une décision. Les remplacements ne sont pas un levier. Avec les captures (−13,14), la composition de l'équipe est écartée pour l'instant : le prochain levier à chercher est dans les combats.
 
-## Effets des attaques dans le moteur de combat d'équipe (05/10) — rejeté, essais séparés en cours
+## Effets des attaques dans le moteur de combat d'équipe (05/10) — rejeté, y compris en essais séparés
 
 **Idée** (remarque de Carlos : « l'IA ne mesure que la puissance ») : table générée depuis le jeu (`generer-effets-attaques.py`, 220 attaques) ; contre les dresseurs, le moteur compte en espérance le contrecoup, le drainage, les crans sur soi et sur la cible, la brûlure, la paralysie, le poison et la peur, plus les statuts déjà présents (`b22d316`).
 
@@ -303,3 +303,13 @@ Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au ri
 | Parties avec 3 changements d'affilée ou plus | 36 | 41 |
 
 **Verdict : annulé** (dans le bruit, mais négatif). Plusieurs effets étaient regroupés : deux essais séparés suivent, effets sur soi (contrecoup, drainage, crans sur soi) et effets sur l'adversaire (statuts, peur, crans sur la cible).
+
+**Essais séparés** (même code, effets filtrés ; 2 bancs en parallèle) :
+
+| Essai | Écart apparié | Rival 3 / rival 4 | Séries de 3 changements ou plus |
+|---|---|---|---|
+| Référence `p7-ref` | — | 92 % / 75 % | 36 |
+| Effets sur soi (contrecoup, drainage, crans sur soi) | −1,05 (erreur-type 0,96) | 90 % / 70 % | 49 |
+| Effets sur l'adversaire (statuts, peur, crans sur la cible, statuts de départ) | −2,61 (erreur-type 1,38) | 86 % / 60 % | 44 |
+
+**Verdict : annulés tous les deux.** Plus de réalisme dans le moteur ne le fait pas mieux jouer : les trois essais vont dans le même sens (négatif) et le rival 4 recule à chaque fois. Hypothèses non vérifiées : les effets en espérance (une « fraction » de brûlure) rendent le moteur trop optimiste ; ils font paraître des changements meilleurs qu'ils ne sont. Prochaine méthode : chercher avec le juge (`entraineur/juge.py`, triche permise au diagnostic) quelles décisions perdent vraiment au rival 4 et contre les champions, au lieu d'ajouter des règles à l'aveugle.
