@@ -356,3 +356,7 @@ Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au ri
 | Parties avec 3 changements d'affilée ou plus (plus longue série) | 36 (13) | 14 (5) |
 
 **Verdict : pas gardé** (moins de 2 erreurs-types). C'est le meilleur résultat de la journée et il va dans le sens du juge (moins de changements, mieux ciblés). **Réplication fixée avant de voir le résultat** : 480 graines de plus (k = 480 à 959) pour la référence et la variante ; on garde si l'écart sur les **960** parties dépasse 2 erreurs-types.
+
+**Réplication (960 parties, règle fixée d'avance)** : **+1,92** (erreur-type 1,08, seuil 2,16, 946 paires) · mieux 322, pareil 351, pire 273 ; graines neuves seules (480-959) : +1,96 ± 1,45. Changements par partie 13,5 → 8,8 ; séries de 3 ou plus 70 → 28. Rival 4 : 70 → 73 %.
+
+**Verdict : pas gardé** (1,8 erreur-type, sous le seuil fixé). L'effet est constant sur les deux lots de graines (+1,87 puis +1,96) : c'est le candidat n° 1 pour la suite (voir REPRISE.md).

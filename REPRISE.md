@@ -113,9 +113,8 @@ fusionnée telle quelle.
    (`jeu/src/phases/enemy-command-phase.ts` : score de duel et seuil de changement des dresseurs) et
    la reproduire dans `observateur/combat-equipe.ts` (le planificateur a déjà `prevoirChangement`).
    Cas test : rival 2, k=41, décision 1.
-1 bis. **Ciblage au tour d'un changement + garde-fou contre les séries** : le ciblage seul (`45e2f0d`)
-   a donné −0,93 avec deux fois plus de séries de changements. Le refaire avec, par exemple, un prix
-   de changement plus élevé quand le Pokémon vient d'entrer.
+0. **Décider le ciblage + prix de changement 0,05** (section « Verdicts », `p15-ciblage-prix`) : +1,9
+   sur deux lots de graines, juste sous le seuil ; décision finale avec 1440 parties sur le Mac.
 2. **Épargner le Pokémon qui contre** : dans un combat jugé perdu, le moteur ne cherche que les
    dégâts ; valoriser le membre qui bat le plus fort adversaire restant, et le niveau proche d'une
    évolution (`donnees/evolutions.json`) quand des K.O. vont donner de l'expérience.
@@ -146,8 +145,12 @@ fusionnée telle quelle.
   significatif, mais le meilleur de la journée** (médiane 55 → 60, rival 4 75 → 79 %, séries de
   changements 36 → 14). **Réplication** fixée d'avance : `--parties 960` (graines 480 à 959 en plus)
   pour `p7-ref` et `p15-ciblage-prix` ; garder si l'écart sur 960 parties dépasse 2 erreurs-types.
-  Lancée dans le cloud ; si le résultat n'est pas noté ici, la refaire en local (ajouter
-  `--parties 960` aux deux commandes de banc ci-dessous et à celle de la référence en 2.1). Commandes :
+  **Résultat de la réplication : +1,92 ± 1,08 sur 946 paires (seuil 2,16) → pas gardé, de peu.**
+  Graines neuves seules : +1,96 ± 1,45 ; changements par partie 13,5 → 8,8. **Candidat n° 1** :
+  décision finale à prendre sur le Mac avec une 3e série de graines, règle fixée d'avance :
+  `--parties 1440` pour la référence et la variante, garder si l'écart sur 1440 parties dépasse 2
+  erreurs-types (sinon l'abandonner pour de bon). Commandes (ajouter `--parties 1440` à chaque banc,
+  référence de 2.1 comprise) :
   ```bash
   git checkout --detach 45e2f0d
   sed -i '' 's/^const COUT_CHANGEMENT = 0.01;/const COUT_CHANGEMENT = 0.05;/' observateur/combat-equipe.ts
