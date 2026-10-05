@@ -214,6 +214,7 @@ function infoPartie(obs: Observation) {
 interface PokemonRecit {
   name: string;
   level: number;
+  species: { speciesId: number };
   hp: number;
   getMaxHp(): number;
   isFainted(): boolean;
@@ -227,6 +228,8 @@ interface EtapeRecit {
   dresseur: string | null;
   /** Niveaux de l'équipe, et ses PV restants en % du total. */
   equipe: number[];
+  especes: number[];
+  objetsDetail: Record<string, number>;
   pvEquipe: number;
   adversaires: number[];
   /** Nombre d'objets portés par l'équipe (piles comprises). */
@@ -866,6 +869,8 @@ async function jouerPartie(
             vague,
             dresseur: null,
             equipe: equipe.map(p => p.level),
+            especes: equipe.map(p => p.species.speciesId),
+            objetsDetail: objetsPortes(sceneRecit),
             pvEquipe: Math.round((100 * pv) / Math.max(pvMax, 1)),
             adversaires: [],
             objets: Object.values(objetsPortes(sceneRecit)).reduce((a, b) => a + b, 0),

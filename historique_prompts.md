@@ -1116,3 +1116,26 @@ erreurs-types, elles sortent du code.
 **Objectif**
 Tester une idée de combat sur le banc avant de la garder : celle-ci fait perdre, elle sort.
 
+## 37. Équipe enregistrée à chaque vague, cerveau v5 dans le dépôt — 05/10/2026
+
+**Prompt**
+> oui ut peu faire ça Enregistrer l'équipe à chaque vague (espèces, évolutions, objets) dans le
+> banc. On saura alors ce qui différencie vraiment les gagnants du rival 2 et des champions. Coût
+> faible, aucune décision changée. 1. Mettre le cerveau v5 dans le dépôt […] 2. Ensuite seulement,
+> un nouvel essai de règle, guidé par les données du point 1.
+
+**Réponse**
+- Le banc enregistre maintenant, à chaque vague, les espèces de l'équipe (les évolutions s'y
+  lisent) et ses objets. Vérifié : 6 parties identiques avant et après, aucune décision changée.
+- Cerveau v5 : exception dans `.gitignore` pour `cerveau/le-plus-fort-v5.cerveau`. Le banc
+  l'utilise quand le Lexar est absent. Le fichier est à ajouter par Carlos depuis son Mac.
+- Banc de référence lancé pour récolter ces données.
+
+**Modifications**
+- `simulateur/environnement.test.ts` (espèces et objets par vague dans le récit),
+  `entraineur/banc_complet.py` (`especes`, `objetsParVague`, `chemin_cerveau`), `.gitignore`.
+
+**Objectif**
+Savoir ce qui distingue vraiment les parties qui passent le rival 2 et les champions avant de
+proposer la prochaine règle, et pouvoir mesurer avec le cerveau v5 ici.
+
