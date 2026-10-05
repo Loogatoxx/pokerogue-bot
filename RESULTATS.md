@@ -218,3 +218,17 @@ Le 52,35 mesuré avant comptait seulement les parties valides des deux côtés. 
 - le banc a 4 à 6 niveaux de retard (11 à 15 contre 16 à 18) et reste sous sa première évolution ;
 - dans un combat perdu d'avance, le moteur d'équipe note toutes les actions à peu près pareil et choisit presque au hasard.
 
+## Moteur de combat d'équipe avec le hasard du jeu (05/10) — rejeté
+
+**Idée** : noter chaque action sur 16 combats simulés avec le hasard du jeu (dégâts de 85 à 100 %, critiques, précision), au lieu d'un seul combat moyen, pour viser la meilleure chance de gagner quand le combat paraît perdu (`4d99858`).
+
+| | Référence (`40f13e7`) | Avec hasard |
+|---|---|---|
+| Vague moyenne | 57,33 | 54,13 |
+| Écart apparié | — | **−3,20** (erreur-type 1,51, 470 paires) |
+| Parties avec au moins 3 changements d'affilée | 33 | 64 |
+
+**Verdict : annulé.** Le bruit des tirages fait paraître certains changements meilleurs qu'ils ne le sont.
+
+**Référence actuelle** (plan seul) : **57,33** sur 474 parties valides. Rival 2 : 79 %. Rival 4 : 74 %.
+
