@@ -328,3 +328,17 @@ Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au ri
 | Parties avec 3 changements d'affilée ou plus | 36 | **77** |
 
 **Verdict : annulé** (partie moteur ; l'option de diagnostic `observationBrute` reste). Les changements devenus plus justes sont aussi plus attirants, et les séries de changements reviennent : toute correction des changements doit venir avec un garde-fou contre les séries (prix d'un changement plus élevé, ou pas de rechangement au tour suivant).
+
+## Équipe des rivaux connue dans le moteur d'équipe (05/10) — rejeté
+
+**Idée** : les Pokémon pas encore vus d'un rival joués avec le niveau et les stats de base moyennes de leur emplacement, lus dans le jeu (`donnees/rivaux.json` ; rival 2 : 3e Pokémon niveau 16, 313 de stats de base en moyenne, au lieu d'une copie du starter) (`0fff884`, mesuré sans le ciblage).
+
+| | Référence `p7-ref` | Rivaux connus |
+|---|---|---|
+| Vague moyenne | 60,03 | 60,77 |
+| Écart apparié | — | **+0,81** (erreur-type 0,90, 474 paires) · mieux 95, pareil 293, pire 86 |
+| Rival 2 / rival 4 | 79 % / 75 % | 79 % / 72 % |
+
+**Verdict : annulé** (partie moteur ; `donnees/rivaux.json` et `simulateur/exporter-rivaux.test.ts` restent, sans effet sur les décisions). Le rival 2 ne bouge pas : ce qui le fait perdre n'est pas la force supposée de son 3e Pokémon (voir la trace de k=41 : retrait de l'adversaire, évolution en plein combat).
+
+**Référence inchangée : `p7-ref`, 60,03 (décisions de `77dabf3`).**

@@ -15,46 +15,34 @@ est, ce qui reste à décider, comment le décider, et ce qu'on a appris. Mettre
 - Gains gardés depuis le début : changements (+3,91), rencontres mystères (+9,31), boucle du pilote
   (erreurs 57 → 6), bug du banc de l'Éleveur expert (le jeu continue après une défaite dans cette
   rencontre : la référence est passée de 57,9 à 60,0 sans changer le bot).
-- **Deux changements commités mais pas encore jugés** (protocole : on garde seulement si le gain
-  dépasse 2 erreurs-types, sinon `git revert`) :
+- **Deux changements jugés dans le cloud le 05/10, tous les deux annulés** (voir « Verdicts ») :
 
 | Commit | Changement | Banc | Comparé à |
 |---|---|---|---|
 | `45e2f0d` (**annulé**, voir Verdicts) | Moteur d'équipe : au tour d'un changement, l'IA adverse vise le Pokémon **qui part** (comme le jeu : `EnemyCommandPhase` avant `TurnStartPhase`) | `p13-ciblage` | `p7-ref` |
-| `0fff884` | Moteur d'équipe : Pokémon pas encore vus d'un **rival** joués avec le niveau et les stats de leur emplacement (`donnees/rivaux.json`, exporté du jeu ; rival 2 : 3e Pokémon niveau 16, pas une copie du starter) | `p14-rivaux` (mesuré **sans** `45e2f0d`) | `p7-ref` |
+| `0fff884` (**annulé**, voir Verdicts) | Moteur d'équipe : Pokémon pas encore vus d'un **rival** joués avec le niveau et les stats de leur emplacement (`donnees/rivaux.json`, exporté du jeu ; rival 2 : 3e Pokémon niveau 16, pas une copie du starter) | `p14-rivaux` (mesuré **sans** `45e2f0d`) | `p7-ref` |
 
-Ces deux bancs tournaient dans le cloud au moment où les crédits s'épuisaient. Si la section
-« Verdicts » n'est pas remplie, il faut les refaire en local (section 2).
+Un troisième essai (ciblage + prix de changement plus élevé, `p15-ciblage-prix`) tournait au moment
+où les crédits s'épuisaient : voir « Verdicts ».
 
 ## 2. Ce qu'il faut faire en reprenant (dans l'ordre)
 
-### 2.1 Refaire les bancs en attente (si « Verdicts » est vide)
+### 2.1 Refaire la référence en local, puis finir les essais en attente
 
-Le banc lance le jeu depuis `jeu/` à la racine du dépôt : faire les bancs l'un après l'autre dans le
-même dossier, jamais en même temps. Sur le Mac, ajouter `--processus 8`.
+Les résultats des bancs du cloud n'existent plus (dossier temporaire). Pour comparer en local, il faut
+d'abord refaire la référence sur le Mac. Le banc lance le jeu depuis `jeu/` à la racine du dépôt :
+faire les bancs l'un après l'autre, jamais en même temps.
 
 ```bash
 cd ~/Projets/pokerogue-bot
 git fetch origin && git checkout claude/pokerogue-bot-macro-strategy-33yi1e && git pull
 git -C jeu describe --tags                      # doit afficher v1.12.0.11
-
-# Référence (décisions de 77dabf3)
-git checkout --detach 77dabf3
 .venv/bin/python -m entraineur.banc_complet --nom p7-ref --plan-seul --processus 8
-
-# Changement 2 : équipe des rivaux, SANS le ciblage
-git checkout --detach 0fff884
-git show 45e2f0d -- observateur/combat-equipe.ts | git apply -R
-.venv/bin/python -m entraineur.banc_complet --nom p14-rivaux --plan-seul --processus 8
-git checkout -- . && git checkout claude/pokerogue-bot-macro-strategy-33yi1e
-
-.venv/bin/python -m entraineur.banc_complet --comparer p14-rivaux p7-ref
 ```
 
-Décision pour chacun : verdict « GARDER » → on garde ; sinon `git revert <commit>` (pour `0fff884`,
-garder quand même `donnees/rivaux.json` et `simulateur/exporter-rivaux.test.ts`, qui ne changent
-aucune décision). Si les deux sont gardés, faire un banc des deux ensemble contre `p7-ref` pour
-confirmer ; ce banc devient la nouvelle référence.
+(Le code de la branche a les mêmes décisions que `77dabf3`, la référence.) Ensuite, pour chaque essai
+de la section « Verdicts » encore marqué « programmé » ou « en cours », suivre ses commandes. Règle :
+verdict « GARDER » → reporter le changement sur la branche avec son test ; sinon rien à faire.
 
 ### 2.2 Mettre à jour ce que joue le site (le « cerveau le plus performant »)
 
@@ -82,8 +70,8 @@ confirmer ; ce banc devient la nouvelle référence.
 
 ### 2.3 Fusionner
 
-PR #9 : ne contient que des changements mesurés, neutres ou de diagnostic, plus les deux en attente.
-Fusionner après les verdicts et les éventuels `git revert`.
+PR #9 : ne contient que des changements mesurés (gardés), neutres ou de diagnostic. Elle peut être
+fusionnée telle quelle.
 
 ## 3. Ce qu'on a appris (à ne pas refaire)
 
@@ -152,7 +140,7 @@ Fusionner après les verdicts et les éventuels `git revert`.
 ## 6. Verdicts (à remplir)
 
 - `p13-ciblage` contre `p7-ref` : **−0,93 ± 1,26 → annulé** (fait dans le cloud, partie moteur retirée). Les séries de 3 changements ou plus passent de 36 à 77 parties : à recombiner plus tard avec un garde-fou contre les séries (chantier n° 1 bis).
-- `p14-rivaux` contre `p7-ref` : _en cours au moment du point de reprise_
+- `p14-rivaux` contre `p7-ref` : **+0,81 ± 0,90 → annulé** (fait dans le cloud, partie moteur retirée ; `donnees/rivaux.json` gardé). Rival 2 inchangé à 79 %.
 - `p15-ciblage-prix` contre `p7-ref` (chantier 1 bis : `45e2f0d` + `COUT_CHANGEMENT = 0.05` au lieu de
   0.01 dans `observateur/combat-equipe.ts`, pas encore commité sur la branche) : _programmé après
   p14_. Pour le refaire en local :
