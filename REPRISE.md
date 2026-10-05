@@ -153,3 +153,15 @@ Fusionner après les verdicts et les éventuels `git revert`.
 
 - `p13-ciblage` contre `p7-ref` : **−0,93 ± 1,26 → annulé** (fait dans le cloud, partie moteur retirée). Les séries de 3 changements ou plus passent de 36 à 77 parties : à recombiner plus tard avec un garde-fou contre les séries (chantier n° 1 bis).
 - `p14-rivaux` contre `p7-ref` : _en cours au moment du point de reprise_
+- `p15-ciblage-prix` contre `p7-ref` (chantier 1 bis : `45e2f0d` + `COUT_CHANGEMENT = 0.05` au lieu de
+  0.01 dans `observateur/combat-equipe.ts`, pas encore commité sur la branche) : _programmé après
+  p14_. Pour le refaire en local :
+  ```bash
+  git checkout --detach 45e2f0d
+  sed -i '' 's/^const COUT_CHANGEMENT = 0.01;/const COUT_CHANGEMENT = 0.05;/' observateur/combat-equipe.ts
+  .venv/bin/python -m entraineur.banc_complet --nom p15-ciblage-prix --plan-seul --processus 8
+  git checkout -- . && git checkout claude/pokerogue-bot-macro-strategy-33yi1e
+  .venv/bin/python -m entraineur.banc_complet --comparer p15-ciblage-prix p7-ref
+  ```
+  S'il gagne : le reporter sur la branche (les 3 lignes de `45e2f0d` dans `combat-equipe.ts` et le
+  prix 0.05), avec le test « le remplaçant reçoit l'attaque choisie contre celui qui part ».
