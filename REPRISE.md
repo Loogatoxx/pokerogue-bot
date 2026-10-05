@@ -142,8 +142,12 @@ fusionnée telle quelle.
 - `p13-ciblage` contre `p7-ref` : **−0,93 ± 1,26 → annulé** (fait dans le cloud, partie moteur retirée). Les séries de 3 changements ou plus passent de 36 à 77 parties : à recombiner plus tard avec un garde-fou contre les séries (chantier n° 1 bis).
 - `p14-rivaux` contre `p7-ref` : **+0,81 ± 0,90 → annulé** (fait dans le cloud, partie moteur retirée ; `donnees/rivaux.json` gardé). Rival 2 inchangé à 79 %.
 - `p15-ciblage-prix` contre `p7-ref` (chantier 1 bis : `45e2f0d` + `COUT_CHANGEMENT = 0.05` au lieu de
-  0.01 dans `observateur/combat-equipe.ts`, pas encore commité sur la branche) : _programmé après
-  p14_. Pour le refaire en local :
+  0.01 dans `observateur/combat-equipe.ts`, pas commité sur la branche) : **+1,87 ± 1,61, pas
+  significatif, mais le meilleur de la journée** (médiane 55 → 60, rival 4 75 → 79 %, séries de
+  changements 36 → 14). **Réplication** fixée d'avance : `--parties 960` (graines 480 à 959 en plus)
+  pour `p7-ref` et `p15-ciblage-prix` ; garder si l'écart sur 960 parties dépasse 2 erreurs-types.
+  Lancée dans le cloud ; si le résultat n'est pas noté ici, la refaire en local (ajouter
+  `--parties 960` aux deux commandes de banc ci-dessous et à celle de la référence en 2.1). Commandes :
   ```bash
   git checkout --detach 45e2f0d
   sed -i '' 's/^const COUT_CHANGEMENT = 0.01;/const COUT_CHANGEMENT = 0.05;/' observateur/combat-equipe.ts

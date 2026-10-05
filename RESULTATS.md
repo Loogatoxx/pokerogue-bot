@@ -342,3 +342,17 @@ Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au ri
 **Verdict : annulé** (partie moteur ; `donnees/rivaux.json` et `simulateur/exporter-rivaux.test.ts` restent, sans effet sur les décisions). Le rival 2 ne bouge pas : ce qui le fait perdre n'est pas la force supposée de son 3e Pokémon (voir la trace de k=41 : retrait de l'adversaire, évolution en plein combat).
 
 **Référence inchangée : `p7-ref`, 60,03 (décisions de `77dabf3`).**
+
+## Ciblage au tour d'un changement + prix de changement 0,05 (05/10) — pas significatif, réplication lancée
+
+**Idée** (chantier 1 bis) : le ciblage de `45e2f0d` (l'IA adverse vise le Pokémon qui part), avec un prix de changement de 0,05 au lieu de 0,01 dans le moteur d'équipe, pour éviter les séries.
+
+| | Référence `p7-ref` | Ciblage + prix 0,05 |
+|---|---|---|
+| Vague moyenne / médiane | 60,03 / 55 | 62,07 / 60 |
+| Écart apparié | — | **+1,87** (erreur-type 1,61, 473 paires) · mieux 160, pareil 174, pire 139 |
+| Rival 2 / rival 3 / rival 4 | 79 % / 92 % / 75 % | 81 % / 94 % / 79 % |
+| Changements volontaires par partie | 13,7 | 9,0 |
+| Parties avec 3 changements d'affilée ou plus (plus longue série) | 36 (13) | 14 (5) |
+
+**Verdict : pas gardé** (moins de 2 erreurs-types). C'est le meilleur résultat de la journée et il va dans le sens du juge (moins de changements, mieux ciblés). **Réplication fixée avant de voir le résultat** : 480 graines de plus (k = 480 à 959) pour la référence et la variante ; on garde si l'écart sur les **960** parties dépasse 2 erreurs-types.
