@@ -1237,3 +1237,23 @@ Corriger les changements de Pokémon, l'erreur que le juge confirme.
 **Objectif**
 Le rival 2 est la première cause de mort (86 parties sur 475) : mieux connaître son équipe, avec ce
 qui est public.
+
+## 45. Point de reprise pour la suite en local — 05/10/2026
+
+**Prompt**
+> je vois que les credit cloud sont bientot epuiser peut tu laisser les prochaine consigne bien
+> defini avec tout le savoir pour la suite quand je reviendrais en local avec claude code et ainsi
+> d actualiser le nouveau cerveau le plus performant bien sur continue jusqua epuiser le dernier
+> credit juste fait ça en checkpoint
+
+**Réponse**
+- `REPRISE.md` : état, deux changements en attente de verdict (commandes pour refaire les bancs en
+  local), mise à jour du site (reconstruire l'extension ; le moteur est dans l'extension, pas dans le
+  `.cerveau`), ce qu'on a appris, prochains chantiers, méthode.
+- Les bancs continuent dans le cloud ; les verdicts seront notés dans `REPRISE.md` s'ils finissent.
+
+**Modifications**
+- `REPRISE.md`.
+
+**Objectif**
+Pouvoir reprendre sur le Mac sans rien perdre.
