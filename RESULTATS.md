@@ -232,3 +232,19 @@ Le 52,35 mesuré avant comptait seulement les parties valides des deux côtés. 
 
 **Référence actuelle** (plan seul) : **57,33** sur 474 parties valides. Rival 2 : 79 %. Rival 4 : 74 %.
 
+## Données d'équipe par vague et bug de l'Éleveur expert (05/10)
+
+Banc de référence `p5-ref` (`c58e673`, plan seul, même décisions que `40f13e7`) : **57,92** sur 475 parties valides. Rival 2 : 79 %, rival 4 : 73 %.
+
+**Ce qui distingue les gagnants des perdants** (équipe vue à la vague d'avant) :
+
+| Combat | Passent / meurent | Niveau max | Niveau moyen | Total des stats de l'équipe |
+|---|---|---|---|---|
+| Rival 2 (vague 25) | 331 / 86 | 18,2 / 17,7 | 13,4 / 12,9 | 1895 / 1845 |
+| Champion vague 30 | 292 / 22 | 23,2 / 22,5 | 17,5 / 16,3 | 2071 / 1995 |
+| Rival 3 (vague 55) | 216 / 19 | 41,3 / 40,3 | 37,3 / 35,1 | 2870 / 2784 |
+| Rival 4 (vague 95) | 76 / 28 | 77,6 / 77,5 | 75,2 / 74,1 | 3041 / 3007 |
+
+Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au rival 2. Les objets non plus (presque les mêmes des deux côtés).
+
+**Bug du banc trouvé** : 44 morts sur 475 (9 %) étaient comptées dans l'Éleveur expert, alors que le jeu continue après une défaite dans cette rencontre (REGLES R14). Corrigé dans le simulateur. Parties rejouées : k=72 passe de la vague 28 à 66, k=112 de 28 à 90. Le vrai niveau du bot était sous-estimé. Ce changement modifie le protocole : une nouvelle référence est nécessaire.

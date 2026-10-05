@@ -243,6 +243,12 @@ Une partie des tirages du jeu passe par `Math.random()` (`randInt`, `src/utils/c
 
 Dans le vrai jeu, c'est du vrai hasard. Pour qu'un banc soit apparié, le simulateur initialise `Math.random` avec la graine de la partie en mode `hasardDuJeu` (`simulateur/environnement.test.ts`).
 
+### R14. Une défaite dans l'Éleveur expert ne termine pas la partie ✅
+
+Dans la rencontre THE_EXPERT_POKEMON_BREEDER, on combat seul avec un des 3 Pokémon les moins amicaux. Si on perd, le jeu passe bien par `GameOverPhase`, mais la rencontre l'annule (`onGameOver`, `src/phases/game-over-phase.ts` l. 58-66). L'équipe est rendue, le Pokémon choisi reste K.O. et la partie continue. C'est la seule rencontre qui fait ça (`onGameOver` n'apparaît que dans `the-expert-pokemon-breeder-encounter.ts`).
+
+Jusqu'au 05/10, le simulateur arrêtait la partie dès qu'il voyait `GameOverPhase`. Corrigé : une fin de partie annulée par la rencontre n'est plus une défaite.
+
 ---
 
 ## B. Règles de Carlos (non négociables)

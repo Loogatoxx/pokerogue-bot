@@ -482,6 +482,7 @@ async function jouerPartie(
   /** Photos du début des vagues demandées (texte de la sauvegarde du jeu). */
   const photos: Record<number, string> = {};
   let defaite: Record<string, unknown> | undefined;
+  let finAnnulee: unknown = null;
   let totalStatsDepart = 0;
   const changements = { volontaires: 0, serieMax: 0, series3: 0 };
   const serieParPlace = [0, 0];
@@ -768,7 +769,11 @@ async function jouerPartie(
       }
       tailleEquipe = taille;
       const phase = game.scene.phaseManager.getCurrentPhase();
-      if (phase.is("GameOverPhase")) {
+      if (phase.is("GameOverPhase") && phase !== finAnnulee && !(phase as unknown as { isVictory?: boolean }).isVictory
+        && game.scene.currentBattle?.mysteryEncounter?.onGameOver) {
+        finAnnulee = phase;
+      }
+      if (phase.is("GameOverPhase") && phase !== finAnnulee) {
         victoire = !!(phase as unknown as { isVictory?: boolean }).isVictory;
         if (demande.recit && !victoire) {
           defaite = {
