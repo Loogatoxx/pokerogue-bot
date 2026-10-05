@@ -1139,3 +1139,34 @@ Tester une idée de combat sur le banc avant de la garder : celle-ci fait perdre
 Savoir ce qui distingue vraiment les parties qui passent le rival 2 et les champions avant de
 proposer la prochaine règle, et pouvoir mesurer avec le cerveau v5 ici.
 
+
+## 38. Audit : contrecoups, effets secondaires, précision, objets, captures, chromatiques — 05/10/2026
+
+**Prompt**
+> il y a aussi un point a verifier c'est que l ia mesure que la puissance mais jamais le contre
+> coup d une attaque ou les effet secondaire […] lentille pour forcer les attaque avec moins de
+> precision […] le teambuilding au long du jeu […] capturer des pokemon qui non pas de sens dans
+> l equipe et ne jamais les utiliser, et il connais pas ce que fait les shiny avec le facteur luck
+
+**Réponse (vérifié dans le code)**
+- Contrecoup, soin par drainage, baisse de ses propres stats, effets secondaires (brûlure, peur,
+  baisse de stats chez l'adversaire) : ignorés partout. Seuls la charge, la recharge et le
+  sacrifice sont comptés (`observateur/contraintes-attaques.ts`).
+- Précision : comptée contre les dresseurs (`combat-equipe.ts`), **ignorée contre les sauvages,
+  les boss sauvages et en double** (`planificateur.ts`, `mesDegats`). Corrigé, mesure en cours.
+- Objets tenus et talents : lus par l'observateur, ignorés dans la formule des dégâts
+  (`prevision.ts`, `degats`). Grosse Loupe : +5 points de précision par exemplaire, 3 au plus.
+- Captures : toute capture est « utile » tant que l'équipe a moins de 6 membres
+  (`planificateur.ts`, `captureUtile`).
+- Chromatiques : chaque chromatique en vie donne de la chance (1, jusqu'à 3 pour les variantes,
+  total plafonné à 14). Elle augmente la chance d'objets de meilleur rang. Un Pokémon K.O. ne
+  compte pas. La note d'équipe (`equipe.ts`, `evaluerArrivee`) ne connaît pas le chromatique :
+  il peut être relâché pour une capture.
+
+**Modifications**
+- `observateur/planificateur.ts` (précision et crans de précision/esquive dans les duels),
+  `observateur/combat-equipe.ts` (export de `multiplicateurPrecision`),
+  `tests/planificateur.test.ts`, `BACKLOG.md`.
+
+**Objectif**
+Corriger, une mesure à la fois, ce que le planificateur ne voit pas dans un combat.
