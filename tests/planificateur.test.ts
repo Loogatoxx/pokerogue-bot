@@ -51,6 +51,17 @@ describe("Combat d'équipe (contre un dresseur)", () => {
     expect(valeurs[10]!).toBeGreaterThan(Math.max(valeurs[0]!, valeurs[2]!, valeurs[4]!, valeurs[6]!));
   });
 
+  it("le remplaçant reçoit l'attaque choisie contre celui qui part (Flammèche), pas Éclair", () => {
+    const eclair = { id: 84, nom: "Éclair", type: { id: 12, nom: "Électrik" }, categorie: { id: 1, nom: "Spéciale" }, puissance: 40, precision: 100 };
+    const statut = { type: { id: 0, nom: "Normal" }, categorie: { id: 2, nom: "Statut" }, puissance: -1, precision: 100 };
+    const rugissement = { ...statut, id: 45, nom: "Rugissement" };
+    const grozyeux = { ...statut, id: 43, nom: "Groz'Yeux" };
+    const obs = situation();
+    obs.adversaires[0]!.attaquesVues = [...obs.adversaires[0]!.attaquesVues, eclair, rugissement, grozyeux];
+    const valeurs = planifier(obs)!;
+    expect(valeurs[10]!).toBeGreaterThan(valeurs[0]!);
+  });
+
   it("plus rapide, il achève l'adversaire au lieu de changer", () => {
     const obs = situation(5);
     obs.equipe[0]!.stats[5] = 99;

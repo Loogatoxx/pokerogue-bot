@@ -104,6 +104,7 @@ type MessagePython =
       hasardDuJeu?: boolean;
       /** Objets donnés au départ (clés de modifierTypes, ex. EXP_SHARE) : diagnostic « et si… ». */
       objetsDepart?: string[];
+      observationBrute?: boolean;
     }
   /** `hasard` : changer la graine du combat juste avant cette action (la suite de la vague tire
    * d'autres nombres, depuis exactement la même situation : professeur.py, jugement d'un coup). */
@@ -705,6 +706,7 @@ async function jouerPartie(
           recrues: compterRecrues(obs),
           // En mode récit, ce que chaque action permise ferait (pour classer les erreurs : juge ciblé).
           ...(demande.recit ? { coups: decrireCoups(obs, masque) } : {}),
+          ...(demande.observationBrute ? { observation: obs } : {}),
         },
       });
       canal.recevoir().then(message => {

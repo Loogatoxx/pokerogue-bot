@@ -1190,3 +1190,27 @@ Corriger, une mesure à la fois, ce que le planificateur ne voit pas dans un com
 
 **Objectif**
 Trouver quelles décisions perdent vraiment (triche permise au diagnostic) avant toute nouvelle règle.
+
+## 43. Juge vérifié : erreurs de changement ; ciblage de l'IA adverse au tour d'un changement — 05/10/2026
+
+**Prompt**
+> Vasy je te laisse faire (suite)
+
+**Réponse**
+- Juge sur 36 défaites (rival 2, rival 4, champions 50-110) : depuis la photo, le bot gagne ~1/3
+  avec d'autres tirages ; 81 erreurs fortes. Revérifiées sur 16 avenirs neufs : coup du bot 28 % de
+  victoires, coup du juge 57 % (+4,6 victoires sur 16, erreur-type 0,53). Les erreurs de changement
+  sont réelles (« aurait dû changer » 24 % → 62 %, « mauvais Pokémon envoyé » 29 % → 56 %) ; les
+  attaques de statut ne le sont pas.
+- Défaut trouvé : dans le moteur d'équipe, au tour d'un changement, l'adversaire choisissait son
+  attaque contre le remplaçant. Dans le jeu (`EnemyCommandPhase`, avant `TurnStartPhase`), il la
+  choisit contre le Pokémon qui part. Corrigé, test ajouté.
+- Option de diagnostic `observationBrute` (simulateur et `pont.py`) : l'observation complète à
+  chaque décision, désactivée par défaut.
+
+**Modifications**
+- `observateur/combat-equipe.ts`, `tests/planificateur.test.ts`, `simulateur/environnement.test.ts`,
+  `entraineur/pont.py`.
+
+**Objectif**
+Corriger les changements de Pokémon, l'erreur que le juge confirme.
