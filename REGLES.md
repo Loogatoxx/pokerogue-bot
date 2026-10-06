@@ -257,6 +257,7 @@ Jusqu'au 05/10, le simulateur arrêtait la partie dès qu'il voyait `GameOverPha
 - Tout sur nos Pokémon. De l'adversaire, seulement ce qui s'affiche.
 - La connaissance publique est permise : Pokédex, règles de l'IA, équipes connues des rivaux et des champions.
 - Triche (rejouer une graine, photo de vague, objets donnés) **à l'entraînement et au diagnostic seulement**, jamais en jeu.
+- **Exception voulue par Carlos (06/10)** : la « capture forcée » de l'extension (recharger la page et relancer la Ball à un autre tour jusqu'à la capture). Déclenchée à la main par Carlos, jamais par le cerveau, **jamais en Daily Run**.
 
 **Compte et exécution**
 - Compte neuf dédié à l'IA. Jamais le compte principal.

@@ -1257,3 +1257,27 @@ qui est public.
 
 **Objectif**
 Pouvoir reprendre sur le Mac sans rien perdre.
+
+## 46. Capture forcée dans l'extension — 06/10/2026
+
+**Prompt**
+> ne touche plus a une amlioration du cerveau je vais te demander juste de ajouter une feature a l
+> extension, en gros ça va etre une feature qui va essayer toute les maniere possible de çapturer le
+> pokemon […] si la çapture echou l extension fais un f5 ou un truc qui marche pour recommencer la
+> partie, si il çapture le pokemon l extension devera nous laisser sur le choix de remplacement
+
+**Réponse**
+- Vérifié dans le jeu : le hasard de capture est fixé par tour (graine du combat + tour) ; un boss
+  doit avoir tous ses boucliers cassés pour une Ball normale ; sauvegarde au début de chaque vague.
+- Bouton « CAPTURE FORCÉE » : tentative n = Ball lancée après n tours d'attente sans risque ; boucliers
+  d'un boss cassés d'abord ; échec → rechargement de la page et « Continuer » ; succès → arrêt, et
+  l'écran de remplacement est laissé au joueur. Jamais en Daily Run ; 100 tentatives au plus.
+- Exception notée dans REGLES.md (voulue par Carlos).
+
+**Modifications**
+- `extension/src/capture-forcee.ts` (nouveau), `extension/src/capteur.ts`, `extension/src/messages.ts`,
+  `extension/src/panneau.ts`, `extension/manifest.json` (0.12.0), `observateur/valeurs.ts` (écran titre),
+  `tests/capture-forcee.test.ts`, `REGLES.md`, `REPRISE.md`.
+
+**Objectif**
+Capturer un Pokémon rare (Zygarde, vague 60, une seule Ball) sans tout essayer à la main.

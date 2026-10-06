@@ -18,6 +18,7 @@ import {
   nouvelEtatPilote,
   repondreParRegles,
 } from "../../pilote/pilote";
+import { ecrirePlan, etapeCapture, lirePlan, type MemoireCapture, nouveauPlan, type PlanCapture } from "./capture-forcee";
 import { type ContenuCapteur, cleDecision, estMessagePanneau, SOURCE } from "./messages";
 import { lireStartersDuCompte } from "./starters-compte";
 
@@ -33,6 +34,12 @@ let scene: ScenePokerogue | null = null;
 const carnet = new Carnet();
 const etatPilote = nouvelEtatPilote(carnet);
 const pilotage = { auto: false, objetsALaMain: false, delaiMs: 700, derniereAction: 0 };
+const DELAI_CAPTURE_MS = 800;
+const MAX_TENTATIVES = 100;
+let planCapture: PlanCapture | null = lirePlan();
+const memoireCapture: MemoireCapture = { toursAttendus: 0, ballLancee: false };
+let texteCapture = "";
+let annonceCapture = 0;
 
 function envoyer(message: ContenuCapteur): void {
   window.postMessage({ source: SOURCE, origine: "capteur", ...message }, window.location.origin);
@@ -64,8 +71,68 @@ function objetsLaissesAuJoueur(s: ScenePokerogue): boolean {
   return pilotage.objetsALaMain && s.phaseManager.getCurrentPhase()?.phaseName === "SelectModifierPhase";
 }
 
+function annoncerCapture(texte: string): void {
+  texteCapture = texte;
+  annonceCapture = Date.now();
+  envoyer({ type: "capture", actif: planCapture !== null, texte });
+}
+
+function arreterCapture(texte: string): void {
+  planCapture = null;
+  ecrirePlan(null);
+  annoncerCapture(texte);
+}
+
+function piloterCapture(s: ScenePokerogue): void {
+  const plan = planCapture!;
+  if (s.gameMode?.isDaily) {
+    arreterCapture("Jamais en Daily Run.");
+    return;
+  }
+  if (Date.now() - annonceCapture > 3000) {
+    annoncerCapture(texteCapture || `Capture forcée de ${plan.nom} : tentative ${plan.tentative + 1}/${plan.max}`);
+  }
+  if (Date.now() - pilotage.derniereAction < DELAI_CAPTURE_MS) {
+    return;
+  }
+  const combat = decisionCerveauEnAttente(s) === "combat";
+  const obs = s.currentBattle ? observer(s, carnet) : null;
+  if (obs) {
+    envoyer({ type: "observation", observation: obs });
+  }
+  const etape = etapeCapture(s, obs, plan, memoireCapture, combat);
+  if (etape.genre === "rien") {
+    if (s.currentBattle && !decisionCerveauEnAttente(s) && repondreParRegles(s, etatPilote)) {
+      pilotage.derniereAction = Date.now();
+    }
+    return;
+  }
+  pilotage.derniereAction = Date.now();
+  if (etape.genre === "fini") {
+    arreterCapture(etape.texte);
+  } else if (etape.genre === "recharger") {
+    plan.tentative++;
+    if (plan.tentative >= plan.max) {
+      arreterCapture(`${plan.nom} pas capturé après ${plan.max} tentatives.`);
+      return;
+    }
+    ecrirePlan(plan);
+    annoncerCapture(`${etape.texte} : on recharge (tentative ${plan.tentative + 1}/${plan.max})`);
+    window.location.reload();
+  } else if (etape.genre === "action") {
+    executerAction(s, etape.action, etatPilote);
+    annoncerCapture(etape.texte);
+  } else if (etape.texte !== texteCapture) {
+    annoncerCapture(etape.texte);
+  }
+}
+
 function observerUneFois(): void {
   try {
+    if (scene && planCapture) {
+      piloterCapture(scene);
+      return;
+    }
     if (!scene?.currentBattle) {
       // Écran de choix des starters : le panneau conseille une équipe (constructeur-equipe.ts).
       const candidats = scene ? lireStartersDuCompte(scene) : null;
@@ -119,6 +186,28 @@ function executerSiToujoursAttendue(cle: string, action: number): void {
   envoyer({ type: "pilote", texte: accepte ? "Action du cerveau jouée" : "Action refusée par le jeu" });
 }
 
+function changerCapture(actif: boolean, max: number): void {
+  if (!actif) {
+    arreterCapture("Capture forcée arrêtée.");
+    return;
+  }
+  const obs = scene?.currentBattle ? observer(scene, carnet) : null;
+  if (!scene || !obs) {
+    annoncerCapture("Lance d'abord le combat contre le Pokémon à capturer.");
+    return;
+  }
+  const plan = nouveauPlan(scene, obs, Math.max(1, Math.min(max, MAX_TENTATIVES)));
+  if (typeof plan === "string") {
+    annoncerCapture(plan);
+    return;
+  }
+  planCapture = plan;
+  memoireCapture.toursAttendus = 0;
+  memoireCapture.ballLancee = false;
+  ecrirePlan(plan);
+  annoncerCapture(`Capture forcée de ${plan.nom} (vague ${plan.vague}) : tentative 1/${plan.max}`);
+}
+
 function ecouterPanneau(): void {
   window.addEventListener("message", (evenement: MessageEvent) => {
     if (evenement.source !== window || !estMessagePanneau(evenement.data)) {
@@ -131,6 +220,8 @@ function ecouterPanneau(): void {
       pilotage.delaiMs = message.delaiMs;
     } else if (message.type === "action") {
       executerSiToujoursAttendue(message.cle, message.action);
+    } else if (message.type === "capture-forcee") {
+      changerCapture(message.actif, message.max);
     }
   });
 }

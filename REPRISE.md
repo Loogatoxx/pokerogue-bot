@@ -68,6 +68,26 @@ verdict « GARDER » → reporter le changement sur la branche avec son test ; s
 - Ne réentraîner un cerveau (v6) que si un banc montre que le cerveau change le résultat : guidé
   par le moteur, il ne départage que les égalités (5,5 % des décisions importantes, docs/étape 12).
 
+### 2.2 bis Capture forcée (extension 0.12.0)
+
+Bouton **CAPTURE FORCÉE** dans le panneau, pendant un combat contre un Pokémon sauvage seul (jamais en
+Daily Run). Ce que fait l'extension (`extension/src/capture-forcee.ts`) :
+- Le hasard d'une capture est fixé par tour (`battle.ts` : graine du combat + numéro du tour). Relancer
+  la Ball au même tour donne toujours le même résultat : la tentative n lance donc la Ball après n
+  tours d'attente (attaque de statut, sinon changement de Pokémon, sinon attaque qui ne peut pas
+  mettre K.O.).
+- Contre un boss, une Ball normale n'est possible qu'une fois tous ses boucliers cassés : elle les
+  casse d'abord avec l'attaque la plus faible.
+- Échec (Ball ratée, sauvage K.O., un de nos Pokémon K.O.) → `location.reload()`, puis « Continuer »
+  sur l'écran titre : le jeu repart du début de la vague (sauvegarde de `EncounterPhase`). On recharge
+  dès qu'un de nos Pokémon tombe, pour ne jamais atteindre l'écran de fin de partie (qui efface la
+  sauvegarde).
+- Succès : arrêt ; si l'équipe est pleine, l'extension laisse l'écran « qui remplacer ? » au joueur.
+- 100 tentatives au plus ; l'état est gardé dans `localStorage` de la page entre deux rechargements.
+- **Pas encore essayée sur le vrai site** (pas d'accès depuis le cloud) : tester d'abord sur un
+  Pokémon sans enjeu, en regardant le panneau ; si l'écran titre ou la reprise bloque, cliquer
+  « ARRÊTER LA CAPTURE ».
+
 ### 2.3 Fusionner
 
 PR #9 : ne contient que des changements mesurés (gardés), neutres ou de diagnostic. Elle peut être
