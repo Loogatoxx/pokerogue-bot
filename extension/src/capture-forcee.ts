@@ -57,6 +57,18 @@ const nombreDansEquipe = (scene: ScenePokerogue, espece: number) =>
 
 const nombreKo = (scene: ScenePokerogue) => scene.getPlayerParty().filter(p => p.isFainted()).length;
 
+const nombreDebout = (scene: ScenePokerogue) => scene.getPlayerParty().filter(p => !p.isFainted()).length;
+
+function meilleurRemplacant(obs: Observation): number | null {
+  const masque = obs.decision.masque ?? [];
+  const places = obs.equipe.flatMap((m, place) =>
+    masque[PREMIER_CHANGEMENT + place] && !m.ko ? [{ place, solidite: (m.pv / Math.max(m.pvMax, 1)) * m.niveau }] : []);
+  if (!places.length) {
+    return null;
+  }
+  return PREMIER_CHANGEMENT + places.reduce((m, x) => (x.solidite > m.solidite ? x : m)).place;
+}
+
 export function nouveauPlan(scene: ScenePokerogue, obs: Observation, max: number): PlanCapture | string {
   if (obs.partie.quotidien) {
     return "Jamais en Daily Run.";
@@ -158,7 +170,8 @@ function choixEquipePleine(scene: ScenePokerogue): boolean {
   return phase === "AttemptCapturePhase" && scene.ui.getMode() === ECRAN.CONFIRM && (handler?.config?.options?.length ?? 0) > 2;
 }
 
-export function etapeCapture(scene: ScenePokerogue, obs: Observation | null, plan: PlanCapture, memoire: MemoireCapture, combat: boolean): Etape {
+export function etapeCapture(scene: ScenePokerogue, obs: Observation | null, plan: PlanCapture, memoire: MemoireCapture,
+  decision: "combat" | "remplacement" | null): Etape {
   if (!scene.currentBattle) {
     const titre = ecranTitre(scene);
     if (titre === "sans-sauvegarde") {
@@ -172,15 +185,20 @@ export function etapeCapture(scene: ScenePokerogue, obs: Observation | null, pla
   if (scene.currentBattle.waveIndex !== plan.vague) {
     return { genre: "fini", texte: `Vague ${plan.vague} dépassée : capture forcée arrêtée.` };
   }
-  if (nombreKo(scene) > plan.koAuDepart) {
-    return { genre: "recharger", texte: "Un de nos Pokémon est tombé" };
+  if (nombreKo(scene) > plan.koAuDepart && nombreDebout(scene) <= 1) {
+    return { genre: "recharger", texte: "Il ne reste qu'un Pokémon debout" };
   }
   const enFace = scene.getEnemyField().filter(p => !p.isFainted());
   if (!enFace.length) {
     return { genre: "recharger", texte: `${plan.nom} est K.O. ou parti` };
   }
-  if (!combat || !obs?.decision.masque) {
+  if (!decision || !obs?.decision.masque) {
     return { genre: "rien" };
+  }
+  if (decision === "remplacement") {
+    const remplacant = meilleurRemplacant(obs);
+    return remplacant === null ? { genre: "recharger", texte: "Personne pour remplacer" }
+      : { genre: "action", action: remplacant, texte: `Envoie ${obs.equipe[remplacant - PREMIER_CHANGEMENT]!.nom}` };
   }
   if (memoire.ballLancee) {
     return { genre: "recharger", texte: "La Ball a échoué" };

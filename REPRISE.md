@@ -68,7 +68,7 @@ verdict « GARDER » → reporter le changement sur la branche avec son test ; s
 - Ne réentraîner un cerveau (v6) que si un banc montre que le cerveau change le résultat : guidé
   par le moteur, il ne départage que les égalités (5,5 % des décisions importantes, docs/étape 12).
 
-### 2.2 bis Capture forcée (extension 0.12.0)
+### 2.2 bis Capture forcée (extension 0.12.1)
 
 Bouton **CAPTURE FORCÉE** dans le panneau, pendant un combat contre un Pokémon sauvage seul (jamais en
 Daily Run). Ce que fait l'extension (`extension/src/capture-forcee.ts`) :
@@ -78,10 +78,13 @@ Daily Run). Ce que fait l'extension (`extension/src/capture-forcee.ts`) :
   mettre K.O.).
 - Contre un boss, une Ball normale n'est possible qu'une fois tous ses boucliers cassés : elle les
   casse d'abord avec l'attaque la plus faible.
-- Échec (Ball ratée, sauvage K.O., un de nos Pokémon K.O.) → `location.reload()`, puis « Continuer »
-  sur l'écran titre : le jeu repart du début de la vague (sauvegarde de `EncounterPhase`). On recharge
-  dès qu'un de nos Pokémon tombe, pour ne jamais atteindre l'écran de fin de partie (qui efface la
-  sauvegarde).
+- Un de nos Pokémon K.O. : le remplaçant le plus solide (PV restants × niveau) est envoyé et la
+  tentative continue, tant qu'il reste au moins 2 Pokémon debout (remarque de Carlos, 06/10 : Zacian
+  K.O. relançait la partie au lieu d'envoyer le banc).
+- Échec (Ball ratée, sauvage K.O., plus qu'un seul Pokémon debout) → `location.reload()`, puis
+  « Continuer » sur l'écran titre : le jeu repart du début de la vague (sauvegarde de `EncounterPhase`).
+  On recharge avant que le dernier Pokémon tombe, pour ne jamais atteindre l'écran de fin de partie
+  (qui efface la sauvegarde).
 - Succès : arrêt ; si l'équipe est pleine, l'extension laisse l'écran « qui remplacer ? » au joueur.
 - 100 tentatives au plus ; l'état est gardé dans `localStorage` de la page entre deux rechargements.
 - **Pas encore essayée sur le vrai site** (pas d'accès depuis le cloud) : tester d'abord sur un

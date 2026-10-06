@@ -95,12 +95,12 @@ function piloterCapture(s: ScenePokerogue): void {
   if (Date.now() - pilotage.derniereAction < DELAI_CAPTURE_MS) {
     return;
   }
-  const combat = decisionCerveauEnAttente(s) === "combat";
+  const decision = decisionCerveauEnAttente(s);
   const obs = s.currentBattle ? observer(s, carnet) : null;
   if (obs) {
     envoyer({ type: "observation", observation: obs });
   }
-  const etape = etapeCapture(s, obs, plan, memoireCapture, combat);
+  const etape = etapeCapture(s, obs, plan, memoireCapture, decision);
   if (etape.genre === "rien") {
     if (s.currentBattle && !decisionCerveauEnAttente(s) && repondreParRegles(s, etatPilote)) {
       pilotage.derniereAction = Date.now();

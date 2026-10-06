@@ -16,11 +16,12 @@ function situation(): Observation {
   return obs;
 }
 
-function scene(ko = false, mode = 0, phase = "CommandPhase", options = 0): ScenePokerogue {
+function scene(ko = false, mode = 0, phase = "CommandPhase", options = 0, membres = 2): ScenePokerogue {
+  const autres = Array.from({ length: membres - 1 }, (_, i) => ({ species: { speciesId: 4 + i }, isFainted: () => false }));
   return {
     currentBattle: { waveIndex: 60 },
     gameMode: { isDaily: false },
-    getPlayerParty: () => [{ species: { speciesId: 1 }, isFainted: () => ko }, { species: { speciesId: 4 }, isFainted: () => false }],
+    getPlayerParty: () => [{ species: { speciesId: 1 }, isFainted: () => ko }, ...autres],
     getEnemyField: () => [{ species: { speciesId: 718 }, isFainted: () => false }],
     phaseManager: { getCurrentPhase: () => ({ phaseName: phase }) },
     ui: { getMode: () => mode, getHandler: () => ({ config: { options: new Array(options) } }) },
@@ -37,24 +38,33 @@ describe("Capture forcée", () => {
   });
 
   it("à la tentative 1, lance la Ball tout de suite", () => {
-    const etape = etapeCapture(scene(), situation(), plan(0), { toursAttendus: 0, ballLancee: false }, true);
+    const etape = etapeCapture(scene(), situation(), plan(0), { toursAttendus: 0, ballLancee: false }, "combat");
     expect(etape).toMatchObject({ genre: "action", action: 14 });
   });
 
   it("à la tentative 3, attend d'abord avec une attaque de statut", () => {
     const obs = situation();
-    const etape = etapeCapture(scene(), obs, plan(2), { toursAttendus: 0, ballLancee: false }, true);
+    const etape = etapeCapture(scene(), obs, plan(2), { toursAttendus: 0, ballLancee: false }, "combat");
     expect(etape.genre).toBe("action");
     const action = (etape as { action: number }).action;
     expect(obs.equipe[0]!.attaques[Math.floor(action / 2)]!.categorie.id).toBe(2);
   });
 
-  it("recharge dès qu'un de nos Pokémon tombe", () => {
-    expect(etapeCapture(scene(true), situation(), plan(1), { toursAttendus: 0, ballLancee: false }, true).genre).toBe("recharger");
+  it("après un K.O., envoie un remplaçant tant qu'il en reste au moins deux debout", () => {
+    const obs = situation();
+    obs.equipe[0]!.ko = true;
+    obs.decision = { ...obs.decision, type: "remplacement", masque: obs.decision.masque!.map((_, i) => i === 9 || i === 10) };
+    const etape = etapeCapture(scene(true, 0, "SwitchPhase", 0, 3), obs, plan(1), { toursAttendus: 0, ballLancee: false }, "remplacement");
+    expect(etape).toMatchObject({ genre: "action" });
+    expect([9, 10]).toContain((etape as { action: number }).action);
+  });
+
+  it("recharge quand il ne reste qu'un Pokémon debout", () => {
+    expect(etapeCapture(scene(true), situation(), plan(1), { toursAttendus: 0, ballLancee: false }, "combat").genre).toBe("recharger");
   });
 
   it("s'arrête sur le choix de remplacement quand l'équipe est pleine", () => {
     const s = scene(false, ECRAN.CONFIRM, "AttemptCapturePhase", 4);
-    expect(etapeCapture(s, situation(), plan(5), { toursAttendus: 5, ballLancee: true }, false).genre).toBe("fini");
+    expect(etapeCapture(s, situation(), plan(5), { toursAttendus: 5, ballLancee: true }, null).genre).toBe("fini");
   });
 });

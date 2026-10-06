@@ -1281,3 +1281,21 @@ Pouvoir reprendre sur le Mac sans rien perdre.
 
 **Objectif**
 Capturer un Pokémon rare (Zygarde, vague 60, une seule Ball) sans tout essayer à la main.
+
+## 47. Capture forcée : envoyer le banc au lieu de recharger — 06/10/2026
+
+**Prompt**
+> petit souci quand mon zacian meurt donc mon premier pokemon la parti ce relance f5 au lieu de switch
+> sur ceux tu banc
+
+**Réponse**
+- Après un K.O., l'extension envoie le remplaçant le plus solide (PV restants × niveau) et continue la
+  tentative ; elle ne recharge que s'il ne reste plus qu'un Pokémon debout (marge de sécurité : la
+  fin de partie efface la sauvegarde). Test ajouté.
+
+**Modifications**
+- `extension/src/capture-forcee.ts`, `extension/src/capteur.ts`, `extension/manifest.json` (0.12.1),
+  `tests/capture-forcee.test.ts`, `REPRISE.md`.
+
+**Objectif**
+Utiliser toute l'équipe pendant une tentative de capture.
