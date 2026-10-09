@@ -215,8 +215,9 @@ function infoPartie(obs: Observation) {
 interface PokemonRecit {
   name: string;
   level: number;
-  species: { speciesId: number };
+  species: { speciesId: number; legendary?: boolean; subLegendary?: boolean; mythical?: boolean };
   hp: number;
+  isBoss?(): boolean;
   getMaxHp(): number;
   isFainted(): boolean;
   getMoveset(): { getName(): string }[];
@@ -239,6 +240,23 @@ interface EtapeRecit {
    * de statut (Rugissement, Mimi-Queue…) ou offensives. */
   attaquesStatut: number;
   attaquesOffensives: number;
+  argent: number;
+  balls: number[];
+  sauvages: { espece: number; categorie: string | null; boss: boolean }[];
+  recrues: number[];
+  achats: { objet: string; argentApres: number; pvEquipe: number; ko: number }[];
+  recompenses: string[];
+}
+
+function categorieEspece(p: PokemonRecit): string | null {
+  return p.species.mythical ? "fabuleux" : p.species.legendary ? "légendaire" : p.species.subLegendary ? "semi-légendaire" : null;
+}
+
+function pvEtKo(scene: SceneRecit): { pvEquipe: number; ko: number } {
+  const equipe = scene.getPlayerParty();
+  const pv = equipe.reduce((n, p) => n + p.hp, 0);
+  const pvMax = equipe.reduce((n, p) => n + p.getMaxHp(), 0);
+  return { pvEquipe: Math.round((100 * pv) / Math.max(pvMax, 1)), ko: equipe.filter(p => p.isFainted()).length };
 }
 
 const resumer = (p: PokemonRecit) => ({
@@ -253,6 +271,8 @@ type SceneRecit = {
   getPlayerParty(): PokemonRecit[];
   getEnemyParty(): PokemonRecit[];
   modifiers: { type: { id: string }; getStackCount(): number }[];
+  money: number;
+  pokeballCounts: Record<number, number>;
 };
 
 function hasardDeLaGraine(graine: string): () => number {
@@ -599,8 +619,10 @@ async function jouerPartie(
         const detail = texte?.split(" : ")[1];
         if (detail && fait === "achat") {
           achats[detail] = (achats[detail] ?? 0) + 1;
+          recit.at(-1)?.achats.push({ objet: detail, argentApres: sceneRecit.money, ...pvEtKo(sceneRecit) });
         } else if (detail && fait === "récompense") {
           recompenses[detail] = (recompenses[detail] ?? 0) + 1;
+          recit.at(-1)?.recompenses.push(detail);
         } else if (detail && fait === "rencontre mystère") {
           const cle = `${MysteryEncounterType[game.scene.currentBattle?.mysteryEncounter?.encounterType ?? -1] ?? "?"} : ${detail}`;
           rencontres[cle] = (rencontres[cle] ?? 0) + 1;
@@ -653,6 +675,9 @@ async function jouerPartie(
       if (demande.recit && etape && etape.adversaires.length === 0) {
         etape.adversaires = sceneRecit.getEnemyParty().map(p => p.level);
         etape.dresseur = dresseurDe(sceneRecit);
+        if (!etape.dresseur) {
+          etape.sauvages = sceneRecit.getEnemyParty().map(p => ({ espece: p.species.speciesId, categorie: categorieEspece(p), boss: !!p.isBoss?.() }));
+        }
       }
       const masque = obs.decision.masque.map((permise, i) => permise && !refusees.has(i));
       if (!masque.some(Boolean)) {
@@ -768,6 +793,7 @@ async function jouerPartie(
       const taille = game.scene.getPlayerParty().length;
       if (tailleEquipe > 0 && taille > tailleEquipe) {
         captures += taille - tailleEquipe;
+        recit.at(-1)?.recrues.push(...game.scene.getPlayerParty().slice(tailleEquipe).map(p => p.species.speciesId));
       }
       tailleEquipe = taille;
       const phase = game.scene.phaseManager.getCurrentPhase();
@@ -883,6 +909,12 @@ async function jouerPartie(
             objets: Object.values(objetsPortes(sceneRecit)).reduce((a, b) => a + b, 0),
             attaquesStatut: 0,
             attaquesOffensives: 0,
+            argent: sceneRecit.money,
+            balls: [0, 1, 2, 3, 4].map(b => sceneRecit.pokeballCounts[b] ?? 0),
+            sauvages: [],
+            recrues: [],
+            achats: [],
+            recompenses: [],
           });
         }
         retirerMinuteriesVides(game.scene.time as unknown as Horloge);
