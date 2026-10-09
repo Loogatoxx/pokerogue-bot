@@ -120,6 +120,7 @@ function adversaire(p: PokemonJeu, carnet: Carnet, scene: ScenePokerogue): Pokem
     modifStats: modifStats(p),
     objets: objets(p),
     shiny: illusion?.shiny ?? p.shiny,
+    rare: !!(p.species.legendary || p.species.subLegendary || p.species.mythical),
     ko: p.isFainted(),
     // Avec Illusion, le jeu affiche l'icône de l'espèce du déguisement.
     dejaCapture: !!scene.gameData.dexData[illusion?.species ?? p.species.speciesId]?.caughtAttr,

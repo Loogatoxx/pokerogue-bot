@@ -74,6 +74,20 @@ describe("Planificateur et capture", () => {
     expect(valeurs[14]!).toBeLessThan(Math.max(...valeurs.slice(0, 8)));
   });
 
+  it("légendaire affaibli (20 % de PV) : lance la Ball plutôt que de le mettre K.O.", () => {
+    const obs = sauvage(20);
+    obs.adversaires[0] = { ...obs.adversaires[0]!, rare: true };
+    const valeurs = planifier(obs)!;
+    expect(valeurs[14]!).toBeGreaterThan(Math.max(...valeurs.slice(0, 8).filter((_, i) => obs.decision.masque![i])));
+  });
+
+  it("légendaire en pleine forme : l'affaiblit d'abord au lieu de lancer la Ball", () => {
+    const obs = sauvage(100);
+    obs.adversaires[0] = { ...obs.adversaires[0]!, rare: true };
+    const valeurs = planifier(obs)!;
+    expect(Math.max(...valeurs.slice(0, 8).filter((_, i) => obs.decision.masque![i]))).toBeGreaterThan(valeurs[14]!);
+  });
+
   it("lance la Ball quand il est presque K.O. et qu'on n'a que 3 membres", () => {
     const obs = sauvage(3);
     obs.equipe = obs.equipe.slice(0, 3);

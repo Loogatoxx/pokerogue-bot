@@ -35,7 +35,7 @@ export interface PokemonJeu {
   shiny: boolean;
   nature: number;
   ivs: number[];
-  species: { speciesId: number; forms?: { formKey: string }[] };
+  species: { speciesId: number; forms?: { formKey: string }[]; legendary?: boolean; subLegendary?: boolean; mythical?: boolean };
   status?: { effect: number } | null;
   summonData?: {
     illusion?: { species: number; name: string; shiny: boolean } | null;

@@ -93,6 +93,7 @@ export interface PokemonAdverse {
   objets: Objet[];
   shiny: boolean;
   ko: boolean;
+  rare?: boolean;
   /** Déjà capturé une fois (le jeu affiche une petite Poké Ball à côté de son nom). */
   dejaCapture: boolean;
   /** Mémoire du combat : talent affiché par le jeu, sinon inconnu. */

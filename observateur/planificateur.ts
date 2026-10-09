@@ -197,11 +197,34 @@ function valeurChangement(obs: Observation, partant: PokemonAllie, remplacant: P
   return reste < 0 ? Math.min(v, CHANGEMENT_PERDU) : v;
 }
 
+const GAIN_RARE = 3;
+const PENALITE_KO_RARE = 1;
+const PV_AVANT_BALL = 30;
+
+const rareACapturer = (lui: PokemonAdverse) => !!lui.rare && (!lui.boss || lui.boss.segmentsRestants <= 1);
+
+function valeursContreUnRare(obs: Observation, moi: PokemonAllie, lui: PokemonAdverse, valeurs: number[], masque: boolean[]): number[] {
+  const degats = mesDegats(moi, lui, lui.pvPourcent / 100);
+  const attaques = Array.from({ length: PREMIER_CHANGEMENT }, (_, a) => a).filter(a => masque[a]);
+  const coup = (a: number) => degats[Math.floor(a / 2)] ?? 0;
+  for (const a of attaques) {
+    if (coup(a) >= 1) {
+      valeurs[a] = (valeurs[a] ?? 0) - PENALITE_KO_RARE;
+    }
+  }
+  const affaiblir = lui.pvPourcent > PV_AVANT_BALL && attaques.some(a => coup(a) > 0 && coup(a) < 1);
+  const ratee = valeurBallRatee(obs, moi, lui) - 0.2;
+  for (let action = PREMIERE_BALL; action < NOMBRE_ACTIONS; action++) {
+    valeurs[action] = !masque[action] ? 0 : affaiblir ? ratee : valeurBall(obs, moi, lui, action - PREMIERE_BALL, GAIN_RARE);
+  }
+  return valeurs;
+}
+
 /** Valeur d'un changement vers un duel perdu : sous toute attaque (au pire −1). */
 const CHANGEMENT_PERDU = -1.2;
 
 /** Lancer la Ball n° `ball` : capture (combat gagné sans un coup de plus) ou échec (il frappe). */
-function valeurBall(obs: Observation, moi: PokemonAllie, lui: PokemonAdverse, ball: number): number {
+function valeurBall(obs: Observation, moi: PokemonAllie, lui: PokemonAdverse, ball: number, gainCapture?: number): number {
   const p = chanceCapture(lui, ball);
   // Une capture vaut un K.O. (combat gagné, expérience donnée) plus un membre : utile tant que
   // l'équipe n'est pas pleine, ensuite seulement si l'espèce promet plus que le plus faible des six.
@@ -211,7 +234,7 @@ function valeurBall(obs: Observation, moi: PokemonAllie, lui: PokemonAdverse, ba
   // Mesuré (v4, 160 parties, arrêt à 50) : Balls neutres 37,1 ; jugées avec gain 2 + 0,5 : 35,3 ;
   // avec 1,6 + 0,3 : 31,9. Les captures fréquentes rapportent plus qu'elles ne coûtent : l'option
   // reste désactivée par défaut (extension et entraînement), le calcul sert à l'affichage.
-  const gain = 1.6 + membre;
+  const gain = gainCapture ?? 1.6 + membre;
   const pvMoi = moi.pv / Math.max(moi.pvMax, 1);
   const pvLui = lui.pvPourcent / 100;
   const d = duel(obs, moi, pvMoi, lui, pvLui);
@@ -459,6 +482,9 @@ export function planifier(obs: Observation, options: OptionsPlan = {}): number[]
   const sauvage = adversaires.length === 1 && !obs.partie.dresseur ? adversaires[0]! : null;
   if (!sauvage) {
     return valeurs; // pas de Ball contre un dresseur (le masque les interdit)
+  }
+  if (rareACapturer(sauvage)) {
+    return valeursContreUnRare(obs, moi, sauvage, valeurs, masque);
   }
   if (options.capture) {
     for (let action = PREMIERE_BALL; action < NOMBRE_ACTIONS; action++) {
