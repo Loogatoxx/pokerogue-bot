@@ -109,6 +109,7 @@ def jouer_banc(args, cerveau) -> None:
             "objetsParVague": {r["vague"]: r.get("objetsDetail") for r in recit},
             "economie": {r["vague"]: {"argent": r.get("argent"), "balls": r.get("balls"), "achats": r.get("achats"),
                                       "recompenses": r.get("recompenses"), "pvEquipe": r.get("pvEquipe")} for r in recit},
+            "attaquesResistees": info.get("diagnosticAttaques"),
             "sauvages": {r["vague"]: {"especes": r.get("sauvages"), "recrues": r.get("recrues")} for r in recit if r.get("sauvages") or r.get("recrues")},
             "defaite": info.get("defaite"),
             "protocole": {"mysteres": args.mysteres, "planSeul": cerveau is None},

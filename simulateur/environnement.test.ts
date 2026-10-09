@@ -506,6 +506,7 @@ async function jouerPartie(
   let finAnnulee: unknown = null;
   let totalStatsDepart = 0;
   const changements = { volontaires: 0, serieMax: 0, series3: 0 };
+  const diagnosticAttaques = { jugees: 0, resistees: 0, exemples: [] as Record<string, unknown>[] };
   const serieParPlace = [0, 0];
   const compterChangement = (place: number, change: boolean) => {
     serieParPlace[place] = change ? (serieParPlace[place] ?? 0) + 1 : 0;
@@ -584,6 +585,34 @@ async function jouerPartie(
         etape.attaquesStatut++;
       } else {
         etape.attaquesOffensives++;
+      }
+    }
+  };
+
+  const noterResistee = (obs: Observation, masque: boolean[], plan: number[] | null, action: number) => {
+    const coups = decrireCoups(obs, masque);
+    const force = (c: (typeof coups)[number]) =>
+      c && c.genre === "attaque" && !c.statut && c.puissance > 0 ? c.puissance * (c.efficacite ?? 1) * (c.memeType ? 1.5 : 1) : 0;
+    const choisie = coups[action];
+    if (!choisie || choisie.genre !== "attaque" || choisie.statut || choisie.puissance <= 0) {
+      return;
+    }
+    const autres = coups.map((c, i) => ({ c, i, f: force(c) })).filter(x => x.i !== action && x.f > 0);
+    if (!autres.length) {
+      return;
+    }
+    diagnosticAttaques.jugees++;
+    const plusForte = autres.reduce((m, x) => (x.f > m.f ? x : m));
+    const meilleure = { i: plusForte.i, f: plusForte.f, c: plusForte.c as { nom: string; efficacite: number; puissance: number } };
+    if (choisie.efficacite < 1 && meilleure.c.efficacite >= 1 && meilleure.f >= 1.2 * force(choisie)) {
+      diagnosticAttaques.resistees++;
+      if (diagnosticAttaques.exemples.length < 20) {
+        diagnosticAttaques.exemples.push({
+          vague: obs.partie.vague, tour: obs.partie.tour, dresseur: !!obs.partie.dresseur, double: obs.partie.double,
+          choisie: { nom: choisie.nom, efficacite: choisie.efficacite, puissance: choisie.puissance, plan: plan?.[action] ?? null },
+          meilleure: { nom: meilleure.c.nom, efficacite: meilleure.c.efficacite, puissance: meilleure.c.puissance, plan: plan?.[meilleure.i] ?? null },
+          adversaire: obs.adversaires.filter(a => !a.ko).map(a => `${a.nom} ${a.pvPourcent} % (${a.types.map(t => t.nom).join("/")})`),
+        });
       }
     }
   };
@@ -740,6 +769,7 @@ async function jouerPartie(
         } else {
           if (demande.recit) {
             noterAttaque(message.action);
+            noterResistee(obs, masque, plan, message.action);
             if (entreeJournal && entreeJournal.choix === undefined) {
               entreeJournal.choix = decrire(obs, message.action);
             }
@@ -985,6 +1015,7 @@ async function jouerPartie(
     offertes: etat.offertes,
     statuts,
     changements,
+    diagnosticAttaques,
     totalStatsDepart,
     // Ce qui pourrait s'accumuler d'une partie à l'autre dans ce processus (à surveiller).
     diagnostic,
