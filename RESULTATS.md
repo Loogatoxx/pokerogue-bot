@@ -402,3 +402,9 @@ Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au ri
 ## Essai « paquet » (règle fixée le 10/10, avant tout résultat)
 
 Plusieurs corrections justes donnent chacune un petit gain positif mais sous le seuil : précision (+0,76 ± 1,00), équipe connue des rivaux (+0,81 ± 0,90), ciblage + prix de changement 0,05 (+1,92 ± 1,08 sur 960), rang d'importance des combats (+0,74 ± 1,44). **Paquet** = ces quatre corrections ensemble (`7b747dc`, `0fff884` partie moteur, `45e2f0d` + `COUT_CHANGEMENT = 0.05`, `f3e05f4`), plus le départage des attaques (`af8222b`) et la capture des légendaires (`b9bf11c`) **seulement si leur écart seul est positif**. Mesure : 960 parties (graines 0 à 959) contre `p16-ref` étendue à 960. **Garder le paquet entier si l'écart dépasse 2 erreurs-types ; sinon l'abandonner** (pas de tri après coup entre ses morceaux).
+
+## Capture des légendaires, premier essai (10/10) — règle défaillante, corrigée
+
+**Idée** (Carlos : « face à un légendaire utile il ne capture pas ») : contre un légendaire, semi-légendaire ou fabuleux aux boucliers cassés, pénaliser les attaques qui le mettraient K.O., l'affaiblir au-dessus de 30 % de PV, puis lancer les Balls (capture valant 3 au lieu de 1,6) (`b9bf11c`).
+
+Résultat : **−0,42** (erreur-type 0,28, 474 paires ; 451 parties identiques) et **toujours 0 capture sur 61 rencontres**. La trace d'un combat (k = 96, Stakataka vague 70) montre pourquoi : pendant l'affaiblissement, changer de Pokémon paraissait meilleur qu'une attaque sans K.O. (le bot alternait deux Pokémon), et les Balls « interdites » gardaient la valeur d'une Ball ratée, proche des attaques. Correction (`f8d57ad`) : bonus de 0,5 aux attaques qui affaiblissent sans K.O., Balls nettement sous elles pendant l'affaiblissement, puis bonus de 0,5 aux Balls sous 30 % de PV. Rejouée, la même trace affaiblit Stakataka jusqu'à 20 % puis lance la Super Ball (valeur 2,46). Nouveau banc `p19b`.
