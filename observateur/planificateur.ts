@@ -197,6 +197,7 @@ function valeurChangement(obs: Observation, partant: PokemonAllie, remplacant: P
   return reste < 0 ? Math.min(v, CHANGEMENT_PERDU) : v;
 }
 
+const DEPARTAGE_DEGATS = 0.002;
 const GAIN_RARE = 3;
 const PENALITE_KO_RARE = 1;
 const PV_AVANT_BALL = 30;
@@ -458,7 +459,10 @@ export function planifier(obs: Observation, options: OptionsPlan = {}): number[]
   }
   for (let action = 0; action < PREMIER_CHANGEMENT; action++) {
     const lui = adversaires.find(a => a.position === action % 2) ?? adversaires[0]!;
-    valeurs[action] = masque[action] ? valeurAttaque(obs, moi, lui, Math.floor(action / 2), options, degatsDesAutres(obs, lui, moi, adversaires)) : 0;
+    valeurs[action] = masque[action]
+      ? valeurAttaque(obs, moi, lui, Math.floor(action / 2), options, degatsDesAutres(obs, lui, moi, adversaires))
+        + DEPARTAGE_DEGATS * Math.min(5, mesDegats(moi, lui, lui.pvPourcent / 100)[Math.floor(action / 2)] ?? 0)
+      : 0;
   }
   for (let action = PREMIER_CHANGEMENT; action < PREMIERE_BALL; action++) {
     const remplacant = obs.equipe[action - PREMIER_CHANGEMENT];
