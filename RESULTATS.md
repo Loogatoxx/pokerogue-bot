@@ -488,3 +488,7 @@ Petites corrections sûres, trop petites pour être prouvées seules, mesurées 
 - **EXP au membre sous le plafond** (rejetée seule à +0,74, avec des morts contre les boss sauvages de fin de partie) : seulement avant le rival 2 et jamais contre un boss.
 
 **Mesure** : `p26-paquet2` (960 parties) contre `p21-paquet` (960), mêmes graines. **Tout garder si l'écart dépasse 2 erreurs-types ; sinon tout abandonner** (pas de tri après coup).
+
+## Juge sur le rival 2 avec le code du paquet (10/10) — diagnostic
+
+12 défaites au rival 2 de `p21-paquet` (sur 166), rejouées à l'identique : toutes gagnables en changeant un seul coup ; depuis la photo, le bot gagne 32 % du temps (comme avant le paquet). Corrections du juge (64) : aurait dû changer de Pokémon 29, mauvais Pokémon envoyé 16, attaque de statut 11 (Rugissement 5 fois, Mimi-Queue, Brouillard, Jet de Sable…), autre attaque 5. Force du signal (victoires sur 3 avenirs, coup du bot → coup du juge) : 0 → 1 dans 23 cas (surtout du hasard), 1 → 3 ou 2 → 3 dans 21 cas (nets). Les erreurs restent des changements : le prix de 0,05 a supprimé les séries, mais pas les changements manqués. Fichier : `juge-p21-rival2.jsonl` (dossier du banc).

@@ -151,6 +151,8 @@ Mis à jour le 10/10, référence `p21-paquet` = 63,23 (960 parties).
    défaites du rival 2 avec le code du paquet, pour voir quelles erreurs restent :
    `python -m entraineur.juge_banc --banc p21-paquet --types rival --vagues 25 --nombre 12 --sortie juge-p21-rival2.jsonl`
    (l'IA du dresseur dans le moteur a été essayée : −2,85, elle relance les séries de changements).
+   **Fait le 10/10** (voir RESULTATS.md) : 12 défaites sur 12 gagnables en un coup ; 29 « aurait dû
+   changer », 16 « mauvais Pokémon envoyé », 11 « attaque de statut » (Rugissement 5 fois).
 2. **Les murs de fin de partie** : vague 114 (admins de Team, 47 % de morts parmi ceux qui y
    arrivent) et 115 (boss de Team, 60 %). L'équipe y est au plafond : ce n'est pas un problème de
    niveau. Juge sur ces défaites (`--types team --vagues 114 115`).
