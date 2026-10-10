@@ -36,6 +36,7 @@ import {
   type PokemonAllie,
 } from "../../observateur/types";
 import { type ContenuPanneau, cleDecision, estMessageCapteur, type MessageCapteur, SOURCE } from "./messages";
+import { masqueSansBalls } from "./options-capture";
 
 const LIBELLES_IVS = ["PV", "Att", "Déf", "AtS", "DéS", "Vit"];
 const LIBELLES_MODIFS = ["Att", "Déf", "AtS", "DéS", "Vit", "Préc", "Esq"];
@@ -590,7 +591,7 @@ function demarrer(): void {
   let messageCerveau = "";
   let messagePilote = "";
   let horsPartie = "Lance une partie pour voir ce que le cerveau pense.";
-  const reglages = { auto: false, semi: false, vitesse: "normale" };
+  const reglages = { auto: false, semi: false, vitesse: "normale", sansBalls: false, garderEquipe: false };
   const capture = { actif: false, texte: "" };
   const affichage = { replie: false, ouverts: [] as string[] };
   // Mode auto : décision déjà confiée au capteur, et actions refusées par le jeu pour elle.
@@ -602,7 +603,10 @@ function demarrer(): void {
   const envoyer = (message: ContenuPanneau) =>
     window.postMessage({ source: SOURCE, origine: "panneau", ...message }, window.location.origin);
   const transmettrePilotage = () =>
-    envoyer({ type: "pilotage", auto: reglages.auto && !!cerveau, objetsALaMain: reglages.semi, delaiMs: VITESSES[reglages.vitesse] ?? 700 });
+    envoyer({
+      type: "pilotage", auto: reglages.auto && !!cerveau, objetsALaMain: reglages.semi, delaiMs: VITESSES[reglages.vitesse] ?? 700,
+      sansBalls: reglages.sansBalls, garderEquipe: reglages.garderEquipe,
+    });
 
   function chargerCerveau(tampon: ArrayBuffer): string | null {
     try {
@@ -621,6 +625,8 @@ function demarrer(): void {
   function afficherOutils(): void {
     const bouton = (action: string, texte: string, actif: boolean) =>
       `<button data-action="${action}" tabindex="-1"${actif ? ` class="actif"` : ""}>${texte}</button>`;
+    const coche = (option: string, texte: string, actif: boolean, aide: string) =>
+      `<button data-action="option:${option}" tabindex="-1" title="${aide}"${actif ? ` class="actif"` : ""}>${actif ? "[X]" : "[ ]"} ${texte}</button>`;
     const vitesses = reglages.auto
       ? `<span class="groupe" title="Rythme du mode auto">${Object.keys(VITESSES)
           .map(v => bouton(`vitesse:${v}`, NOMS_VITESSES[v]!, reglages.vitesse === v))
@@ -629,6 +635,7 @@ function demarrer(): void {
     remplir(ui.outils, `
       <span class="groupe">${bouton("mode:conseil", "CONSEIL", !reglages.auto)}${bouton("mode:semi", "SEMI", reglages.auto && reglages.semi)}${bouton("mode:auto", "AUTO", reglages.auto && !reglages.semi)}</span>
       ${vitesses}
+      <span class="groupe">${coche("sansBalls", "BLOQUER LES BALLS", reglages.sansBalls, "Le cerveau ne lance jamais de Poké Ball (la capture forcée reste possible)")}${coche("garderEquipe", "ÉQUIPE INTOUCHABLE", reglages.garderEquipe, "Captures permises, mais avec l'équipe pleine il ne garde pas le nouveau : aucun membre n'est relâché")}</span>
       <span class="groupe" title="Recharge la page et relance la Ball à un autre tour jusqu'à la capture">${bouton("capture", capture.actif ? "ARRÊTER LA CAPTURE" : "CAPTURE FORCÉE", capture.actif)}</span>
       ${capture.texte ? `<div class="discret">${echapper(capture.texte)}</div>` : ""}`);
   }
@@ -685,7 +692,7 @@ function demarrer(): void {
     }
     const cle = cleDecision(obs);
     const interdites = refusees.get(cle) ?? new Set<number>();
-    const masque = obs.decision.masque.map((permise, i) => permise && !interdites.has(i));
+    const masque = masqueSansBalls(obs.decision.masque.map((permise, i) => permise && !interdites.has(i)), reglages.sansBalls);
     const reponse = penser(cerveau, entreeDe(cerveau, obs), masque, planifier({ ...obs, decision: { ...obs.decision, masque } }));
     const choisie = meilleureAction(reponse);
     derniereReponse = reponse;
@@ -780,6 +787,13 @@ function demarrer(): void {
         reglages.vitesse = valeur!;
         enregistrerReglages();
         return;
+      case "option":
+        if (valeur === "sansBalls" || valeur === "garderEquipe") {
+          reglages[valeur] = !reglages[valeur];
+          cleEnvoyee = "";
+          enregistrerReglages();
+        }
+        return;
       case "capture":
         envoyer({ type: "capture-forcee", actif: !capture.actif, max: 100 });
     }
@@ -863,7 +877,7 @@ function demarrer(): void {
           const choisie = cleEnvoyee === cle ? derniereObservation : null;
           if (choisie) {
             const interdites = refusees.get(cle) ?? new Set<number>();
-            const masqueChoisie = choisie.decision.masque!.map((p, i) => p && !interdites.has(i));
+            const masqueChoisie = masqueSansBalls(choisie.decision.masque!.map((p, i) => p && !interdites.has(i)), reglages.sansBalls);
             const reponse = cerveau
               ? penser(cerveau, entreeDe(cerveau, choisie), masqueChoisie, planifier({ ...choisie, decision: { ...choisie.decision, masque: masqueChoisie } }))
               : null;

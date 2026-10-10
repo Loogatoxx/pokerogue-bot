@@ -20,6 +20,7 @@ import {
 } from "../../pilote/pilote";
 import { ecrirePlan, etapeCapture, lirePlan, type MemoireCapture, nouveauPlan, type PlanCapture } from "./capture-forcee";
 import { type ContenuCapteur, cleDecision, estMessagePanneau, SOURCE } from "./messages";
+import { estBall } from "./options-capture";
 import { lireStartersDuCompte } from "./starters-compte";
 
 /** Signature de la dernière liste de starters envoyée : on ne la renvoie que si elle change. */
@@ -33,7 +34,7 @@ type Phaser = { Scenes?: { Systems?: { prototype: SystemesPhaser } } };
 let scene: ScenePokerogue | null = null;
 const carnet = new Carnet();
 const etatPilote = nouvelEtatPilote(carnet);
-const pilotage = { auto: false, objetsALaMain: false, delaiMs: 700, derniereAction: 0 };
+const pilotage = { auto: false, objetsALaMain: false, delaiMs: 700, derniereAction: 0, sansBalls: false };
 const DELAI_CAPTURE_MS = 800;
 const MAX_TENTATIVES = 100;
 let planCapture: PlanCapture | null = lirePlan();
@@ -174,7 +175,7 @@ function observerUneFois(): void {
 
 /** Le panneau a choisi une action : on l'exécute si le jeu attend toujours cette décision. */
 function executerSiToujoursAttendue(cle: string, action: number): void {
-  if (!scene || !autoPermis(scene) || !decisionCerveauEnAttente(scene)) {
+  if (!scene || !autoPermis(scene) || !decisionCerveauEnAttente(scene) || (pilotage.sansBalls && estBall(action))) {
     return;
   }
   const observation = observer(scene, carnet);
@@ -218,6 +219,8 @@ function ecouterPanneau(): void {
       pilotage.auto = message.auto;
       pilotage.objetsALaMain = message.objetsALaMain;
       pilotage.delaiMs = message.delaiMs;
+      pilotage.sansBalls = message.sansBalls;
+      etatPilote.garderEquipe = message.garderEquipe;
     } else if (message.type === "action") {
       executerSiToujoursAttendue(message.cle, message.action);
     } else if (message.type === "capture-forcee") {

@@ -22,7 +22,7 @@ export type ContenuCapteur =
 
 /** Ce que le panneau demande au capteur. */
 export type ContenuPanneau =
-  | { type: "pilotage"; auto: boolean; objetsALaMain: boolean; delaiMs: number }
+  | { type: "pilotage"; auto: boolean; objetsALaMain: boolean; delaiMs: number; sansBalls: boolean; garderEquipe: boolean }
   | { type: "action"; cle: string; action: number }
   | { type: "capture-forcee"; actif: boolean; max: number };
 

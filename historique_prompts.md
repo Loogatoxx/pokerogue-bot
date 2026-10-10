@@ -1416,3 +1416,26 @@ Expliquer la défaite et dire si c'est rare.
 
 **Objectif**
 Se servir de la Carte pour aller vers les biomes (et les champions) que l'équipe bat le mieux.
+
+## 52. Options de l'extension : bloquer les Balls, équipe intouchable — 10/10/2026
+
+**Prompt**
+> peut tu creer a l extension un option a cocher pour bloquer la çapture, donc les pokeball et un
+> autre ou les pokeball autoriser mais pas touche a lequipe
+
+**Réponse**
+- Deux cases dans le panneau, retenues d'une fois sur l'autre :
+  - « BLOQUER LES BALLS » : les Balls sont retirées des actions permises avant que le cerveau
+    choisisse (conseil et auto) ; le capteur refuse aussi d'en lancer une par sécurité ;
+  - « ÉQUIPE INTOUCHABLE » : captures permises, mais avec l'équipe pleine le pilote répond « ne pas
+    le garder » (aucun membre relâché) ; le Pokémon compte quand même dans le Pokédex. Avec moins de
+    6 membres, le jeu l'ajoute tout seul (vérifié : `attempt-capture-phase.ts`).
+- La capture forcée reste possible (déclenchée à la main). Sans effet sur le banc (désactivées).
+
+**Modifications**
+- `extension/src/options-capture.ts` (nouveau), `extension/src/panneau.ts`, `extension/src/capteur.ts`,
+  `extension/src/messages.ts`, `pilote/pilote.ts`, `tests/options-capture.test.ts`,
+  `extension/manifest.json` (0.14.0).
+
+**Objectif**
+Laisser Carlos décider des captures quand il le veut.
