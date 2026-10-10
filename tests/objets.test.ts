@@ -108,14 +108,6 @@ describe("Argent et objets (retours de Carlos, 04/10)", () => {
     expect(sans).toBeLessThan(10);
   });
 
-  it("n'achète pas de Potion pour un membre à 80 % de ses PV, même juste avant le rival", () => {
-    const enBoutique = { ...potion, cout: 100 };
-    const avantRival: ContexteObjets = { equipe: [membre("Aligatueur", 40, [10], 120, 150)], balls: [5, 0, 0, 0, 0], ...argent, prochainCombat: prochainCombatImportant(95) };
-    expect(meilleurAchat(evaluerAchats([enBoutique], avantRival, 5000))).toBeNull();
-    const bienEntame: ContexteObjets = { ...avantRival, equipe: [membre("Aligatueur", 40, [10], 80, 150)] };
-    expect(meilleurAchat(evaluerAchats([enBoutique], bienEntame, 5000))?.cible).toBe(0);
-  });
-
   it("hors combat important, n'achète pas pour un membre faible ou à peine touché", () => {
     const enBoutique = { ...potion, cout: 100 };
     const porteur = membre("Aligatueur", 40, [10], 150, 150);

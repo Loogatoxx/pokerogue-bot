@@ -463,7 +463,6 @@ export function meilleurObjet(options: OptionObjet[]): OptionObjet | null {
 const ACHETABLES = new Set([...SOINS, ...RAPPELS, ...PP, "SACRED_ASH", "FULL_HEAL"]);
 /** Note minimale (une fois le prix déduit) pour qu'un achat vaille la peine. */
 export const SEUIL_ACHAT = 5;
-const PV_SANS_SOIN = 0.7;
 
 /**
  * Les articles de la boutique, notés comme les récompenses, moins leur prix rapporté à l'argent
@@ -493,9 +492,6 @@ export function evaluerAchats(objets: ObjetPropose[], ctx: ContexteObjets, argen
     }
     const j = juger(objet, ctx);
     const m = j.cible === null ? null : ctx.equipe[j.cible];
-    if (SOINS.has(objet.id) && m && !m.ko && !m.statut && m.pv >= PV_SANS_SOIN * m.pvMax) {
-      return { index, nom: objet.nom, note: 0, cible: j.cible, pour: j.pour, contre: [...j.contre, "presque en pleine forme : pas besoin de l'acheter"] };
-    }
     const important = !m || m.niveau >= 0.85 * niveauMax;
     const malEnPoint = !m || m.ko || m.pv < 0.5 * m.pvMax || m.statut;
     if (!urgent && (!important || !malEnPoint)) {
