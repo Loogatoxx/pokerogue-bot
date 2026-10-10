@@ -1459,3 +1459,26 @@ Laisser Carlos décider des captures quand il le veut.
 
 **Objectif**
 Laisser l'IA gérer une partie de l'équipe seulement.
+
+## 54. Mort vague 84 : Zygarde frappait un Archéodong avec une attaque Sol — 10/10/2026
+
+**Prompt**
+> encore une fois mort par un boss zygarde ne faisait rien il spammais une attaque qui ne faisais
+> aucun degat a archedong … tout le reste est mort alors que je pense il pouvais spamme une autre
+> attaque qui aurais pu eviter la mort
+
+**Réponse** (vérifié dans le code)
+- Bug : le calcul de dégâts (`prevision.ts`, `degats`) ignorait les talents qui annulent un type ;
+  seul le panneau les affichait (« Peut annuler : Sol »). Pour le bot, Force Chtonienne (Sol, même
+  type que Zygarde) était super efficace contre Archéodong (Acier) : il la répétait alors que
+  Lévitation la réduisait à zéro.
+- Correction : immunités dans le calcul (adversaire : son talent montré, sinon seulement ce que
+  tous ses talents possibles annulent ; équipe : talent et passif). Partout où le bot calcule des
+  dégâts (planificateur, moteur d'équipe, prévisions).
+
+**Modifications**
+- `observateur/especes.ts` (`immunitesCertaines`), `observateur/prevision.ts`,
+  `observateur/combat-equipe.ts`, `tests/immunites.test.ts`.
+
+**Objectif**
+Ne plus perdre un combat en répétant une attaque qui ne fait rien.

@@ -502,3 +502,11 @@ Petites corrections sûres, trop petites pour être prouvées seules, mesurées 
 **Idée** : `donnees/biomes.json` (export du jeu) ; note d'un biome = moyenne, sur ses sauvages pondérés par leur rareté (356/124/26/5/1 sur 512), de log2(meilleur membre : efficacité de ses attaques × résistance à leurs types), plus 3 × la même note pour ses champions s'il y a une vague de champion dans ces 10 vagues ; Carte notée 25 si l'équipe n'en a pas.
 
 **Mesure fixée d'avance** : `p27-biomes` (960 parties) contre la référence du moment (`p26-paquet2` s'il est gardé, sinon `p21-paquet`), mêmes graines ; garder si l'écart dépasse 2 erreurs-types.
+
+## Talents qui annulent un type dans le calcul de dégâts (10/10) — à mesurer après la Carte
+
+**Constat** (défaite de Carlos, vague 84) : `degats` ignorait les talents d'immunité (Lévitation → Sol, Torche → Feu, Absorb Eau → Eau…) ; Zygarde répétait Force Chtonienne (Sol, ×2 contre l'Acier sur le papier) contre un Archéodong à Lévitation montrée, pendant que l'équipe tombait.
+
+**Correction** : immunités dans `Combattant` : adversaire = talent montré, sinon les types annulés par tous ses talents possibles ; équipe = talent et passif. `degats` rend 0 contre une immunité.
+
+**Mesure fixée d'avance** : `p28-immunites` (960 parties) contre la référence après le verdict de la Carte (`p27-biomes` s'il est gardé, sinon `p21-paquet`), mêmes graines ; garder si l'écart dépasse 2 erreurs-types.
