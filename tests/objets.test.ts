@@ -128,6 +128,14 @@ describe("Stratégie du porteur", () => {
     expect(evaluerObjets([bonbon], avance)[0]!.cible).toBe(0); // passé 40, il aide le membre en retard
   });
 
+  it("à 12 vagues du rival 2, le Super Bonbon du porteur passe devant 5 Poké Balls, même avec un champion avant", () => {
+    const bonbon: ObjetPropose = { id: "RARE_CANDY", nom: "Super Bonbon", cout: 0 };
+    const equipe = [membre("Brindibou", 16, [11, 2], 45, 45), membre("Étourmi", 12, [0, 2], 30, 30), membre("Rattata", 11, [0], 28, 28)];
+    const ctx: ContexteObjets = { equipe, balls: [2, 0, 0, 0, 0], prochainCombat: prochainCombatImportant(13, 20) };
+    expect(ctx.prochainCombat!.genre).toBe("boss");
+    expect(meilleurObjet(evaluerObjets([balls, bonbon], ctx))!.nom).toBe("Super Bonbon");
+  });
+
   it("n'empile plus les Charmes Exp quand l'équipe est au plafond", () => {
     const charme: ObjetPropose = { id: "EXP_CHARM", nom: "Charme Exp", cout: 0 };
     const equipe = [membre("Dracaufeu", 60, [9], 150, 150), membre("Tortank", 58, [10], 150, 150)];
