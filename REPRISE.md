@@ -168,7 +168,12 @@ Mis à jour le 10/10, référence `p21-paquet` = 63,23 (960 parties).
      boss sauvage.
    Règle à fixer d'avance comme pour le premier paquet : 960 parties, tout garder si l'écart dépasse
    2 erreurs-types, sinon tout abandonner.
-4. Bas : sommeil, objets tenus et talents dans les dégâts (BACKLOG n° 22) — à reprendre seulement
+4. **Aligner l'extension sur le banc pour les Balls** (défaite de Carlos le 10/10, Limonde boss
+   vague 40) : l'extension appelle `planifier(obs)` sans `capture: true`, donc contre un boss aux
+   boucliers cassés la Ball vaut exactement la meilleure attaque et le cerveau alterne Ball et
+   attaque pendant que le boss mange ses Baies Sitrus. Le banc mesure `plan_capture=True`. Passer
+   `{ capture: true }` dans `extension/src/panneau.ts` (2 appels), ou un mode « plan seul ».
+5. Bas : sommeil, objets tenus et talents dans les dégâts (BACKLOG n° 22) — à reprendre seulement
    après un diagnostic du juge qui les montre.
 
 ## 5. Méthode (rappel de REGLES.md)

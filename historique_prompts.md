@@ -1360,3 +1360,32 @@ remarques sur l'économie et les légendaires.
 
 **Objectif**
 Continuer à monter la moyenne (63,2 vagues) en attaquant le rival 2, première cause de mort.
+
+## 50. Défaite vague 40 contre une Limonde boss avec Zacian dans l'équipe — 10/10/2026
+
+**Prompt**
+> j ai tester le bot et regarde j ai perdu contre une limonde alors que tout le monde etait debout
+> … la limonde se regen et le bot pas foutu de voir … ça alternait entre essayer de çapturer et
+> vouloir attaquer finalement je suis mort vague 40 alors que il y a zacian je veux juste une
+> reponse de pourquoi et est ce une anomalie ou frequent ?
+
+**Réponse** (vérifié dans le code du jeu et du bot)
+- Le soin : en Classique, un sauvage ne tient que baies, vitamines, objets de type, Œufs ; la Baie
+  Sitrus (+25 % sous 50 % de PV) et la Baie Enigma (+25 % sur un coup super efficace) soignent, et
+  un boss peut en tenir plusieurs. « boss 1/2 » à 60 % = bouclier cassé puis remonté au-dessus de
+  50 %. Chaque bouclier cassé donne aussi +1 à une stat au hasard (`handleBossSegmentCleared`). Le
+  soin à chaque tour (`ENEMY_HEAL`) n'existe qu'en mode Infini.
+- L'alternance : dans l'extension, le planificateur est appelé sans l'option capture ; contre un
+  boss aux boucliers cassés, une Ball « permise » reçoit exactement la valeur de la meilleure
+  attaque (égalité voulue) et le cerveau tranche, tour après tour ; chaque Ball ratée laisse le
+  boss frapper et manger ses baies. Le banc, lui, note les Balls avec `plan_capture=True` : il ne
+  reproduit pas ce comportement.
+- Fréquence : dans `p21-paquet`, les boss sauvages tuent 59 parties sur 953 (6,2 %), dont 5 à la
+  vague 40 (0,5 %) ; sur le site, ce cas précis est sans doute plus fréquent (comportement des
+  Balls différent du banc).
+
+**Modifications**
+- `historique_prompts.md`, `REPRISE.md` (chantier : aligner l'extension sur le banc pour les Balls).
+
+**Objectif**
+Expliquer la défaite et dire si c'est rare.
