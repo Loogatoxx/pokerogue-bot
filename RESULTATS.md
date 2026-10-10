@@ -462,3 +462,11 @@ Code mesuré : dossier de banc `bonbon` (précision `7b747dc`, équipe connue de
 | Parties avec 3 changements de suite ou plus ; plus longue série | 13 ; 4 | 33 ; 33 |
 
 **Verdict : retirée** (`0727e3b` enlevé à la main, extension 0.13.1). Sous le seuil, et l'écart est négatif. Le moteur qui prévoit les retraits du dresseur se remet à enchaîner les changements (séries jusqu'à 33) : il change pour contrer le Pokémon que le dresseur est censé envoyer, puis rechange. À reprendre seulement avec un garde-fou contre les séries, ou en ne modélisant que le remplaçant choisi après un K.O.
+
+## Super Bonbons au porteur avant le rival (10/10) — rejeté
+
+**Constat** (`p21-paquet`, 953 parties) : le rival 2 tue encore 17,4 % des parties. Mort au rival 2 selon le niveau du meilleur Pokémon à la vague 25 : 16-17 → 39-40 % ; 18 → 25 % ; 19 → 20 % ; 20 → 10 % ; 21 et plus → 3 %. Selon la moyenne des trois meilleurs : 14 → 49 % ; 15 → 29 % ; 16 → 15 % ; 17 → 3,6 %. Vérifié dans le jeu : un Super Bonbon ignore le plafond de niveau (`getMaxExpLevel(true)`), alors que l'EXP s'arrête au plafond (16 aux vagues 11-20) ; une capture donne l'EXP d'un K.O. (`VictoryPhase`).
+
+**Idée** (`05545e9`) : la priorité « rival proche » du Super Bonbon (note 50 au porteur au lieu de 18) ne s'appliquait que si le prochain combat important était le rival, à 8 vagues ou moins ; désormais dès que le prochain rival est à 16 vagues ou moins.
+
+**Résultat** (`p24-bonbons` contre `p21-paquet`) : **+0,03** (erreur-type 1,15, seuil 2,30, 475 paires ; 314 parties identiques). Super Bonbons pris aux vagues 9-24 : 973 → 1 047 (+0,16 par partie) ; niveau du meilleur Pokémon à la vague 25 : 18,92 → 18,99. **Verdict : annulé** (`git revert`). Le bot prenait déjà presque tous les bonbons proposés : le retard de niveau au rival 2 ne vient pas du choix des récompenses.
