@@ -1299,3 +1299,42 @@ Capturer un Pokémon rare (Zygarde, vague 60, une seule Ball) sans tout essayer 
 
 **Objectif**
 Utiliser toute l'équipe pendant une tentative de capture.
+
+## 48. Truc lourds : efficacités, économie, légendaires, et rapport « raison ou tort » — 09-10/10/2026
+
+**Prompt**
+> j ai recuperer mes credit j ai rien avancer autre part tu peu finalment reprendre ici … on continue
+> les truc lourd et faire mieu que la moyenne des 60 vague … le bot se trompe sur les efficaciter des
+> attauque … team build … synergie … boost d xp en late game … le plus gros souci … c'est l'economie …
+> potion pour mettre full hp … reanimer tout le monde avec des rappel alors qu on va pas rencontrer de
+> combat difficile … rang d importance de combat … ne garde pas de bonne pokeball … face a un
+> legendaire utile il çapture pas … je voudrais d ailleur que tu fasse un rapport ou on voit la
+> difference entre rater un legendaire et prendre un legendaire dans l equipe … et aussi voir la
+> moyenne de rencontre des ces type la chacun et plein de chiffre pour montrer si j ai raison ou tord
+
+**Réponse**
+- Banc instrumenté (`p16-ref`, 60,71) : argent, Balls, achats avec les PV de l'équipe, récompenses,
+  sauvages rencontrés (légendaire, fabuleux, semi-légendaire, boss), recrues, attaques résistées.
+- Cinq essais mesurés, un à la fois (détails dans RESULTATS.md) : rang d'importance des combats
+  +0,74 ± 1,44 (bruit) ; Potions seulement sous 70 % −2,88 ± 1,39 (perte réelle) ; départage des
+  attaques +1,21 ± 1,36 (bruit, gardé pour le paquet) ; capture des légendaires −0,42 puis −0,64 ±
+  0,29 (−3,64 ± 1,77 sur les 59 parties concernées : perte réelle).
+- Rapport en tableau de bord : https://claude.ai/artifact/6AaMPHekDrkjHVxd9E9Zgm
+  (rencontres par catégorie et par tranche de vagues, espèces, Balls en main, essai apparié, piège
+  des moyennes, achats, achats selon le rang du prochain combat, argent avant les gros combats,
+  objets d'EXP, tous les verdicts). Raison : le bot capture peu (6 sur 64) et achète des Potions à
+  PV presque pleins (69 %) et des Rappels avant des combats faciles (57 %). Tort : capturer le
+  légendaire fait perdre des vagues ici ; les Potions « en trop » aident ; les objets d'EXP sont pris
+  avec l'équipe ~8,5 niveaux sous le plafond.
+- Essai « paquet » (règle fixée avant tout résultat) : précision + ciblage et prix 0,05 + rang des
+  combats + départage, sur 960 parties contre `p16-ref` étendue à 960.
+
+**Modifications**
+- `simulateur/environnement.test.ts`, `entraineur/banc_complet.py`, `entraineur/pont.py`,
+  `entraineur/juge_banc.py`, `entraineur/rapport_legendaires.py`, `entraineur/analyse_economie.py`,
+  `donnees/importance-combats.json`, `donnees/rivaux.json`, `simulateur/exporter-rivaux.test.ts`,
+  RESULTATS.md, REPRISE.md (essais annulés par `git revert`).
+
+**Objectif**
+Dépasser la moyenne de 60 vagues avec des changements prouvés, et répondre chiffres à l'appui aux
+remarques sur l'économie et les légendaires.
