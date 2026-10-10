@@ -408,3 +408,14 @@ Plusieurs corrections justes donnent chacune un petit gain positif mais sous le 
 **Idée** (Carlos : « face à un légendaire utile il ne capture pas ») : contre un légendaire, semi-légendaire ou fabuleux aux boucliers cassés, pénaliser les attaques qui le mettraient K.O., l'affaiblir au-dessus de 30 % de PV, puis lancer les Balls (capture valant 3 au lieu de 1,6) (`b9bf11c`).
 
 Résultat : **−0,42** (erreur-type 0,28, 474 paires ; 451 parties identiques) et **toujours 0 capture sur 61 rencontres**. La trace d'un combat (k = 96, Stakataka vague 70) montre pourquoi : pendant l'affaiblissement, changer de Pokémon paraissait meilleur qu'une attaque sans K.O. (le bot alternait deux Pokémon), et les Balls « interdites » gardaient la valeur d'une Ball ratée, proche des attaques. Correction (`f8d57ad`) : bonus de 0,5 aux attaques qui affaiblissent sans K.O., Balls nettement sous elles pendant l'affaiblissement, puis bonus de 0,5 aux Balls sous 30 % de PV. Rejouée, la même trace affaiblit Stakataka jusqu'à 20 % puis lance la Super Ball (valeur 2,46). Nouveau banc `p19b`.
+
+## Départage des attaques par les dégâts (10/10) — dans le bruit, gardé pour le paquet
+
+**Idée** (Carlos : « il propose une attaque résistée alors qu'il y avait une attaque efficace ») : diagnostic sur 3 parties : ~1 % des décisions d'attaque, presque toujours des **égalités** du planificateur (les deux attaques mettent K.O., ou duel perdu pour toutes) départagées par l'ordre de la liste. Correction : à valeur égale, l'attaque qui fait le plus de dégâts passe devant (+0,002 × dégâts, jusqu'à 5 fois les PV restants) (`af8222b`).
+
+| | Référence `p16-ref` | Départage |
+|---|---|---|
+| Vague moyenne / médiane | 60,71 / 55 | 61,84 / 60 |
+| Écart apparié | — | **+1,21** (erreur-type 1,36, 471 paires) · mieux 147, pareil 198, pire 126 |
+
+**Verdict : annulé seul** (dans le bruit) ; écart positif, donc inclus dans l'essai « paquet » (règle fixée d'avance).
