@@ -221,6 +221,7 @@ function ecouterPanneau(): void {
       pilotage.delaiMs = message.delaiMs;
       pilotage.sansBalls = message.sansBalls;
       etatPilote.garderEquipe = message.garderEquipe;
+      etatPilote.verrouilles = new Set(message.verrouilles);
     } else if (message.type === "action") {
       executerSiToujoursAttendue(message.cle, message.action);
     } else if (message.type === "capture-forcee") {

@@ -15,7 +15,7 @@ import {
   optionsRecompensesAffichees,
 } from "../observateur/decisions-jeu";
 import { choisirBiome } from "../observateur/biomes";
-import { meilleureOptionEquipe } from "../observateur/equipe";
+import { meilleureOptionEquipe, type OptionEquipe } from "../observateur/equipe";
 import type { ScenePokerogue } from "../observateur/jeu";
 import { Carnet } from "../observateur/carnet";
 import { meilleurAchat, meilleurObjet } from "../observateur/objets";
@@ -53,6 +53,7 @@ export interface EtatPilote {
   /** Le choix « relâcher un membre » est en cours (capture, ou rencontre mystère qui donne un Pokémon). */
   relacheEnCours: boolean;
   garderEquipe: boolean;
+  verrouilles: Set<number>;
   /** Retours d'affilée du menu des attaques au menu de combat (Fun and Games le rouvre aussitôt). */
   retoursCombat: number;
   /** Achats en boutique dans la vague (plafonnés), articles refusés, et dernier achat tenté. */
@@ -73,11 +74,14 @@ export function nouvelEtatPilote(carnet: Carnet | null = null): EtatPilote {
     carnet,
     offertes: {},
     cible: CIBLE.ENNEMI_1, essaisCible: 0, recompensesEssayees: new Set(), vagueRecompenses: -1,
-    receveur: null, placeARelacher: null, relacheEnCours: false, garderEquipe: false, retoursCombat: 0, achats: 0, achatsRefuses: new Set(), dernierAchat: null,
+    receveur: null, placeARelacher: null, relacheEnCours: false, garderEquipe: false, verrouilles: new Set(), retoursCombat: 0, achats: 0, achatsRefuses: new Set(), dernierAchat: null,
   };
 }
 
 export const membreARelacher = (choisi: number | null, garderEquipe: boolean) => (garderEquipe ? null : choisi);
+
+export const optionsSansVerrou = (options: OptionEquipe[], ids: number[], verrouilles: ReadonlySet<number>) =>
+  options.filter(o => o.remplacer === null || !verrouilles.has(ids[o.remplacer] ?? -1));
 
 function ecran(scene: ScenePokerogue): Ecran | null {
   const handler = scene.ui.getHandler() as Ecran | null;
@@ -350,7 +354,8 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
     // d'équipe (observateur/equipe.ts). Valider la 1re option ouvrait le résumé, encore et encore.
     const options = optionsEquipePleineAffichees(scene, etat.carnet?.typeStarterRival());
     if (options) {
-      const remplacer = membreARelacher(meilleureOptionEquipe(options).remplacer, etat.garderEquipe);
+      const ids = scene.getPlayerParty().map(p => p.id);
+      const remplacer = membreARelacher(meilleureOptionEquipe(optionsSansVerrou(options, ids, etat.verrouilles)).remplacer, etat.garderEquipe);
       etat.placeARelacher = remplacer;
       etat.relacheEnCours = remplacer !== null;
       const nbOptions = (e as Ecran & { config?: { options?: unknown[] } }).config?.options?.length ?? 4;

@@ -1439,3 +1439,23 @@ Se servir de la Carte pour aller vers les biomes (et les champions) que l'équip
 
 **Objectif**
 Laisser Carlos décider des captures quand il le veut.
+
+## 53. Verrouiller certains Pokémon de l'équipe — 10/10/2026
+
+**Prompt**
+> ajoute aussi au pas touche a l equipe les pokemon a cocher a bloquer comme ça l ia peu modifier
+> une seul partie
+
+**Réponse**
+- Une case devant chaque membre dans la liste ÉQUIPE du panneau : coché = verrouillé. Avec l'équipe
+  pleine après une capture, le pilote ne peut remplacer qu'un membre non verrouillé (sinon « ne pas
+  le garder ») ; « ÉQUIPE INTOUCHABLE » reste le verrou total. Les verrous sont retenus d'une fois
+  sur l'autre (identifiant du Pokémon dans la partie).
+
+**Modifications**
+- `extension/src/panneau.ts`, `extension/src/capteur.ts`, `extension/src/messages.ts`,
+  `pilote/pilote.ts` (`optionsSansVerrou`), `tests/options-capture.test.ts`,
+  `extension/manifest.json` (0.14.1).
+
+**Objectif**
+Laisser l'IA gérer une partie de l'équipe seulement.
