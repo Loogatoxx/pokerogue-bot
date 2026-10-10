@@ -142,18 +142,30 @@ fusionnée telle quelle.
 
 ## 4. Prochains chantiers (par ordre de priorité, un seul à la fois, chacun mesuré)
 
-0. **Décider le ciblage + prix de changement 0,05** (section « Verdicts », `p15-ciblage-prix`) : +1,9
-   sur deux lots de graines, juste sous le seuil ; décision finale avec 1440 parties sur le Mac.
-1. **Le retrait de l'IA adverse dans le moteur d'équipe.** Lire la logique du jeu
-   (`jeu/src/phases/enemy-command-phase.ts` : score de duel et seuil de changement des dresseurs) et
-   la reproduire dans `observateur/combat-equipe.ts` (le planificateur a déjà `prevoirChangement`).
-   Cas test : rival 2, k=41, décision 1.
-2. **Épargner le Pokémon qui contre** : dans un combat jugé perdu, le moteur ne cherche que les
-   dégâts ; valoriser le membre qui bat le plus fort adversaire restant, et le niveau proche d'une
-   évolution (`donnees/evolutions.json`) quand des K.O. vont donner de l'expérience.
-3. **Le juge comme professeur** : les décisions corrigées (avec les mêmes tirages pour tous les coups)
-   sont un meilleur signal que l'ancien professeur (qui gardait la chance). Ne servira que si le
-   cerveau peut corriger le moteur (aujourd'hui il ne départage que les égalités).
+Mis à jour le 10/10, référence `p21-paquet` = 63,23 (960 parties).
+
+1. **Le rival 2 (vague 25) tue encore 17,4 % des parties** (le reste : rival 4 6,5 %, rival 3 4 %,
+   puis des champions et des admins de Team à ~1 % chacun). Le niveau compte beaucoup (meilleur
+   Pokémon niveau 18 → 25 % de morts, 21+ → 3 %), mais ni les Super Bonbons (déjà presque tous pris)
+   ni l'EXP redirigée au plafond n'ont fait monter les niveaux. Prochaine étape : le juge sur les
+   défaites du rival 2 avec le code du paquet, pour voir quelles erreurs restent :
+   `python -m entraineur.juge_banc --banc p21-paquet --types rival --vagues 25 --nombre 12 --sortie juge-p21-rival2.jsonl`
+   (l'IA du dresseur dans le moteur a été essayée : −2,85, elle relance les séries de changements).
+2. **Les murs de fin de partie** : vague 114 (admins de Team, 47 % de morts parmi ceux qui y
+   arrivent) et 115 (boss de Team, 60 %). L'équipe y est au plafond : ce n'est pas un problème de
+   niveau. Juge sur ces défaites (`--types team --vagues 114 115`).
+3. **Petites corrections sûres, à grouper dans un « paquet 2 »** (seules, elles sont trop petites
+   pour dépasser 2 erreurs-types) :
+   - TELEPORTING_HIJINKS : option 3 au lieu de 2/1 (les trois mènent à un boss, mais 1 et 2 lui
+     donnent +1 à toutes ses stats ; 12 % de morts sur 75 rencontres) ;
+   - BERRIES_ABOUND : la course (option 2) seulement si notre plus rapide dépasse la vitesse estimée
+     du boss × 1,1 ; sinon option 3 (16 morts sur 251) ;
+   - préparation au rival (`typesAPreparer`) : viser le type connu de son starter
+     (`partie.starterRival`) au lieu des trois types possibles ;
+   - EXP au membre sous le plafond (+0,74 seule), mais seulement avant le rival 2 et jamais contre un
+     boss sauvage.
+   Règle à fixer d'avance comme pour le premier paquet : 960 parties, tout garder si l'écart dépasse
+   2 erreurs-types, sinon tout abandonner.
 4. Bas : sommeil, objets tenus et talents dans les dégâts (BACKLOG n° 22) — à reprendre seulement
    après un diagnostic du juge qui les montre.
 

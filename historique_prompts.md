@@ -1327,7 +1327,11 @@ Utiliser toute l'équipe pendant une tentative de capture.
   légendaire fait perdre des vagues ici ; les Potions « en trop » aident ; les objets d'EXP sont pris
   avec l'équipe ~8,5 niveaux sous le plafond.
 - Essai « paquet » (règle fixée avant tout résultat) : précision + ciblage et prix 0,05 + rang des
-  combats + départage, sur 960 parties contre `p16-ref` étendue à 960.
+  combats + départage, sur 960 parties contre `p16-ref` étendue à 960 : **+3,70 ± 1,26, gardé** ;
+  la moyenne passe de 59,5 à **63,2 vagues** (extension 0.13.1).
+- Ensuite, chacun par-dessus le paquet : IA du dresseur dans le moteur −2,85 (séries de
+  changements), Super Bonbons avant le rival +0,03, EXP au membre sous le plafond +0,74 : tous
+  annulés. Le rival 2 reste la première cause de mort (17,4 % des parties).
 
 **Modifications**
 - `simulateur/environnement.test.ts`, `entraineur/banc_complet.py`, `entraineur/pont.py`,
