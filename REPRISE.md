@@ -21,11 +21,8 @@ est, ce qui reste à décider, comment le décider, et ce qu'on a appris. Mettre
   référence). Reporté sur la branche (`4a7222a`) : précision, ciblage + prix de changement 0,05,
   équipe connue des rivaux, rang des combats, départage. **Extension 0.13.0** : reconstruire
   (`pnpm extension`) et recharger dans Brave pour en profiter sur le site.
-- **En mesure** : `p23-ia` (480 parties) = paquet + IA du dresseur dans le moteur d'équipe
-  (`0727e3b`), contre `p21-paquet`. Si l'écart reste sous 2 erreurs-types : retirer `0727e3b` à la
-  main (mêmes lignes de `simuler` que le ciblage) et reconstruire l'extension. Si les crédits du
-  cloud s'épuisent avant la fin : refaire en local `p21-paquet` (`--parties 960`, sans l'IA) et
-  `p23-ia` (branche telle quelle), puis comparer.
+- **IA du dresseur dans le moteur rejetée** (`p23-ia` : −2,85 ± 1,54 contre le paquet ; séries de
+  changements jusqu'à 33). Retirée à la main ; extension **0.13.1** = le paquet tel que mesuré.
 
 **Avant le 10/10** :
 - Branche de travail : `claude/pokerogue-bot-macro-strategy-33yi1e`, PR #9 (brouillon) vers `main`.
