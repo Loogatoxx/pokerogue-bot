@@ -478,3 +478,13 @@ Code mesuré : dossier de banc `bonbon` (précision `7b747dc`, équipe connue de
 **Idée** (`cd6ad5e`) : plafond dans l'observation ; au plafond, bonus transféré au meilleur membre sous le plafond, et changement gratuit accepté si un membre sous le plafond gagne son duel avec au moins la moitié de ses PV.
 
 **Résultat** (`p25-exp` contre `p21-paquet`) : **+0,74** (erreur-type 1,23, seuil 2,47, 472 paires). Rival 2 : 81 → 83 % ; niveaux à la vague 25 presque inchangés (2e membre 14,82 → 14,92) ; morts contre des boss sauvages 24 → 40 (vague 100 : 0 → 8, vague 70 : 3 → 6) : en fin de partie toute l'équipe est au plafond et la règle envoyait un membre plus faible contre le boss. **Verdict : annulé** (`git revert`). Si on y revient : exclure les boss sauvages, et ne viser que les vagues avant le rival 2.
+
+## Paquet 2 (10/10) — en mesure (règle fixée avant tout résultat)
+
+Petites corrections sûres, trop petites pour être prouvées seules, mesurées d'un bloc :
+- **TELEPORTING_HIJINKS** : option 3 en premier. Les trois options mènent à un boss ; avec 1 et 2 (payer le voyage, ou un Pokémon Acier/Électrik) il gagne +1 à toutes ses stats ; le 3 donne Aimant et Peau Métal (`teleporting-hijinks-encounter.ts`). Avant : 9 morts sur 75 rencontres.
+- **BERRIES_ABOUND** : la course (option 2) seulement si notre Pokémon le plus rapide dépasse de 20 % la vitesse estimée du boss (espèce et niveau visibles, IV moyens) ; le jeu exige plus de 1,1 fois sa vitesse, sinon c'est un boss enragé. Sinon partir. Avant : 16 morts sur 251.
+- **Préparation au rival** : `typesAPreparer` vise le type connu de son starter (vu au rival 1) et l'oiseau, au lieu des trois types de starter possibles (captures, attaques apprises, CT).
+- **EXP au membre sous le plafond** (rejetée seule à +0,74, avec des morts contre les boss sauvages de fin de partie) : seulement avant le rival 2 et jamais contre un boss.
+
+**Mesure** : `p26-paquet2` (960 parties) contre `p21-paquet` (960), mêmes graines. **Tout garder si l'écart dépasse 2 erreurs-types ; sinon tout abandonner** (pas de tri après coup).

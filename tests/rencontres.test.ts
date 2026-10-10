@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import RENCONTRES from "../donnees/rencontres-mysteres.json";
-import { optionRencontre } from "../pilote/pilote";
+import type { ScenePokerogue } from "../observateur/jeu";
+import { courseGagnable, optionRencontre } from "../pilote/pilote";
 
 const AN_OFFER_YOU_CANT_REFUSE = 14;
 const WEIRD_DREAM = 23;
@@ -20,6 +21,19 @@ describe("rencontres mystères", () => {
   it("refuse les combats brutaux quand refuser soigne", () => {
     expect(optionRencontre(A_TRAINERS_TEST, [0, 1])).toBe(1);
     expect(optionRencontre(DARK_DEAL, [0, 1])).toBe(1);
+  });
+
+  it("Téléportation : inspecte la machine (boss sans bonus de stats) plutôt que de payer le voyage", () => {
+    expect(optionRencontre(25, [0, 1, 2])).toBe(2);
+  });
+
+  it("Baies à foison : ne tente la course que si son plus rapide dépasse nettement le boss", () => {
+    const scene = (vitesse: number) => ({
+      currentBattle: { mysteryEncounter: { encounterType: 19, enemyPartyConfigs: [{ pokemonConfigs: [{ species: { baseStats: [80, 80, 80, 80, 80, 80] }, level: 30 }] }] } },
+      getPlayerParty: () => [{ isFainted: () => false, getStat: () => vitesse }],
+    }) as unknown as ScenePokerogue;
+    expect(courseGagnable(scene(60))).toBe(false);
+    expect(courseGagnable(scene(100))).toBe(true);
   });
 
   it("prend la première option permise pour une rencontre inconnue", () => {
