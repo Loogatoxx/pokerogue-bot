@@ -1389,3 +1389,30 @@ Continuer à monter la moyenne (63,2 vagues) en attaquant le rival 2, première 
 
 **Objectif**
 Expliquer la défaite et dire si c'est rare.
+
+## 51. La Carte : le bot ne comprend pas la carte et ne la prend jamais — 10/10/2026
+
+**Prompt**
+> autre chose remarquer l ia ne comprend pas la çarte il pourrait se servir pour aller a l endroit
+> le plus facile ou on a des pokemon avec des resistence et de le efficaciter
+> apres l ia voyais la çarte mais ne la prenais jamais a chaque fois j en ai une et il la saute
+
+**Réponse** (vérifié dans le jeu)
+- On ne choisit le prochain biome qu'avec la Carte (`MapModifier`, une seule suffit) et quand le
+  biome mène à plusieurs autres ; sinon le jeu tire au hasard. Le pilote prenait toujours la
+  première option, et la Carte était notée 5 (parmi les plus basses) : il la sautait.
+- Découverte : le champion d'arène d'une vague de champion est tiré dans les dresseurs « boss » du
+  biome (`isTrainerBoss`, `randomTrainerType`) : choisir le biome = choisir le type du champion.
+- Nouveau : `donnees/biomes.json` exporté du jeu (Pokémon par rareté, liens, champions et leur
+  type, noms français et anglais) ; `observateur/biomes.ts` note chaque biome proposé selon les
+  faiblesses et résistances de l'équipe (sauvages pondérés par leur rareté, champion × 3 s'il tombe
+  dans ces 10 vagues) ; le pilote choisit le mieux noté ; le panneau affiche les notes ; la Carte
+  vaut 25 si l'équipe n'en a pas (0 sinon).
+
+**Modifications**
+- `simulateur/exporter-biomes.test.ts`, `donnees/biomes.json`, `observateur/biomes.ts`,
+  `observateur/objets.ts`, `observateur/decisions-jeu.ts`, `observateur/observateur.ts`,
+  `pilote/pilote.ts`, `tests/biomes.test.ts`, `tests/objets.test.ts`.
+
+**Objectif**
+Se servir de la Carte pour aller vers les biomes (et les champions) que l'équipe bat le mieux.

@@ -68,6 +68,7 @@ export interface ContexteObjets {
   prixBoutique?: Record<string, number> | undefined;
   /** Un membre de l'équipe peut se Méga-évoluer / se Gigamaxer (forme connue du Pokédex). */
   formesSpeciales?: { mega: boolean; gigamax: boolean } | undefined;
+  possedeCarte?: boolean | undefined;
 }
 
 const OBJETS_EXPERIENCE = new Set(["EXP_CHARM", "SUPER_EXP_CHARM", "GOLDEN_EXP_CHARM", "LUCKY_EGG", "GOLDEN_EGG"]);
@@ -181,13 +182,14 @@ export const VALEURS: Readonly<Record<string, number>> = {
   // Combat en cours
   TEMP_STAT_STAGE_BOOSTER: 6, DIRE_HIT: 6,
   // Divers
-  MAP: 5, IV_SCANNER: 4, MEMORY_MUSHROOM: 5, MINT: 4, TERA_SHARD: 4, ABILITY_CHARM: 3,
+  IV_SCANNER: 4, MEMORY_MUSHROOM: 5, MINT: 4, TERA_SHARD: 4, ABILITY_CHARM: 3,
   LOCK_CAPSULE: 3, SHINY_CHARM: 2,
   // Leurres : plus de combats doubles, donc plus de membres exposés. Mesuré le 03/10 (banc apparié) :
   // les prendre volontiers coûte 17 vagues ; Carlos (04/10) : « mauvais dans la majorité des cas ».
   LURE: 0, SUPER_LURE: 0, MAX_LURE: 0,
 };
 const VALEUR_INCONNUE = 5;
+const NOTE_CARTE = 25;
 /** Jusqu'à ce niveau, les Super Bonbons vont au porteur de l'équipe (son meilleur Pokémon). */
 const NIVEAU_PORTEUR = 40;
 
@@ -418,6 +420,11 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
     return utile
       ? { note: 45, cible: null, pour: ["un membre de l'équipe peut s'en servir"], contre: [] }
       : { note: 6, cible: null, pour: [], contre: ["personne dans l'équipe ne peut s'en servir pour l'instant"] };
+  }
+  if (objet.id === "MAP") {
+    return ctx.possedeCarte
+      ? { note: 0, cible: null, pour: [], contre: ["l'équipe a déjà une Carte"] }
+      : { note: NOTE_CARTE, cible: null, pour: ["choisir le prochain biome, donc le type du prochain champion"], contre: [] };
   }
   const base0 = VALEURS[objet.id];
   // L'expérience ne vaut que pour les membres encore sous le plafond de niveau.

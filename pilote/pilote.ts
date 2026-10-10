@@ -14,6 +14,7 @@ import {
   optionsEquipePleineAffichees,
   optionsRecompensesAffichees,
 } from "../observateur/decisions-jeu";
+import { choisirBiome } from "../observateur/biomes";
 import { meilleureOptionEquipe } from "../observateur/equipe";
 import type { ScenePokerogue } from "../observateur/jeu";
 import { Carnet } from "../observateur/carnet";
@@ -320,8 +321,17 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
     return "referme un écran";
   }
 
+  if (mode === ECRAN.OPTION_SELECT && phase === "SelectBiomePhase") {
+    const noms = ((e as Ecran & { config?: { options?: { label?: string }[] } }).config?.options ?? []).map(o => o.label ?? "");
+    const obs = observer(scene, etat.carnet ?? new Carnet());
+    const choix = obs ? choisirBiome(noms, obs.equipe, obs.partie.vague, scene.arena?.biomeId, etat.carnet?.vagueDesChampions()) : 0;
+    e.setCursor(choix);
+    e.processInput(BOUTON.ACTION);
+    return `biome : ${noms[choix] ?? "?"}`;
+  }
+
   if (mode === ECRAN.OPTION_SELECT) {
-    // Menus à options, dont le choix du prochain biome : la première option.
+    // Menus à options : la première option.
     e.setCursor(0);
     e.processInput(BOUTON.ACTION);
     return "option";

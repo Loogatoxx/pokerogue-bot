@@ -492,3 +492,11 @@ Petites corrections sûres, trop petites pour être prouvées seules, mesurées 
 ## Juge sur le rival 2 avec le code du paquet (10/10) — diagnostic
 
 12 défaites au rival 2 de `p21-paquet` (sur 166), rejouées à l'identique : toutes gagnables en changeant un seul coup ; depuis la photo, le bot gagne 32 % du temps (comme avant le paquet). Corrections du juge (64) : aurait dû changer de Pokémon 29, mauvais Pokémon envoyé 16, attaque de statut 11 (Rugissement 5 fois, Mimi-Queue, Brouillard, Jet de Sable…), autre attaque 5. Force du signal (victoires sur 3 avenirs, coup du bot → coup du juge) : 0 → 1 dans 23 cas (surtout du hasard), 1 → 3 ou 2 → 3 dans 21 cas (nets). Les erreurs restent des changements : le prix de 0,05 a supprimé les séries, mais pas les changements manqués. Fichier : `juge-p21-rival2.jsonl` (dossier du banc).
+
+## Carte et choix du biome (10/10) — à mesurer après le paquet 2
+
+**Constat** (remarque de Carlos) : avec la Carte, le jeu laisse choisir le prochain biome ; le pilote prenait toujours la première option et notait la Carte 5 (il la sautait). Dans le jeu, le champion d'arène est tiré parmi les dresseurs « boss » du biome : le biome choisi à la vague 10, 40, 70… (ou 20, 50, 80…) fixe le type du champion suivant. Les champions font ~27 % des morts.
+
+**Idée** : `donnees/biomes.json` (export du jeu) ; note d'un biome = moyenne, sur ses sauvages pondérés par leur rareté (356/124/26/5/1 sur 512), de log2(meilleur membre : efficacité de ses attaques × résistance à leurs types), plus 3 × la même note pour ses champions s'il y a une vague de champion dans ces 10 vagues ; Carte notée 25 si l'équipe n'en a pas.
+
+**Mesure fixée d'avance** : `p27-biomes` (960 parties) contre la référence du moment (`p26-paquet2` s'il est gardé, sinon `p21-paquet`), mêmes graines ; garder si l'écart dépasse 2 erreurs-types.
