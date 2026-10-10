@@ -17,7 +17,7 @@
  * les membres les plus avancés. Les valeurs de base (VALEURS) sont un point de départ réglable.
  * Une formule lisible, en attendant que le cerveau apprenne lui-même à choisir ses récompenses.
  */
-import { type CombatImportant, prochainRival } from "./combats";
+import type { CombatImportant } from "./combats";
 import type { Membre } from "./equipe";
 import { PokeballType, PokemonType } from "./noms";
 import { type AttaqueNotee, evaluerApprentissage, meilleureOption, noterJeu } from "./synergie";
@@ -190,7 +190,6 @@ export const VALEURS: Readonly<Record<string, number>> = {
 const VALEUR_INCONNUE = 5;
 /** Jusqu'à ce niveau, les Super Bonbons vont au porteur de l'équipe (son meilleur Pokémon). */
 const NIVEAU_PORTEUR = 40;
-const VAGUES_AVANT_RIVAL = 16;
 
 const SOINS = new Set(["POTION", "SUPER_POTION", "HYPER_POTION", "MAX_POTION", "FULL_RESTORE"]);
 const RAPPELS = new Set(["REVIVE", "MAX_REVIVE"]);
@@ -319,8 +318,7 @@ function juger(objet: ObjetPropose, ctx: ContexteObjets): Jugement {
     // Un rival dans 8 vagues ou moins : chaque niveau du porteur compte énormément. Mesuré au rival 1
     // (02/10, 1 919 parties) : porteur niveau 6 → 15 % de défaites, 7 → 5 %, 8 → 2 %, 9 → 1 %. Le
     // bot préférait 5 Poké Balls (note 30 à 45) au Super Bonbon (18).
-    const rival = ctx.prochainCombat ? prochainRival(ctx.prochainCombat.vague - ctx.prochainCombat.dans) : null;
-    const rivalProche = !!rival && rival.dans <= VAGUES_AVANT_RIVAL;
+    const rivalProche = ctx.prochainCombat?.genre === "rival" && ctx.prochainCombat.dans <= 8;
     const noteBonbonPorteur = rivalProche ? 50 : 18;
     const r = meilleurReceveur(objet, ctx, m => {
       if (m.ko) {
