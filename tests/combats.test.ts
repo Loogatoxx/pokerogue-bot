@@ -2,7 +2,7 @@
  * Combats importants du Classique : ceux qu'un joueur voit venir.
  */
 import { describe, expect, it } from "vitest";
-import { combatDeLaVague, prochainCombatImportant, typesAPreparer } from "../observateur/combats";
+import { combatDeLaVague, prochainCombatImportant } from "../observateur/combats";
 
 describe("Combats importants", () => {
   it("reconnaît le rival, le Gamin et les boss toutes les 10 vagues", () => {
@@ -31,13 +31,5 @@ describe("Combats importants", () => {
     expect(combatDeLaVague(35)?.rang).toBe(2);
     expect(combatDeLaVague(95)?.rang).toBe(3);
     expect(combatDeLaVague(200)?.rang).toBe(3);
-  });
-});
-
-describe("Préparation au rival", () => {
-  it("vise le type de son starter quand on l'a vu au rival 1, sinon les trois possibles", () => {
-    expect(typesAPreparer(18, 10)).toEqual([10, 2]);
-    expect(typesAPreparer(18)).toEqual([11, 9, 10, 2]);
-    expect(typesAPreparer(10, 10)).toBeUndefined();
   });
 });

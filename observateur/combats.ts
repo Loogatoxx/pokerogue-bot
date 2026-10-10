@@ -79,11 +79,8 @@ export function prochainRival(vague: number): CombatImportant | null {
  * des familles connues (jeu : rival-party-config.ts) : un starter (Plante, Feu ou Eau) et un
  * oiseau (Normal/Vol). Rien à préparer si le rival est à plus de 10 vagues.
  */
-export function typesAPreparer(vague: number, starterRival?: number): number[] | undefined {
+export function typesAPreparer(vague: number): number[] | undefined {
   const rival = prochainRival(vague);
   // Valeurs de PokemonType : Plante 11, Feu 9, Eau 10, Vol 2.
-  if (!rival || rival.dans > 10) {
-    return undefined;
-  }
-  return starterRival === undefined ? [11, 9, 10, 2] : [starterRival, 2];
+  return rival && rival.dans <= 10 ? [11, 9, 10, 2] : undefined;
 }

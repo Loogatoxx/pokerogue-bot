@@ -479,7 +479,7 @@ Code mesuré : dossier de banc `bonbon` (précision `7b747dc`, équipe connue de
 
 **Résultat** (`p25-exp` contre `p21-paquet`) : **+0,74** (erreur-type 1,23, seuil 2,47, 472 paires). Rival 2 : 81 → 83 % ; niveaux à la vague 25 presque inchangés (2e membre 14,82 → 14,92) ; morts contre des boss sauvages 24 → 40 (vague 100 : 0 → 8, vague 70 : 3 → 6) : en fin de partie toute l'équipe est au plafond et la règle envoyait un membre plus faible contre le boss. **Verdict : annulé** (`git revert`). Si on y revient : exclure les boss sauvages, et ne viser que les vagues avant le rival 2.
 
-## Paquet 2 (10/10) — en mesure (règle fixée avant tout résultat)
+## Paquet 2 (10/10) — rejeté (règle fixée avant tout résultat)
 
 Petites corrections sûres, trop petites pour être prouvées seules, mesurées d'un bloc :
 - **TELEPORTING_HIJINKS** : option 3 en premier. Les trois options mènent à un boss ; avec 1 et 2 (payer le voyage, ou un Pokémon Acier/Électrik) il gagne +1 à toutes ses stats ; le 3 donne Aimant et Peau Métal (`teleporting-hijinks-encounter.ts`). Avant : 9 morts sur 75 rencontres.
@@ -488,6 +488,8 @@ Petites corrections sûres, trop petites pour être prouvées seules, mesurées 
 - **EXP au membre sous le plafond** (rejetée seule à +0,74, avec des morts contre les boss sauvages de fin de partie) : seulement avant le rival 2 et jamais contre un boss.
 
 **Mesure** : `p26-paquet2` (960 parties) contre `p21-paquet` (960), mêmes graines. **Tout garder si l'écart dépasse 2 erreurs-types ; sinon tout abandonner** (pas de tri après coup).
+
+**Résultat** : **+0,94** (erreur-type 0,72, seuil 1,44, 948 paires) · mieux 181, pareil 611, pire 156. Morts en rencontre mystère 45 → 19 (Baies à foison 16 → 0, Téléportation 9 → 2) ; boss sauvages 59 → 65 ; rival 5 42 → 33 %. **Verdict : tout annulé** (`git revert`), comme fixé d'avance. Les corrections des rencontres mystères font bien ce qu'elles visent ; si on les reprend, ce sera seules et sur des graines neuves (960 à 1919), règle fixée avant.
 
 ## Juge sur le rival 2 avec le code du paquet (10/10) — diagnostic
 

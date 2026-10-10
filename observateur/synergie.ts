@@ -221,7 +221,7 @@ const porteurDe = (p: PokemonJeu): Porteur => ({ types: p.getTypes(), stats: [0,
  * Si le jeu affiche l'écran « quelle attaque oublier ? », les options notées ; sinon null.
  * (L'écran de résumé du jeu garde le Pokémon et la nouvelle attaque dans ses propriétés.)
  */
-export function optionsApprentissageAffichees(scene: ScenePokerogue, starterRival?: number): OptionApprentissage[] | null {
+export function optionsApprentissageAffichees(scene: ScenePokerogue): OptionApprentissage[] | null {
   if (scene.ui.getMode() !== ECRAN.SUMMARY) {
     return null;
   }
@@ -239,6 +239,6 @@ export function optionsApprentissageAffichees(scene: ScenePokerogue, starterRiva
     pokemon.getMoveset().map(a => versNotee(a.getMove())),
     versNotee(resume.newMove),
     couvertureEquipe(autres),
-    typesAPreparer(scene.currentBattle?.waveIndex ?? 0, starterRival),
+    typesAPreparer(scene.currentBattle?.waveIndex ?? 0),
   );
 }

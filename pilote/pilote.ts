@@ -21,7 +21,6 @@ import { Carnet } from "../observateur/carnet";
 import { meilleurAchat, meilleurObjet } from "../observateur/objets";
 import { observer } from "../observateur/observateur";
 import { changerAuDebut } from "../observateur/planificateur";
-import { statsEstimees } from "../observateur/prevision";
 import { meilleureOption, optionsApprentissageAffichees } from "../observateur/synergie";
 import { BOUTON, CIBLE, COMMANDE, ECRAN, OPTION_EQUIPE, USAGE_ATTAQUE_NORMAL } from "../observateur/valeurs";
 import RENCONTRES from "../donnees/rencontres-mysteres.json";
@@ -345,14 +344,14 @@ export function repondreParRegles(scene: ScenePokerogue, etat: EtatPilote): stri
   }
 
   if (mode === ECRAN.SUMMARY) {
-    return choisirAttaqueAOublier(scene, e, etat);
+    return choisirAttaqueAOublier(scene, e);
   }
 
   if (mode === ECRAN.CONFIRM && (phase === "AttemptCapturePhase" || phase.startsWith("MysteryEncounter"))) {
     // Capture réussie mais équipe pleine (en combat, ou dans une rencontre comme la Zone Safari) :
     // le jeu propose (résumé, Pokédex, relâcher un membre, ne pas le garder). On suit la note
     // d'équipe (observateur/equipe.ts). Valider la 1re option ouvrait le résumé, encore et encore.
-    const options = optionsEquipePleineAffichees(scene, etat.carnet?.typeStarterRival());
+    const options = optionsEquipePleineAffichees(scene);
     if (options) {
       const ids = scene.getPlayerParty().map(p => p.id);
       const remplacer = membreARelacher(meilleureOptionEquipe(optionsSansVerrou(options, ids, etat.verrouilles)).remplacer, etat.garderEquipe);
@@ -403,21 +402,6 @@ export function optionRencontre(type: number | undefined, possibles: number[]): 
   return preferees.find(option => possibles.includes(option)) ?? possibles[0]!;
 }
 
-const BERRIES_ABOUND = 19;
-const OPTION_COURSE = 1;
-const VITESSE = 5;
-const MARGE_COURSE = 1.2;
-
-export function courseGagnable(scene: ScenePokerogue): boolean {
-  const boss = scene.currentBattle?.mysteryEncounter?.enemyPartyConfigs?.[0]?.pokemonConfigs?.[0];
-  if (!boss?.species?.baseStats || !boss.level) {
-    return true;
-  }
-  const vitesseBoss = statsEstimees(boss.species.baseStats, boss.level)[VITESSE] ?? 0;
-  const plusRapide = Math.max(0, ...scene.getPlayerParty().filter(p => !p.isFainted()).map(p => p.getStat(VITESSE)));
-  return plusRapide > vitesseBoss * MARGE_COURSE;
-}
-
 function choisirRencontreMystere(scene: ScenePokerogue, e: Ecran): string | null {
   const ecranRencontre = e as Ecran & { blockInput?: boolean; optionsMeetsReqs?: boolean[]; encounterOptions?: unknown[] };
   if (ecranRencontre.blockInput) {
@@ -432,9 +416,7 @@ function choisirRencontreMystere(scene: ScenePokerogue, e: Ecran): string | null
     e.processInput(BOUTON.CANCEL);
     return "rencontre mystère : aucune option possible";
   }
-  const type = scene.currentBattle?.mysteryEncounter?.encounterType;
-  const sures = type === BERRIES_ABOUND && !courseGagnable(scene) ? possibles.filter(i => i !== OPTION_COURSE) : possibles;
-  const choix = optionRencontre(type, sures.length ? sures : possibles);
+  const choix = optionRencontre(scene.currentBattle?.mysteryEncounter?.encounterType, possibles);
   e.setCursor(choix);
   e.processInput(BOUTON.ACTION);
   return `rencontre mystère : option ${choix + 1}`;
@@ -457,7 +439,7 @@ function choisirRecompense(scene: ScenePokerogue, e: Ecran, etat: EtatPilote): s
   }
   // Rangée 1 = les récompenses gratuites, notées d'après l'état de l'équipe (observateur/objets.ts).
   // On prend la mieux notée pas encore essayée dans cette vague ; si aucune ne sert, on passe.
-  const toutes = optionsRecompensesAffichees(scene, etat.carnet?.vagueDesChampions(), etat.carnet?.typeStarterRival()) ?? [];
+  const toutes = optionsRecompensesAffichees(scene, etat.carnet?.vagueDesChampions()) ?? [];
   if (!etat.recompensesEssayees.size) {
     for (const o of toutes) {
       etat.offertes[o.nom] = (etat.offertes[o.nom] ?? 0) + 1;
@@ -488,7 +470,7 @@ function choisirAchat(scene: ScenePokerogue, e: Ecran, etat: EtatPilote): string
   if (etat.achats >= ACHATS_MAX) {
     return null;
   }
-  const notes = (optionsBoutiqueAffichees(scene, etat.carnet?.vagueDesChampions(), etat.carnet?.typeStarterRival()) ?? []).filter(o => !etat.achatsRefuses.has(o.index));
+  const notes = (optionsBoutiqueAffichees(scene, etat.carnet?.vagueDesChampions()) ?? []).filter(o => !etat.achatsRefuses.has(o.index));
   const choix = meilleurAchat(notes);
   if (!choix || !e.setRowCursor) {
     return null;
@@ -510,9 +492,9 @@ function choisirAchat(scene: ScenePokerogue, e: Ecran, etat: EtatPilote): string
  * des 4) avec la note de synergie du jeu d'attaques complet (observateur/synergie.ts), et on
  * garde la mieux notée.
  */
-function choisirAttaqueAOublier(scene: ScenePokerogue, e: Ecran, etat: EtatPilote): string | null {
+function choisirAttaqueAOublier(scene: ScenePokerogue, e: Ecran): string | null {
   const resume = e as Ecran & { moveSelect?: boolean };
-  const options = optionsApprentissageAffichees(scene, etat.carnet?.typeStarterRival());
+  const options = optionsApprentissageAffichees(scene);
   if (!options) {
     e.processInput(BOUTON.CANCEL);
     return "garde ses attaques";
