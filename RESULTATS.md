@@ -385,3 +385,16 @@ Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au ri
 | Argent médian avant le champion de la vague 50 (survivants) | 952 | 2 382 |
 
 **Verdict : annulé** (dans le bruit). L'économie change bien, mais l'effet sur la vague moyenne est petit. `donnees/importance-combats.json` est gardé (utilisé par l'analyse de l'économie).
+
+## Pas de Potion au-dessus de 70 % de PV (10/10) — rejeté, perte significative
+
+**Idée** (remarque de Carlos : « il claque des Potions pour mettre full HP alors qu'il était presque full ») : pas d'achat de Potion pour un membre au-dessus de 70 % de ses PV, même avant un combat important (`9fc2d45`).
+
+| | Référence `p16-ref` | Seuil 70 % |
+|---|---|---|
+| Vague moyenne | 60,71 | 57,90 |
+| Écart apparié | — | **−2,88** (erreur-type 1,39, 474 paires) · mieux 131, pareil 184, pire 159 |
+| Potions par partie | 17,0 | 8,5 |
+| Rival 3 / rival 4 | 92 % / 76 % | 87 % / 69 % |
+
+**Verdict : annulé.** Remettre l'équipe à 100 % avant les combats aide, même depuis 85 % : une Potion (le moins cher des soins) vaut plus que l'argent gardé. Les Potions « à PV hauts » ne sont pas un gaspillage pour ce bot.
