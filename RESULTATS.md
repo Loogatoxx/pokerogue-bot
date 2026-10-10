@@ -419,3 +419,16 @@ Résultat : **−0,42** (erreur-type 0,28, 474 paires ; 451 parties identiques) 
 | Écart apparié | — | **+1,21** (erreur-type 1,36, 471 paires) · mieux 147, pareil 198, pire 126 |
 
 **Verdict : annulé seul** (dans le bruit) ; écart positif, donc inclus dans l'essai « paquet » (règle fixée d'avance).
+
+## Capture des légendaires, règle corrigée (10/10) — rejetée
+
+Règle corrigée (`f8d57ad`, banc `p19b`). **Correction de mesure** : une capture avec l'équipe pleine remplace un membre et ne change pas la taille de l'équipe ; l'outil ne comptait que les recrues qui l'agrandissaient. Compté désormais : l'espèce présente dans l'équipe à la vague suivante et absente avant (`rapport_legendaires.py`). Avec ce comptage, **la référence capturait déjà 6 semi-légendaires sur 64 rencontres**.
+
+| | Référence `p16-ref` | Capture des légendaires |
+|---|---|---|
+| Captures (rencontres) | 6 (64) | 8 (60), dont 1 fabuleux |
+| Écart apparié, 480 parties | — | **−0,64** (erreur-type 0,29 ; 450 parties identiques) |
+| Écart apparié, 59 parties avec une rencontre rare | — | **−3,64** (erreur-type 1,77) |
+| Parties capturées seulement grâce à la règle (vague finale avec / sans) | — | 80/114, 110/110, 112/114, 114/120, 95/90 |
+
+**Verdict : annulée.** Dans ce banc (compte neuf, semi-légendaires boss vers la vague 80), capturer le légendaire n'aide pas : l'affaiblir use l'équipe et il remplace un membre entraîné. Retirée du paquet (règle fixée d'avance : seulement les écarts seuls positifs).

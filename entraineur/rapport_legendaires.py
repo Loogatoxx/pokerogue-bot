@@ -14,12 +14,16 @@ CATEGORIES = ("légendaire", "semi-légendaire", "fabuleux")
 
 def rencontres(r: dict) -> list[dict]:
     vues = []
+    especes = r.get("especes") or {}
     for vague, v in sorted((r.get("sauvages") or {}).items(), key=lambda x: int(x[0])):
         recrues = set(v.get("recrues") or [])
+        avant = set(especes.get(vague) or [])
+        apres = set(especes.get(str(int(vague) + 1)) or [])
         for s in v.get("especes") or []:
             if s.get("categorie") in CATEGORIES:
+                gardee = s["espece"] in recrues or (s["espece"] in apres and s["espece"] not in avant)
                 vues.append({"vague": int(vague), "espece": s["espece"], "categorie": s["categorie"], "boss": s["boss"],
-                             "capture": s["espece"] in recrues})
+                             "capture": gardee})
     return vues
 
 
