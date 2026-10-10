@@ -167,7 +167,6 @@ export interface Observation {
     prochainCombat: CombatImportant;
     /** Type du starter du rival, vu au rival 1 (absent avant, ou si la partie reprend d'une photo). */
     starterRival?: number;
-    plafondNiveau?: number;
   };
   equipe: PokemonAllie[];
   adversaires: PokemonAdverse[];
