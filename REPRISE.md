@@ -25,6 +25,8 @@ est, ce qui reste à décider, comment le décider, et ce qu'on a appris. Mettre
   changements jusqu'à 33). Retirée à la main ; extension **0.13.1** = le paquet tel que mesuré.
 - Super Bonbons au porteur dès 16 vagues du rival : **+0,03** (bruit), annulé ; le bot prenait déjà
   presque tous les bonbons proposés (niveau au rival 2 : 18,92 → 18,99).
+- EXP au membre sous le plafond : **+0,74** (bruit), annulé ; niveaux presque inchangés, et plus de
+  morts contre les boss sauvages de fin de partie (vague 100 : 0 → 8).
 
 **Avant le 10/10** :
 - Branche de travail : `claude/pokerogue-bot-macro-strategy-33yi1e`, PR #9 (brouillon) vers `main`.

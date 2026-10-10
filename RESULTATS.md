@@ -470,3 +470,11 @@ Code mesuré : dossier de banc `bonbon` (précision `7b747dc`, équipe connue de
 **Idée** (`05545e9`) : la priorité « rival proche » du Super Bonbon (note 50 au porteur au lieu de 18) ne s'appliquait que si le prochain combat important était le rival, à 8 vagues ou moins ; désormais dès que le prochain rival est à 16 vagues ou moins.
 
 **Résultat** (`p24-bonbons` contre `p21-paquet`) : **+0,03** (erreur-type 1,15, seuil 2,30, 475 paires ; 314 parties identiques). Super Bonbons pris aux vagues 9-24 : 973 → 1 047 (+0,16 par partie) ; niveau du meilleur Pokémon à la vague 25 : 18,92 → 18,99. **Verdict : annulé** (`git revert`). Le bot prenait déjà presque tous les bonbons proposés : le retard de niveau au rival 2 ne vient pas du choix des récompenses.
+
+## L'expérience au membre qui peut la prendre (10/10) — rejeté
+
+**Constat** : dans le jeu (`applyPartyExp`), un Pokémon au plafond de niveau ne reçoit aucune EXP et sa part n'est pas redistribuée ; le combattant prend toute l'EXP de la vague, les autres 20 % par Multi Exp. Dans `p21-paquet`, le porteur est au plafond (16) à la vague 20 dans 58 % des parties (≈ 1,6 vague perdue entre 11 et 20), pendant que le 2e membre a 4 à 5 niveaux de retard ; `valeurEntree` donnait le bonus du porteur (0,4) même au plafond.
+
+**Idée** (`cd6ad5e`) : plafond dans l'observation ; au plafond, bonus transféré au meilleur membre sous le plafond, et changement gratuit accepté si un membre sous le plafond gagne son duel avec au moins la moitié de ses PV.
+
+**Résultat** (`p25-exp` contre `p21-paquet`) : **+0,74** (erreur-type 1,23, seuil 2,47, 472 paires). Rival 2 : 81 → 83 % ; niveaux à la vague 25 presque inchangés (2e membre 14,82 → 14,92) ; morts contre des boss sauvages 24 → 40 (vague 100 : 0 → 8, vague 70 : 3 → 6) : en fin de partie toute l'équipe est au plafond et la règle envoyait un membre plus faible contre le boss. **Verdict : annulé** (`git revert`). Si on y revient : exclure les boss sauvages, et ne viser que les vagues avant le rival 2.
