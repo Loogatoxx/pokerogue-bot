@@ -8,22 +8,33 @@ est, ce qui reste à décider, comment le décider, et ce qu'on a appris. Mettre
 
 ## 1. Où on en est
 
+**Mise à jour du 10/10 (cloud)** — à lire avant le reste de ce fichier :
+- **Référence actuelle** : `p16-ref` = **60,71 vagues** (475 parties ; étendue à 960 le 10/10).
+  Banc instrumenté : argent, Balls, achats avec les PV de l'équipe, récompenses, sauvages rencontrés
+  (légendaire, fabuleux, semi-légendaire, boss), recrues, attaques résistées.
+- Rejetés le 09-10/10 (détails dans RESULTATS.md) : rang d'importance des combats (+0,74 ± 1,44),
+  Potions seulement sous 70 % (−2,88 ± 1,39), capture des légendaires (−0,64 ± 0,29 ; −3,64 ± 1,77
+  sur les parties concernées). Départage des attaques : +1,21 ± 1,36, gardé pour le paquet.
+- **Rapport « raison ou tort »** (légendaires, économie, tous les verdicts) en tableau de bord :
+  https://claude.ai/artifact/6AaMPHekDrkjHVxd9E9Zgm
+- **En mesure** :
+  1. `p21-paquet` (960 parties contre `p16-ref` à 960) : précision + ciblage et prix de changement
+     0,05 + rang des combats + départage. Code : dossier de banc `bonbon` (non commité sur la
+     branche). Règle fixée d'avance : tout garder si l'écart dépasse 2 erreurs-types, sinon tout
+     abandonner. S'il est gardé : reporter les changements sur la branche (`7b747dc`, `45e2f0d` +
+     `COUT_CHANGEMENT = 0.05`, `f3e05f4`, `af8222b`), corriger le test du ciblage écrit pour 0,01,
+     reconstruire l'extension.
+  2. `p22-ia` (480 parties contre `p16-ref`) : l'IA du dresseur dans le moteur d'équipe (`0727e3b`,
+     sur la branche). Si l'écart reste sous 2 erreurs-types : `git revert 0727e3b`.
+  Si les crédits du cloud s'épuisent avant la fin : refaire ces deux bancs en local (section 2.1,
+  commandes de `banc_complet` avec `--nom`, `--plan-seul`, `--parties 960` pour le paquet).
+
+**Avant le 10/10** :
 - Branche de travail : `claude/pokerogue-bot-macro-strategy-33yi1e`, PR #9 (brouillon) vers `main`.
-- **Référence actuelle (plan seul, simulateur corrigé)** : `p7-ref` = **60,03 vagues** sur 475
-  parties valides (rival 2 : 79 %, rival 4 : 75 %). Code des décisions : `77dabf3` (identique à
-  `cc7a855` pour les décisions).
+- Ancienne référence : `p7-ref` = 60,03 vagues sur 475 parties valides (rival 2 : 79 %, rival 4 : 75 %).
 - Gains gardés depuis le début : changements (+3,91), rencontres mystères (+9,31), boucle du pilote
   (erreurs 57 → 6), bug du banc de l'Éleveur expert (le jeu continue après une défaite dans cette
   rencontre : la référence est passée de 57,9 à 60,0 sans changer le bot).
-- **Deux changements jugés dans le cloud le 05/10, tous les deux annulés** (voir « Verdicts ») :
-
-| Commit | Changement | Banc | Comparé à |
-|---|---|---|---|
-| `45e2f0d` (**annulé**, voir Verdicts) | Moteur d'équipe : au tour d'un changement, l'IA adverse vise le Pokémon **qui part** (comme le jeu : `EnemyCommandPhase` avant `TurnStartPhase`) | `p13-ciblage` | `p7-ref` |
-| `0fff884` (**annulé**, voir Verdicts) | Moteur d'équipe : Pokémon pas encore vus d'un **rival** joués avec le niveau et les stats de leur emplacement (`donnees/rivaux.json`, exporté du jeu ; rival 2 : 3e Pokémon niveau 16, pas une copie du starter) | `p14-rivaux` (mesuré **sans** `45e2f0d`) | `p7-ref` |
-
-Un troisième essai (ciblage + prix de changement plus élevé, `p15-ciblage-prix`) tournait au moment
-où les crédits s'épuisaient : voir « Verdicts ».
 
 ## 2. Ce qu'il faut faire en reprenant (dans l'ordre)
 
