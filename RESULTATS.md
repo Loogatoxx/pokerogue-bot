@@ -360,3 +360,28 @@ Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au ri
 **Réplication (960 parties, règle fixée d'avance)** : **+1,92** (erreur-type 1,08, seuil 2,16, 946 paires) · mieux 322, pareil 351, pire 273 ; graines neuves seules (480-959) : +1,96 ± 1,45. Changements par partie 13,5 → 8,8 ; séries de 3 ou plus 70 → 28. Rival 4 : 70 → 73 %.
 
 **Verdict : pas gardé** (1,8 erreur-type, sous le seuil fixé). L'effet est constant sur les deux lots de graines (+1,87 puis +1,96) : c'est le candidat n° 1 pour la suite (voir REPRISE.md).
+
+## Référence instrumentée et économie (09-10/10)
+
+`p16-ref` (`392fe80`, mêmes décisions que `p7-ref`, banc instrumenté : argent, Balls, achats avec les PV de l'équipe, récompenses, sauvages rencontrés et recrues) : **60,71** sur 475 parties valides. **Référence actuelle.**
+
+**Constats** (`entraineur/analyse_economie.py`, `entraineur/rapport_legendaires.py`) :
+- 17 Potions et 11 Super Potions achetées par partie ; 69 % des Potions (5 582 sur 8 095) achetées quand l'équipe avait 85 % de ses PV ou plus.
+- Toutes les vagues X0 comptaient comme « combat important » : 1 105 Rappels achetés avant un boss sauvage (rang 1), contre 730 avant les combats de rang 3 (rivaux, champions, Team, Conseil 4).
+- Ceux qui meurent à un combat de rang 3 y arrivent plus pauvres (argent médian avant le champion de la vague 50 : 952 ₽ si on survit, 100 ₽ si on meurt ; avant l'Admin de la vague 66 : 2 087 contre 137).
+- Légendaires : 64 rencontres en 475 parties (59 semi-légendaires dans 12 % des parties, 2 légendaires, 3 fabuleux), toutes des boss sauvages (vague médiane 80) ; **0 capturé** (boucliers à casser, pas de Master Ball ; le bot le met ensuite K.O. alors qu'il a ~18 Poké Balls).
+- Objets d'expérience : 2 à 3 % des récompenses ; quand le bot les prend, l'équipe est en moyenne 7 à 11 niveaux sous le plafond, même après la vague 100 : pas de gaspillage visible dans le banc.
+
+## Rang d'importance des combats (10/10) — rejeté
+
+**Idée** : `donnees/importance-combats.json` (rang 3 : rivaux, champions, Team admin/boss, Conseil 4, Maître ; 2 : sbires ; 1 : boss sauvages, Gamin) ; champions déduits à la vague 20 comme un joueur (série 20-50-80… ou 30-60-90…) ; pas de soin « urgent » avant un combat de rang 1 (`f3e05f4`).
+
+| | Référence `p16-ref` | Rangs |
+|---|---|---|
+| Vague moyenne / médiane | 60,71 / 55 | 61,40 / 60 |
+| Écart apparié | — | **+0,74** (erreur-type 1,44, 472 paires) · mieux 143, pareil 207, pire 122 |
+| Potions achetées avant un boss sauvage | 3 514 | 1 160 |
+| Rappels avant un boss sauvage | 1 105 | 1 057 (inchangé : le porteur K.O. reste ranimé hors urgence) |
+| Argent médian avant le champion de la vague 50 (survivants) | 952 | 2 382 |
+
+**Verdict : annulé** (dans le bruit). L'économie change bien, mais l'effet sur la vague moyenne est petit. `donnees/importance-combats.json` est gardé (utilisé par l'analyse de l'économie).
