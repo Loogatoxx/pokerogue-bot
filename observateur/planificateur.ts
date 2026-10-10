@@ -199,7 +199,6 @@ function valeurChangement(obs: Observation, partant: PokemonAllie, remplacant: P
 
 const GAIN_RARE = 3;
 const PENALITE_KO_RARE = 1;
-const BONUS_RARE = 0.5;
 const PV_AVANT_BALL = 30;
 
 const rareACapturer = (lui: PokemonAdverse) => !!lui.rare && (!lui.boss || lui.boss.segmentsRestants <= 1);
@@ -213,18 +212,10 @@ function valeursContreUnRare(obs: Observation, moi: PokemonAllie, lui: PokemonAd
       valeurs[a] = (valeurs[a] ?? 0) - PENALITE_KO_RARE;
     }
   }
-  const sansKo = attaques.filter(a => coup(a) > 0 && coup(a) < 1);
-  const affaiblir = lui.pvPourcent > PV_AVANT_BALL && sansKo.length > 0;
-  if (affaiblir) {
-    for (const a of sansKo) {
-      valeurs[a] = (valeurs[a] ?? 0) + BONUS_RARE;
-    }
-  }
-  const plancher = Math.min(...sansKo.map(a => valeurs[a] ?? 0), Infinity);
+  const affaiblir = lui.pvPourcent > PV_AVANT_BALL && attaques.some(a => coup(a) > 0 && coup(a) < 1);
+  const ratee = valeurBallRatee(obs, moi, lui) - 0.2;
   for (let action = PREMIERE_BALL; action < NOMBRE_ACTIONS; action++) {
-    valeurs[action] = !masque[action] ? 0
-      : affaiblir ? Math.min(valeurBallRatee(obs, moi, lui), plancher) - BONUS_RARE
-        : valeurBall(obs, moi, lui, action - PREMIERE_BALL, GAIN_RARE) + BONUS_RARE;
+    valeurs[action] = !masque[action] ? 0 : affaiblir ? ratee : valeurBall(obs, moi, lui, action - PREMIERE_BALL, GAIN_RARE);
   }
   return valeurs;
 }
