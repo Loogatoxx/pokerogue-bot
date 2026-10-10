@@ -222,6 +222,7 @@ export function observer(scene: ScenePokerogue, carnet: Carnet): Observation | n
       }
     : null;
 
+  const plafond = (scene as unknown as { getMaxExpLevel?: () => number }).getMaxExpLevel?.();
   return {
     version: VERSION_OBSERVATION,
     partie: {
@@ -241,6 +242,7 @@ export function observer(scene: ScenePokerogue, carnet: Carnet): Observation | n
       dresseur,
       prochainCombat: prochainCombatImportant(combat.waveIndex, carnet?.vagueDesChampions()),
       ...(carnet.typeStarterRival() !== undefined ? { starterRival: carnet.typeStarterRival()! } : {}),
+      ...(plafond !== undefined ? { plafondNiveau: plafond } : {}),
     },
     equipe: scene.getPlayerParty().map(allie),
     adversaires: surTerrain,

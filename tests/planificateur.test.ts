@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { adversairesSupposes, COUT_CHANGEMENT, valeursCombatEquipe } from "../observateur/combat-equipe";
-import { planifier } from "../observateur/planificateur";
+import { changerAuDebut, planifier } from "../observateur/planificateur";
 import type { Observation } from "../observateur/types";
 
 // Bulbizarre (Plante/Poison) en face d'un Salamèche de dresseur qui a déjà lancé Flammèche ;
@@ -82,6 +82,26 @@ describe("Combat d'équipe (contre un dresseur)", () => {
     obs.equipe[0]!.stats[5] = 99;
     const valeurs = planifier(obs)!;
     expect(meilleure(valeurs, obs.decision.masque!)).toBeLessThan(8);
+  });
+});
+
+describe("L'expérience au membre qui peut la prendre", () => {
+  function plafondAtteint(plafond: number): Observation {
+    const obs = situation();
+    obs.partie.dresseur = null;
+    obs.partie.vague = 18;
+    obs.partie.plafondNiveau = plafond;
+    obs.equipe[0]!.niveau = 16;
+    obs.adversaires[0] = { ...obs.adversaires[0]!, espece: 19, nom: "Rattata", niveau: 5, types: [{ id: 0, nom: "Normal" }], statsDeBase: [30, 56, 35, 25, 35, 72], attaquesVues: [] };
+    return obs;
+  }
+
+  it("au plafond, le porteur laisse le combat sauvage à un membre qui gagne encore de l'expérience", () => {
+    expect(changerAuDebut(plafondAtteint(16), 0)).toBe(true);
+  });
+
+  it("sous le plafond, le porteur garde le combat", () => {
+    expect(changerAuDebut(plafondAtteint(24), 0)).toBe(false);
   });
 });
 

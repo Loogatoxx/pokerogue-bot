@@ -375,9 +375,13 @@ export function secondCombattant(obs: Observation): PokemonAllie | null {
 }
 
 /** Entrer en jeu sans recevoir de coup (remplacement, changement gratuit) : le pire de ses duels. */
-function valeurEntree(obs: Observation, m: PokemonAllie, adversaires: PokemonAdverse[]): number {
+function valeurSansBonus(obs: Observation, m: PokemonAllie, adversaires: PokemonAdverse[]): number {
   const pv = m.pv / Math.max(m.pvMax, 1);
-  const v = Math.min(...adversaires.map(lui => valeurDuel(duel(obs, m, pv, lui, lui.pvPourcent / 100, degatsDesAutres(obs, lui, m, adversaires)))));
+  return Math.min(...adversaires.map(lui => valeurDuel(duel(obs, m, pv, lui, lui.pvPourcent / 100, degatsDesAutres(obs, lui, m, adversaires)))));
+}
+
+function valeurEntree(obs: Observation, m: PokemonAllie, adversaires: PokemonAdverse[]): number {
+  const v = valeurSansBonus(obs, m, adversaires);
   const porteur = Math.max(...obs.equipe.map(e => e.niveau));
   // Avant le rival 1, contre des sauvages, le second passe devant tant qu'il a du retard (et le
   // porteur perd alors son propre bonus : sinon, plus fort, il gardait toujours la place).
@@ -385,11 +389,16 @@ function valeurEntree(obs: Observation, m: PokemonAllie, adversaires: PokemonAdv
   if (second && second.niveau < porteur - RETARD_SECOND) {
     return v + (m.uid === second.uid && v > 0 ? BONUS_SECOND : 0);
   }
-  return v + (m.niveau >= porteur && v > 0 ? BONUS_PORTEUR : 0);
+  const plafond = obs.partie.plafondNiveau ?? Infinity;
+  const enDessous = obs.equipe.filter(e => !e.ko && e.niveau < plafond);
+  const vise = porteur < plafond || !enDessous.length ? porteur : Math.max(...enDessous.map(e => e.niveau));
+  const recoitExp = m.niveau >= vise && (m.niveau < plafond || !enDessous.length);
+  return v + (recoitExp && v > 0 ? BONUS_PORTEUR : 0);
 }
 
 /** Gain minimal pour accepter le changement gratuit du début de vague. */
 const GAIN_CHANGEMENT_GRATUIT = 0.3;
+const DUEL_SUR = 1.25;
 
 /**
  * « Changer de Pokémon ? » au début d'une vague contre des sauvages (style de combat « Changer ») :
@@ -403,6 +412,11 @@ export function changerAuDebut(obs: Observation, position: number): boolean {
   const banc = obs.equipe.filter(p => !p.surTerrain && !p.ko);
   if (!adversaires.length || !actuel || !banc.length) {
     return false;
+  }
+  const plafond = obs.partie.plafondNiveau ?? Infinity;
+  if (!obs.partie.dresseur && actuel.niveau >= plafond
+      && banc.some(m => m.niveau < plafond && valeurSansBonus(obs, m, adversaires) >= DUEL_SUR)) {
+    return true;
   }
   // Avant le rival 1 : le porteur garde l'expérience tant qu'il gagne son duel.
   const porteur = Math.max(...obs.equipe.map(m => m.niveau));
