@@ -128,6 +128,14 @@ describe("Stratégie du porteur", () => {
     expect(evaluerObjets([bonbon], avance)[0]!.cible).toBe(0); // passé 40, il aide le membre en retard
   });
 
+  it("prend la Carte (choix du biome) devant un Super Bonbon, mais pas une deuxième", () => {
+    const carte: ObjetPropose = { id: "MAP", nom: "Carte", cout: 0 };
+    const bonbon: ObjetPropose = { id: "RARE_CANDY", nom: "Super Bonbon", cout: 0 };
+    const equipe = [membre("Kaiminus", 30, [10], 80, 80), membre("Rattata", 25, [0], 60, 60)];
+    expect(meilleurObjet(evaluerObjets([bonbon, carte], { equipe, balls: [10, 0, 0, 0, 0] }))!.nom).toBe("Carte");
+    expect(evaluerObjets([carte], { equipe, balls: [10, 0, 0, 0, 0], possedeCarte: true })[0]!.note).toBe(0);
+  });
+
   it("n'empile plus les Charmes Exp quand l'équipe est au plafond", () => {
     const charme: ObjetPropose = { id: "EXP_CHARM", nom: "Charme Exp", cout: 0 };
     const equipe = [membre("Dracaufeu", 60, [9], 150, 150), membre("Tortank", 58, [10], 150, 150)];

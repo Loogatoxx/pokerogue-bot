@@ -173,7 +173,7 @@ function oiseauDuRival(starter: Acteur, evolue: boolean): Acteur {
 function inconnu(modele: Acteur, specialite?: number): Acteur {
   const plusForte = modele.coups.reduce((m, x, i) => (x.puissance > (modele.coups[m]?.puissance ?? -1) ? i : m), 0);
   return {
-    c: { ...modele.c, types: specialite === undefined ? [] : [specialite], crans: modele.c.crans.map(() => 0) },
+    c: { ...modele.c, types: specialite === undefined ? [] : [specialite], crans: modele.c.crans.map(() => 0), immunites: [] },
     pv: 1,
     // type inconnu : efficacité neutre, sans bonus de type
     coups: modele.coups.map((x, i) => ({ ...x, type: specialite !== undefined && i === plusForte ? specialite : -1 })),

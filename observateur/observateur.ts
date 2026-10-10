@@ -8,6 +8,7 @@
 import { masqueCombat, masqueRemplacement } from "./actions";
 import { attaqueVue, type Carnet } from "./carnet";
 import { prochainCombatImportant } from "./combats";
+import { biomeDuNom, choisirBiome, noterBiome } from "./biomes";
 import { optionsEquipePleineAffichees, optionsRecompensesAffichees } from "./decisions-jeu";
 import { meilleureOptionEquipe } from "./equipe";
 import { meilleurObjet } from "./objets";
@@ -153,7 +154,15 @@ function optionsAffichees(scene: ScenePokerogue, type: TypeDecision, serieChampi
     return [...gratuites, ...boutique];
   }
   if (type === "biome") {
-    return (ecran.config?.options ?? []).map(o => ({ nom: o.label ?? "?" }));
+    const noms = (ecran.config?.options ?? []).map(o => o.label ?? "?");
+    const equipe = scene.getPlayerParty().map(allie);
+    const fin = scene.currentBattle?.waveIndex ?? 0;
+    const choix = choisirBiome(noms, equipe, fin, scene.arena?.biomeId, serieChampions);
+    return noms.map((nom, i) => {
+      const id = biomeDuNom(nom, scene.arena?.biomeId);
+      const note = id === null ? null : noterBiome(id, equipe, fin, serieChampions);
+      return { nom, ...(note === null ? {} : { note: Math.round(note * 100) / 100 }), recommandee: i === choix };
+    });
   }
   if (type === "attaque-a-oublier") {
     const options = optionsApprentissageAffichees(scene);

@@ -27,6 +27,12 @@ est, ce qui reste à décider, comment le décider, et ce qu'on a appris. Mettre
   presque tous les bonbons proposés (niveau au rival 2 : 18,92 → 18,99).
 - EXP au membre sous le plafond : **+0,74** (bruit), annulé ; niveaux presque inchangés, et plus de
   morts contre les boss sauvages de fin de partie (vague 100 : 0 → 8).
+- **Carte et choix du biome GARDÉS** : +1,85 ± 0,76 (`p27-biomes` = **64,95**, nouvelle référence).
+  Le champion d'arène est tiré dans le biome : le bot va vers les biomes (et champions) que son
+  équipe bat ; la Carte vaut 25 (avant 5). Paquet 2 (rencontres, préparation au rival, EXP) : +0,94,
+  annulé. Extension 0.14.2 : options Bloquer les Balls, Équipe intouchable, verrous par Pokémon.
+- **Immunités de talent dans les dégâts GARDÉES** (Lévitation contre Sol…) : +1,04 ± 0,52, juste
+  au seuil. **Référence actuelle : `p28-immunites` = 65,96** (début de la journée : 59,5).
 
 **Avant le 10/10** :
 - Branche de travail : `claude/pokerogue-bot-macro-strategy-33yi1e`, PR #9 (brouillon) vers `main`.
@@ -151,6 +157,8 @@ Mis à jour le 10/10, référence `p21-paquet` = 63,23 (960 parties).
    défaites du rival 2 avec le code du paquet, pour voir quelles erreurs restent :
    `python -m entraineur.juge_banc --banc p21-paquet --types rival --vagues 25 --nombre 12 --sortie juge-p21-rival2.jsonl`
    (l'IA du dresseur dans le moteur a été essayée : −2,85, elle relance les séries de changements).
+   **Fait le 10/10** (voir RESULTATS.md) : 12 défaites sur 12 gagnables en un coup ; 29 « aurait dû
+   changer », 16 « mauvais Pokémon envoyé », 11 « attaque de statut » (Rugissement 5 fois).
 2. **Les murs de fin de partie** : vague 114 (admins de Team, 47 % de morts parmi ceux qui y
    arrivent) et 115 (boss de Team, 60 %). L'équipe y est au plafond : ce n'est pas un problème de
    niveau. Juge sur ces défaites (`--types team --vagues 114 115`).
@@ -166,7 +174,12 @@ Mis à jour le 10/10, référence `p21-paquet` = 63,23 (960 parties).
      boss sauvage.
    Règle à fixer d'avance comme pour le premier paquet : 960 parties, tout garder si l'écart dépasse
    2 erreurs-types, sinon tout abandonner.
-4. Bas : sommeil, objets tenus et talents dans les dégâts (BACKLOG n° 22) — à reprendre seulement
+4. **Aligner l'extension sur le banc pour les Balls** (défaite de Carlos le 10/10, Limonde boss
+   vague 40) : l'extension appelle `planifier(obs)` sans `capture: true`, donc contre un boss aux
+   boucliers cassés la Ball vaut exactement la meilleure attaque et le cerveau alterne Ball et
+   attaque pendant que le boss mange ses Baies Sitrus. Le banc mesure `plan_capture=True`. Passer
+   `{ capture: true }` dans `extension/src/panneau.ts` (2 appels), ou un mode « plan seul ».
+5. Bas : sommeil, objets tenus et talents dans les dégâts (BACKLOG n° 22) — à reprendre seulement
    après un diagnostic du juge qui les montre.
 
 ## 5. Méthode (rappel de REGLES.md)

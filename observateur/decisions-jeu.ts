@@ -163,6 +163,7 @@ function contexte(scene: ScenePokerogue, serieChampions?: number): ContexteObjet
     // Les récompenses arrivent après la vague gagnée : ce qui compte, c'est la suivante.
     prochainCombat: prochainCombatImportant((scene.currentBattle?.waveIndex ?? 0) + 1, serieChampions),
     typesAPreparer: typesAPreparer((scene.currentBattle?.waveIndex ?? 0) + 1),
+    possedeCarte: (scene.modifiers ?? []).some(m => m.type?.id === "MAP"),
     // Le plafond de niveau du moment (affiché par le jeu quand il monte) : au-delà, l'expérience ne sert plus.
     plafondNiveau: (scene as unknown as { getMaxExpLevel?: () => number }).getMaxExpLevel?.(),
     argent: scene.money,
