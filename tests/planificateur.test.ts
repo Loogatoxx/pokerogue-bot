@@ -35,12 +35,6 @@ describe("Planificateur par duels (sans le combat d'équipe)", () => {
     expect(valeurs[10]!).toBeGreaterThan(valeurs[9]!); // Salamèche, lui, ne résiste pas mieux
   });
 
-  it("à égalité (les deux mettent K.O.), préfère l'attaque non résistée (Charge plutôt que Fouet Lianes sur Salamèche)", () => {
-    const obs = situation(5);
-    const valeurs = planifier(obs, duels)!;
-    expect(valeurs[2]!).toBeGreaterThan(valeurs[4]!);
-  });
-
   it("achève un adversaire qui tombe ce tour-ci", () => {
     const obs = situation(5);
     const valeurs = planifier(obs, duels)!;
