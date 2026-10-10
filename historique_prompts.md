@@ -1342,3 +1342,21 @@ Utiliser toute l'équipe pendant une tentative de capture.
 **Objectif**
 Dépasser la moyenne de 60 vagues avec des changements prouvés, et répondre chiffres à l'appui aux
 remarques sur l'économie et les légendaires.
+
+## 49. Suite après la fusion de la PR #9 — 10/10/2026
+
+**Prompt**
+> c'est bon c'est fait tu peu continuer
+
+**Réponse**
+- Branche repartie de `main` (PR #9 fusionnée).
+- Juge lancé sur 12 défaites au rival 2 du banc `p21-paquet` (code du paquet), pour voir quelles
+  erreurs restent.
+- Préparation d'un « paquet 2 » de petites corrections sûres (rencontres mystères, préparation au
+  rival, EXP au plafond avant le rival 2), à mesurer d'un bloc sur 960 parties.
+
+**Modifications**
+- `historique_prompts.md` (la suite dans les entrées suivantes et RESULTATS.md).
+
+**Objectif**
+Continuer à monter la moyenne (63,2 vagues) en attaquant le rival 2, première cause de mort.
