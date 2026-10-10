@@ -432,3 +432,9 @@ Règle corrigée (`f8d57ad`, banc `p19b`). **Correction de mesure** : une captur
 | Parties capturées seulement grâce à la règle (vague finale avec / sans) | — | 80/114, 110/110, 112/114, 114/120, 95/90 |
 
 **Verdict : annulée.** Dans ce banc (compte neuf, semi-légendaires boss vers la vague 80), capturer le légendaire n'aide pas : l'affaiblir use l'équipe et il remplace un membre entraîné. Retirée du paquet (règle fixée d'avance : seulement les écarts seuls positifs).
+
+## IA du dresseur dans le moteur d'équipe (10/10) — en mesure
+
+**Idée** (chantier n° 1 de REPRISE.md) : dans le combat d'équipe simulé, le dresseur ne changeait jamais de Pokémon et remplaçait un K.O. par le premier de sa liste. Le jeu (`EnemyCommandPhase`, `getMatchupScore`) retire son Pokémon quand un membre du banc a un score de duel 3 fois meilleur (2 pour un boss, freiné après chaque changement) et envoie après un K.O. le membre au meilleur score. Le moteur fait maintenant pareil avec ce qu'un joueur sait (`0727e3b`). Cas réel (rival 2, partie 41, décision 1) : avant, Tranch'Herbe sur Croâporal (−0,64) ; maintenant le moteur prévoit l'entrée de l'oiseau (ce que fait le jeu dans la trace) et préfère épargner Brindibou (changement −0,65 contre attaques −0,83).
+
+**Mesure fixée d'avance** : `p22-ia` (480 parties) contre `p16-ref`, après l'essai « paquet » (une mesure à la fois, 4 cœurs). Garder si l'écart dépasse 2 erreurs-types.
