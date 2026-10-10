@@ -3,7 +3,7 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { adverse, allie, changementDuDresseur } from "../observateur/combat-equipe";
+import { adversairesSupposes, adverse, allie, changementDuDresseur, COUT_CHANGEMENT, valeursCombatEquipe } from "../observateur/combat-equipe";
 import { planifier } from "../observateur/planificateur";
 import type { Observation } from "../observateur/types";
 
@@ -36,11 +36,25 @@ describe("Planificateur par duels (sans le combat d'équipe)", () => {
     expect(valeurs[10]!).toBeGreaterThan(valeurs[9]!); // Salamèche, lui, ne résiste pas mieux
   });
 
+  it("à égalité (les deux mettent K.O.), préfère l'attaque non résistée (Charge plutôt que Fouet Lianes sur Salamèche)", () => {
+    const obs = situation(5);
+    const valeurs = planifier(obs, duels)!;
+    expect(valeurs[2]!).toBeGreaterThan(valeurs[4]!);
+  });
+
   it("achève un adversaire qui tombe ce tour-ci", () => {
     const obs = situation(5);
     const valeurs = planifier(obs, duels)!;
     expect(meilleure(valeurs, obs.decision.masque!)).toBeLessThan(8); // une attaque, pas un changement
     expect(Math.max(...valeurs.slice(0, 8))).toBeGreaterThanOrEqual(1.5);
+  });
+
+  it("pour achever, préfère l'attaque sûre à l'attaque puissante qui peut rater", () => {
+    const obs = situation(5);
+    obs.equipe[0]!.modifStats = [0, 0, 0, 0, 0, 0, 0];
+    obs.equipe[0]!.attaques[2] = { ...obs.equipe[0]!.attaques[2]!, puissance: 120, precision: 50 };
+    const valeurs = planifier(obs, duels)!;
+    expect(valeurs[2]!).toBeGreaterThan(valeurs[4]!);
   });
 });
 
@@ -52,11 +66,35 @@ describe("Combat d'équipe (contre un dresseur)", () => {
     expect(valeurs[10]!).toBeGreaterThan(Math.max(valeurs[0]!, valeurs[2]!, valeurs[4]!, valeurs[6]!));
   });
 
+  it("le remplaçant reçoit l'attaque choisie contre celui qui part (Flammèche), pas Éclair", () => {
+    const eclair = { id: 84, nom: "Éclair", type: { id: 12, nom: "Électrik" }, categorie: { id: 1, nom: "Spéciale" }, puissance: 40, precision: 100 };
+    const statut = { type: { id: 0, nom: "Normal" }, categorie: { id: 2, nom: "Statut" }, puissance: -1, precision: 100 };
+    const rugissement = { ...statut, id: 45, nom: "Rugissement" };
+    const grozyeux = { ...statut, id: 43, nom: "Groz'Yeux" };
+    const obs = situation();
+    obs.adversaires[0]!.attaquesVues = [...obs.adversaires[0]!.attaquesVues, eclair, rugissement, grozyeux];
+    const valeurs = valeursCombatEquipe(obs)!;
+    expect(valeurs[10]! + COUT_CHANGEMENT).toBeGreaterThan(valeurs[0]!);
+  });
+
   it("plus rapide, il achève l'adversaire au lieu de changer", () => {
     const obs = situation(5);
     obs.equipe[0]!.stats[5] = 99;
     const valeurs = planifier(obs)!;
     expect(meilleure(valeurs, obs.decision.masque!)).toBeLessThan(8);
+  });
+});
+
+describe("Équipe supposée du rival", () => {
+  it("au rival 2, le 3e Pokémon pas encore vu est joué au niveau 16 (emplacement fixé par le jeu)", () => {
+    const obs = situation();
+    obs.partie.vague = 25;
+    obs.partie.starterRival = 10;
+    obs.partie.dresseur = { nom: "Rival", pokemonRestants: 3 };
+    obs.adversaires[0] = { ...obs.adversaires[0]!, espece: 657, nom: "Croâporal", niveau: 18, types: [{ id: 10, nom: "Eau" }], statsDeBase: [54, 63, 52, 83, 56, 97] };
+    const eux = adversairesSupposes(obs);
+    expect(eux).toHaveLength(3);
+    expect(eux[2]!.c.niveau).toBe(16);
   });
 });
 
