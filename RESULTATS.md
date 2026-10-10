@@ -511,11 +511,13 @@ Petites corrections sûres, trop petites pour être prouvées seules, mesurées 
 
 **Verdict : GARDER** (2,4 erreurs-types). **Nouvelle référence : `p27-biomes` = 64,95** (code `161df5d`).
 
-## Talents qui annulent un type dans le calcul de dégâts (10/10) — à mesurer après la Carte
+## Talents qui annulent un type dans le calcul de dégâts (10/10) — GARDÉ
 
 **Constat** (défaite de Carlos, vague 84) : `degats` ignorait les talents d'immunité (Lévitation → Sol, Torche → Feu, Absorb Eau → Eau…) ; Zygarde répétait Force Chtonienne (Sol, ×2 contre l'Acier sur le papier) contre un Archéodong à Lévitation montrée, pendant que l'équipe tombait.
 
 **Correction** : immunités dans `Combattant` : adversaire = talent montré, sinon les types annulés par tous ses talents possibles ; équipe = talent et passif. `degats` rend 0 contre une immunité.
 
 **Mesure fixée d'avance** : `p28-immunites` (960 parties) contre la référence après le verdict de la Carte (`p27-biomes` s'il est gardé, sinon `p21-paquet`), mêmes graines ; garder si l'écart dépasse 2 erreurs-types.
-La Carte étant gardée : `p28-immunites` contre `p27-biomes`, en cours.
+La Carte étant gardée : `p28-immunites` contre `p27-biomes`.
+
+**Résultat** : **+1,04** (erreur-type 0,52, seuil 1,04, 951 paires ; juste au-dessus en valeurs non arrondies) · mieux 122, pareil 739, pire 90. Vague moyenne 64,93 → **65,96** ; morts contre un champion d'arène 251 → 237. **Verdict : GARDER.** **Nouvelle référence : `p28-immunites` = 65,96** (code `52d6a8f`).

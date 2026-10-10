@@ -31,8 +31,8 @@ est, ce qui reste à décider, comment le décider, et ce qu'on a appris. Mettre
   Le champion d'arène est tiré dans le biome : le bot va vers les biomes (et champions) que son
   équipe bat ; la Carte vaut 25 (avant 5). Paquet 2 (rencontres, préparation au rival, EXP) : +0,94,
   annulé. Extension 0.14.2 : options Bloquer les Balls, Équipe intouchable, verrous par Pokémon.
-- **En mesure** : `p28-immunites` (talents qui annulent un type dans les dégâts, `52d6a8f`) contre
-  `p27-biomes`. Sous 2 erreurs-types : `git revert 52d6a8f`.
+- **Immunités de talent dans les dégâts GARDÉES** (Lévitation contre Sol…) : +1,04 ± 0,52, juste
+  au seuil. **Référence actuelle : `p28-immunites` = 65,96** (début de la journée : 59,5).
 
 **Avant le 10/10** :
 - Branche de travail : `claude/pokerogue-bot-macro-strategy-33yi1e`, PR #9 (brouillon) vers `main`.
