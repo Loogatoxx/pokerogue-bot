@@ -19,17 +19,4 @@ describe("Combats importants", () => {
     expect(prochainCombatImportant(8)).toMatchObject({ vague: 8, dans: 0 });
     expect(prochainCombatImportant(21)).toMatchObject({ vague: 25, dans: 4 });
   });
-
-  it("classe les combats par importance : champions et rivaux 3, boss sauvages et Gamin 1", () => {
-    expect(combatDeLaVague(50, 20)).toMatchObject({ nom: "Champion d'arène", rang: 3 });
-    expect(combatDeLaVague(40, 20)).toMatchObject({ nom: "Boss sauvage", rang: 1 });
-    expect(combatDeLaVague(60, 30)?.rang).toBe(3);
-    expect(combatDeLaVague(50, 30)?.rang).toBe(1);
-    expect(combatDeLaVague(30)?.rang).toBe(3);
-    expect(combatDeLaVague(40)?.rang).toBe(1);
-    expect(combatDeLaVague(5)?.rang).toBe(1);
-    expect(combatDeLaVague(35)?.rang).toBe(2);
-    expect(combatDeLaVague(95)?.rang).toBe(3);
-    expect(combatDeLaVague(200)?.rang).toBe(3);
-  });
 });

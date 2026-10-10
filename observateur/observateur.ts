@@ -130,7 +130,7 @@ function adversaire(p: PokemonJeu, carnet: Carnet, scene: ScenePokerogue): Pokem
 }
 
 /** Lit prudemment les choix affichés par l'interface (récompenses, biomes). */
-function optionsAffichees(scene: ScenePokerogue, type: TypeDecision, serieChampions?: number): Decision["options"] {
+function optionsAffichees(scene: ScenePokerogue, type: TypeDecision): Decision["options"] {
   const ecran = scene.ui.getHandler() as {
     options?: { modifierTypeOption?: { type?: { name?: string }; cost?: number } }[];
     shopOptionsRows?: { modifierTypeOption?: { type?: { name?: string }; cost?: number } }[][];
@@ -141,7 +141,7 @@ function optionsAffichees(scene: ScenePokerogue, type: TypeDecision, serieChampi
   }
   if (type === "bonus") {
     // Récompenses notées d'après l'état de l'équipe (observateur/objets.ts).
-    const notees = optionsRecompensesAffichees(scene, serieChampions);
+    const notees = optionsRecompensesAffichees(scene);
     if (notees) {
       const meilleure = meilleurObjet(notees);
       return notees.map(o => ({ nom: o.nom, note: o.note, pour: o.pour, contre: o.contre, recommandee: o === meilleure }));
@@ -168,7 +168,7 @@ function optionsAffichees(scene: ScenePokerogue, type: TypeDecision, serieChampi
   return undefined;
 }
 
-function decision(scene: ScenePokerogue, serieChampions?: number): Decision {
+function decision(scene: ScenePokerogue): Decision {
   const phase = scene.phaseManager.getCurrentPhase();
   const nomPhase = phase?.phaseName ?? "?";
   // Capture réussie avec l'équipe pleine : garder qui ? (observateur/equipe.ts)
@@ -194,7 +194,7 @@ function decision(scene: ScenePokerogue, serieChampions?: number): Decision {
     resultat.positionActeur = phase?.fieldIndex ?? 0;
     resultat.masque = masqueRemplacement(scene);
   }
-  const options = optionsAffichees(scene, type, serieChampions);
+  const options = optionsAffichees(scene, type);
   if (options) {
     resultat.options = options;
   }
@@ -240,7 +240,7 @@ export function observer(scene: ScenePokerogue, carnet: Carnet): Observation | n
         quantite,
       })),
       dresseur,
-      prochainCombat: prochainCombatImportant(combat.waveIndex, carnet?.vagueDesChampions()),
+      prochainCombat: prochainCombatImportant(combat.waveIndex),
       ...(carnet.typeStarterRival() !== undefined ? { starterRival: carnet.typeStarterRival()! } : {}),
     },
     equipe: scene.getPlayerParty().map(allie),
@@ -249,7 +249,7 @@ export function observer(scene: ScenePokerogue, carnet: Carnet): Observation | n
       new Set(surTerrain.map(a => a.uid)),
       uid => scene.getEnemyParty().find(p => p.id === uid)?.isFainted() ?? true,
     ),
-    decision: decision(scene, carnet.vagueDesChampions()),
+    decision: decision(scene),
     journal: [...carnet.journal],
   };
 }

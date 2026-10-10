@@ -136,10 +136,7 @@ const PEPITES: Readonly<Record<string, number>> = { NUGGET: 1, BIG_NUGGET: 2.5, 
 
 /** Combien un soin compte de plus avant un combat important : la vague suivante, ou celle d'après. */
 export function urgenceSoin(combat: CombatImportant | undefined): number {
-  if (!combat || combat.rang <= 1) {
-    return 1;
-  }
-  return combat.dans === 0 ? 1.8 : combat.dans === 1 ? 1.4 : 1;
+  return combat?.dans === 0 ? 1.8 : combat?.dans === 1 ? 1.4 : 1;
 }
 
 const avant = (combat: CombatImportant | undefined) =>

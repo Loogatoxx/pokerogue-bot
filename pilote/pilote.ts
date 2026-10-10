@@ -421,7 +421,7 @@ function choisirRecompense(scene: ScenePokerogue, e: Ecran, etat: EtatPilote): s
   }
   // Rangée 1 = les récompenses gratuites, notées d'après l'état de l'équipe (observateur/objets.ts).
   // On prend la mieux notée pas encore essayée dans cette vague ; si aucune ne sert, on passe.
-  const toutes = optionsRecompensesAffichees(scene, etat.carnet?.vagueDesChampions()) ?? [];
+  const toutes = optionsRecompensesAffichees(scene) ?? [];
   if (!etat.recompensesEssayees.size) {
     for (const o of toutes) {
       etat.offertes[o.nom] = (etat.offertes[o.nom] ?? 0) + 1;
@@ -452,7 +452,7 @@ function choisirAchat(scene: ScenePokerogue, e: Ecran, etat: EtatPilote): string
   if (etat.achats >= ACHATS_MAX) {
     return null;
   }
-  const notes = (optionsBoutiqueAffichees(scene, etat.carnet?.vagueDesChampions()) ?? []).filter(o => !etat.achatsRefuses.has(o.index));
+  const notes = (optionsBoutiqueAffichees(scene) ?? []).filter(o => !etat.achatsRefuses.has(o.index));
   const choix = meilleurAchat(notes);
   if (!choix || !e.setRowCursor) {
     return null;

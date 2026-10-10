@@ -1299,32 +1299,3 @@ Capturer un Pokémon rare (Zygarde, vague 60, une seule Ball) sans tout essayer 
 
 **Objectif**
 Utiliser toute l'équipe pendant une tentative de capture.
-
-## 48. Retour de Carlos après ses parties : économie, objets, attaques, légendaires — 09/10/2026
-
-**Prompt**
-> […] parfois le bot se trompe sur les efficaciter des attauque […] le team build […] la synergie […]
-> choisir des boost d xp en late game […] le plus gros souci […] c'est l'economie […] il claque
-> parfois des potion pour mettre full hp […] il a tendance a reanimer tout le monde avec des rappel
-> alors qu on va pas rencontrer de combat difficile […] faut que le bot aie une liste avec un rang
-> d importance de combat […] parfois ne garde pas de bonne pokeball […] face a un legendaire utile il
-> çapture pas […] fasse un rapport ou on voit la difference entre rater un legendaire et prendre un
-> legendaire […] la moyenne de rencontre des ces type […]
-
-**Réponse (en cours)**
-- Banc instrumenté (sans changer de décision) : argent, Balls, achats avec les PV de l'équipe,
-  récompenses, sauvages rencontrés (légendaire, fabuleux, semi-légendaire, boss), recrues.
-- Constat dans le code : toutes les vagues X0 comptaient comme « combat important » (champion ou
-  boss sauvage) : soins et Rappels « urgents » avant chaque 10e vague. Premières données : des
-  Potions achetées à 92-93 % de PV.
-- Changement 1 (à mesurer) : rang d'importance des combats (`donnees/importance-combats.json`) ;
-  champions déduits à la vague 20 comme un joueur (série 20-50-80… ou 30-60-90…, carnet) ; aucune
-  urgence de soin avant un combat de rang 1 (boss sauvage, Gamin).
-
-**Modifications**
-- `donnees/importance-combats.json`, `observateur/combats.ts`, `observateur/carnet.ts`,
-  `observateur/objets.ts`, `observateur/decisions-jeu.ts`, `observateur/observateur.ts`,
-  `pilote/pilote.ts`, `tests/combats.test.ts`, `tests/objets.test.ts`, `tests/carnet.test.ts`.
-
-**Objectif**
-Économiser l'argent pour les combats qui tuent vraiment.

@@ -39,7 +39,6 @@ export class Carnet {
    * (jeu : rival-team-gen.ts), un joueur s'en souvient pour préparer le rival 2.
    */
   private starterRival: number | undefined;
-  private serieChampions: number | undefined;
 
   /** À appeler régulièrement (à chaque phase dans le simulateur, plusieurs fois par seconde en ligne). */
   mettreAJour(scene: ScenePokerogue): void {
@@ -55,9 +54,6 @@ export class Carnet {
       this.nouvelleVague(scene);
     }
 
-    if (combat.waveIndex === 20 && this.serieChampions === undefined && scene.getEnemyField().length) {
-      this.serieChampions = combat.trainer ? 20 : 30;
-    }
     for (const adversaire of scene.getEnemyField()) {
       if (!adversaire.isOnField()) {
         continue;
@@ -85,10 +81,6 @@ export class Carnet {
   /** Le type du starter du rival, s'il a été vu (rival 1). */
   typeStarterRival(): number | undefined {
     return this.starterRival;
-  }
-
-  vagueDesChampions(): number | undefined {
-    return this.serieChampions;
   }
 
   attaquesVuesDe(uid: number): AttaqueVue[] {
@@ -155,7 +147,6 @@ export class Carnet {
     this.vague = -1;
     this.journal.length = 0;
     this.starterRival = undefined;
-    this.serieChampions = undefined;
     this.attaquesVues.clear();
     this.talentsReveles.clear();
     this.dejaNotes.clear();

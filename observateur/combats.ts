@@ -7,7 +7,6 @@
  * L'analyse des défaites (entraineur/analyse_defaites.py) a montré que 55 % d'entre elles ont lieu
  * contre le rival, souvent avec une équipe entrée blessée : d'où l'intérêt de les voir venir.
  */
-import IMPORTANCE from "../donnees/importance-combats.json";
 import { ClassicFixedBossWaves } from "./noms";
 
 export type GenreCombat = "rival" | "dresseur" | "boss";
@@ -18,44 +17,23 @@ export interface CombatImportant {
   dans: number;
   genre: GenreCombat;
   nom: string;
-  rang: number;
-}
-
-const RANGS: Readonly<Record<string, number>> = IMPORTANCE.rangs;
-const VAGUE_FINALE = 200;
-
-const rangDe = (cle: string) => RANGS[Object.keys(RANGS).find(prefixe => cle.startsWith(prefixe)) ?? ""] ?? 3;
-
-function estChampion(vague: number, serieChampions: number | undefined): boolean {
-  if (serieChampions === undefined) {
-    return vague % 30 === 20 || vague % 30 === 0;
-  }
-  return vague % 30 === serieChampions % 30;
 }
 
 const FIXES = new Map(Object.entries(ClassicFixedBossWaves).map(([vague, nom]) => [Number(vague), nom]));
 
 /** Le combat important de cette vague, ou null pour une vague ordinaire. */
-export function combatDeLaVague(vague: number, serieChampions?: number): Omit<CombatImportant, "dans"> | null {
+export function combatDeLaVague(vague: number): Omit<CombatImportant, "dans"> | null {
   const fixe = FIXES.get(vague);
   if (fixe) {
-    return { vague, genre: fixe.cle.startsWith("RIVAL") ? "rival" : "dresseur", nom: fixe.fr, rang: rangDe(fixe.cle) };
+    return { vague, genre: fixe.cle.startsWith("RIVAL") ? "rival" : "dresseur", nom: fixe.fr };
   }
-  if (vague <= 0 || vague % 10 !== 0) {
-    return null;
-  }
-  if (vague === VAGUE_FINALE) {
-    return { vague, genre: "boss", nom: "Boss final", rang: rangDe("BOSS_FINAL") };
-  }
-  return estChampion(vague, serieChampions)
-    ? { vague, genre: "boss", nom: "Champion d'arène", rang: rangDe("CHAMPION_ARENE") }
-    : { vague, genre: "boss", nom: "Boss sauvage", rang: rangDe("BOSS_SAUVAGE") };
+  return vague > 0 && vague % 10 === 0 ? { vague, genre: "boss", nom: "Boss (champion d'arène ou Pokémon boss)" } : null;
 }
 
 /** Le premier combat important à partir de `vague` (incluse). Il y en a toujours un dans les 10 vagues. */
-export function prochainCombatImportant(vague: number, serieChampions?: number): CombatImportant {
+export function prochainCombatImportant(vague: number): CombatImportant {
   for (let v = Math.max(vague, 1); ; v++) {
-    const combat = combatDeLaVague(v, serieChampions);
+    const combat = combatDeLaVague(v);
     if (combat) {
       return { ...combat, dans: v - vague };
     }

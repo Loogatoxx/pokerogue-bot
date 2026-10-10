@@ -4,7 +4,6 @@
 import { describe, expect, it } from "vitest";
 import { prochainCombatImportant } from "../observateur/combats";
 import {
-  urgenceSoin,
   type ContexteObjets,
   evaluerAchats,
   evaluerObjets,
@@ -143,12 +142,5 @@ describe("Stratégie du porteur", () => {
     const auPlafond = evaluerObjets([charme], { equipe, balls: [0, 0, 0, 0, 0], plafondNiveau: 60 })[0]!.note;
     expect(debut).toBe(25);
     expect(auPlafond).toBeLessThan(6);
-  });
-});
-
-describe("Urgence des soins selon l'importance du combat", () => {
-  it("pas d'urgence avant un boss sauvage : le soin gratuit du nouveau biome suffit", () => {
-    expect(urgenceSoin(prochainCombatImportant(40, 20))).toBe(1);
-    expect(urgenceSoin(prochainCombatImportant(50, 20))).toBeGreaterThan(1);
   });
 });
