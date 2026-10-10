@@ -398,3 +398,7 @@ Les écarts sont petits : l'équipe n'explique pas à elle seule les morts au ri
 | Rival 3 / rival 4 | 92 % / 76 % | 87 % / 69 % |
 
 **Verdict : annulé.** Remettre l'équipe à 100 % avant les combats aide, même depuis 85 % : une Potion (le moins cher des soins) vaut plus que l'argent gardé. Les Potions « à PV hauts » ne sont pas un gaspillage pour ce bot.
+
+## Essai « paquet » (règle fixée le 10/10, avant tout résultat)
+
+Plusieurs corrections justes donnent chacune un petit gain positif mais sous le seuil : précision (+0,76 ± 1,00), équipe connue des rivaux (+0,81 ± 0,90), ciblage + prix de changement 0,05 (+1,92 ± 1,08 sur 960), rang d'importance des combats (+0,74 ± 1,44). **Paquet** = ces quatre corrections ensemble (`7b747dc`, `0fff884` partie moteur, `45e2f0d` + `COUT_CHANGEMENT = 0.05`, `f3e05f4`), plus le départage des attaques (`af8222b`) et la capture des légendaires (`b9bf11c`) **seulement si leur écart seul est positif**. Mesure : 960 parties (graines 0 à 959) contre `p16-ref` étendue à 960. **Garder le paquet entier si l'écart dépasse 2 erreurs-types ; sinon l'abandonner** (pas de tri après coup entre ses morceaux).
