@@ -433,8 +433,23 @@ Règle corrigée (`f8d57ad`, banc `p19b`). **Correction de mesure** : une captur
 
 **Verdict : annulée.** Dans ce banc (compte neuf, semi-légendaires boss vers la vague 80), capturer le légendaire n'aide pas : l'affaiblir use l'équipe et il remplace un membre entraîné. Retirée du paquet (règle fixée d'avance : seulement les écarts seuls positifs).
 
+## Essai « paquet » (10/10) — GARDÉ
+
+Code mesuré : dossier de banc `bonbon` (précision `7b747dc`, équipe connue des rivaux `0fff884` partie moteur, ciblage `45e2f0d` + `COUT_CHANGEMENT = 0.05`, rang des combats `f3e05f4`, départage `af8222b` ; sans la capture des légendaires, rejetée seule). Reporté sur la branche (`4a7222a`), extension 0.13.0.
+
+| | Référence `p16-ref` (960) | Paquet `p21-paquet` (960) |
+|---|---|---|
+| Vague moyenne / médiane | 59,53 / 55 | **63,23** / 60 |
+| Écart apparié | — | **+3,70** (erreur-type 1,26, seuil 2,51, 945 paires) · mieux 392, pareil 249, pire 304 |
+| Rival 2 / rival 4 / rival 5 | 78 % / 70 % / 50 % | 80 % / 77 % / 42 % |
+| Changements volontaires par partie ; séries de 3 ou plus | 13,7 ; 68 parties | 9,4 ; 31 parties |
+| Morts aux vagues 41-50 ; parties mortes aux vagues 111-120 | 81 ; 79 | 50 ; 120 |
+
+**Verdict : GARDER** (2,9 erreurs-types, règle fixée d'avance). Le gain vient surtout du milieu de partie (champions de la vague 50, rival 4) ; le pic de morts au rival 2 (vagues 21-30 : 248 → 234) reste la première cause de mort. **Nouvelle référence : `p21-paquet` = 63,23.**
+
 ## IA du dresseur dans le moteur d'équipe (10/10) — en mesure
 
 **Idée** (chantier n° 1 de REPRISE.md) : dans le combat d'équipe simulé, le dresseur ne changeait jamais de Pokémon et remplaçait un K.O. par le premier de sa liste. Le jeu (`EnemyCommandPhase`, `getMatchupScore`) retire son Pokémon quand un membre du banc a un score de duel 3 fois meilleur (2 pour un boss, freiné après chaque changement) et envoie après un K.O. le membre au meilleur score. Le moteur fait maintenant pareil avec ce qu'un joueur sait (`0727e3b`). Cas réel (rival 2, partie 41, décision 1) : avant, Tranch'Herbe sur Croâporal (−0,64) ; maintenant le moteur prévoit l'entrée de l'oiseau (ce que fait le jeu dans la trace) et préfère épargner Brindibou (changement −0,65 contre attaques −0,83).
 
 **Mesure fixée d'avance** : `p22-ia` (480 parties) contre `p16-ref`, après l'essai « paquet » (une mesure à la fois, 4 cœurs). Garder si l'écart dépasse 2 erreurs-types.
+**Base changée avant tout résultat** (le paquet étant gardé, il devient la référence ; `p22-ia` n'avait pas démarré) : `p23-ia` = paquet + IA du dresseur (`4a7222a`), 480 parties, contre `p21-paquet` sur les mêmes graines. Même règle des 2 erreurs-types ; si elle n'est pas atteinte, retirer l'IA (`0727e3b`) à la main (le paquet touche les mêmes lignes de `simuler`).

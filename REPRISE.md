@@ -17,17 +17,15 @@ est, ce qui reste à décider, comment le décider, et ce qu'on a appris. Mettre
   sur les parties concernées). Départage des attaques : +1,21 ± 1,36, gardé pour le paquet.
 - **Rapport « raison ou tort »** (légendaires, économie, tous les verdicts) en tableau de bord :
   https://claude.ai/artifact/6AaMPHekDrkjHVxd9E9Zgm
-- **En mesure** :
-  1. `p21-paquet` (960 parties contre `p16-ref` à 960) : précision + ciblage et prix de changement
-     0,05 + rang des combats + départage. Code : dossier de banc `bonbon` (non commité sur la
-     branche). Règle fixée d'avance : tout garder si l'écart dépasse 2 erreurs-types, sinon tout
-     abandonner. S'il est gardé : reporter les changements sur la branche (`7b747dc`, `45e2f0d` +
-     `COUT_CHANGEMENT = 0.05`, `f3e05f4`, `af8222b`), corriger le test du ciblage écrit pour 0,01,
-     reconstruire l'extension.
-  2. `p22-ia` (480 parties contre `p16-ref`) : l'IA du dresseur dans le moteur d'équipe (`0727e3b`,
-     sur la branche). Si l'écart reste sous 2 erreurs-types : `git revert 0727e3b`.
-  Si les crédits du cloud s'épuisent avant la fin : refaire ces deux bancs en local (section 2.1,
-  commandes de `banc_complet` avec `--nom`, `--plan-seul`, `--parties 960` pour le paquet).
+- **Essai « paquet » GARDÉ** : +3,70 ± 1,26 sur 945 parties (`p21-paquet` = **63,23**, nouvelle
+  référence). Reporté sur la branche (`4a7222a`) : précision, ciblage + prix de changement 0,05,
+  équipe connue des rivaux, rang des combats, départage. **Extension 0.13.0** : reconstruire
+  (`pnpm extension`) et recharger dans Brave pour en profiter sur le site.
+- **En mesure** : `p23-ia` (480 parties) = paquet + IA du dresseur dans le moteur d'équipe
+  (`0727e3b`), contre `p21-paquet`. Si l'écart reste sous 2 erreurs-types : retirer `0727e3b` à la
+  main (mêmes lignes de `simuler` que le ciblage) et reconstruire l'extension. Si les crédits du
+  cloud s'épuisent avant la fin : refaire en local `p21-paquet` (`--parties 960`, sans l'IA) et
+  `p23-ia` (branche telle quelle), puis comparer.
 
 **Avant le 10/10** :
 - Branche de travail : `claude/pokerogue-bot-macro-strategy-33yi1e`, PR #9 (brouillon) vers `main`.
