@@ -23,6 +23,10 @@ est, ce qui reste à décider, comment le décider, et ce qu'on a appris. Mettre
   (`pnpm extension`) et recharger dans Brave pour en profiter sur le site.
 - **IA du dresseur dans le moteur rejetée** (`p23-ia` : −2,85 ± 1,54 contre le paquet ; séries de
   changements jusqu'à 33). Retirée à la main ; extension **0.13.1** = le paquet tel que mesuré.
+- **En mesure** : `p24-bonbons` (`05545e9`, 480 parties contre `p21-paquet`) : Super Bonbon au
+  porteur prioritaire dès que le prochain rival est à 16 vagues ou moins. Motif : le rival 2 tue
+  17,4 % des parties, et la mort y dépend fortement du niveau (meilleur Pokémon niveau 18 → 25 % ;
+  21+ → 3 %). Si l'écart reste sous 2 erreurs-types : `git revert 05545e9`.
 
 **Avant le 10/10** :
 - Branche de travail : `claude/pokerogue-bot-macro-strategy-33yi1e`, PR #9 (brouillon) vers `main`.
