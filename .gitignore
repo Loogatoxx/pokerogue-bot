@@ -34,3 +34,4 @@ banc-*.json
 # Cerveaux : sur le Lexar, sauf la petite fixture de test
 *.cerveau
 !tests/fixtures/*.cerveau
+!cerveau/le-plus-fort-v5.cerveau

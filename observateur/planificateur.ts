@@ -21,11 +21,11 @@
  */
 import { NOMBRE_ACTIONS, PREMIER_CHANGEMENT, PREMIERE_BALL } from "./actions";
 import { chanceCapture } from "./capture";
-import { valeursCombatEquipe } from "./combat-equipe";
+import { multiplicateurPrecision, valeursCombatEquipe } from "./combat-equipe";
 import { facteurAttaque } from "./contraintes-attaques";
 import { connaissance } from "./especes";
 import { cibleDe, combattantAdverse, combattantAllie, type Combattant, degats, efficacite, prevoir, prevoirChangement } from "./prevision";
-import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
+import type { Attaque, Observation, PokemonAdverse, PokemonAllie } from "./types";
 
 const TOURS_MAX = 8;
 /** Amplification des valeurs du combat d'équipe (× poids du plan 30 : le cerveau ne fait que départager). */
@@ -49,12 +49,21 @@ interface Duel {
 const vitesse = (c: Combattant) => (c.stats[5] ?? 0) * ((c.crans[4] ?? 0) >= 0 ? (2 + (c.crans[4] ?? 0)) / 2 : 2 / (2 - (c.crans[4] ?? 0)));
 const tours = (parTour: number) => (parTour <= 0 ? TOURS_MAX + 1 : Math.min(TOURS_MAX + 1, Math.ceil(1 / parTour)));
 
+function precisionDe(moi: PokemonAllie, lui: PokemonAdverse, x: Attaque | undefined): number {
+  if (!x || x.precision < 0) {
+    return 1;
+  }
+  return Math.min(1, (x.precision / 100) * multiplicateurPrecision((moi.modifStats[5] ?? 0) - (lui.modifStats[6] ?? 0)));
+}
+
 /** Ce que mes attaques font à cet adversaire, en fraction de ses PV restants. */
-function mesDegats(moi: PokemonAllie, lui: PokemonAdverse, pvLui: number): number[] {
+function mesDegats(moi: PokemonAllie, lui: PokemonAdverse, pvLui: number, avecPrecision = true): number[] {
   const a = combattantAllie(moi);
   const d = combattantAdverse(lui);
   return moi.attaques.map(x =>
-    x.pp > 0 ? degats(a, d, { type: x.type.id, categorie: x.categorie.id, puissance: x.puissance * facteurAttaque(x.id) }) / Math.max(pvLui, 0.01) : 0);
+    x.pp > 0
+      ? degats(a, d, { type: x.type.id, categorie: x.categorie.id, puissance: x.puissance * facteurAttaque(x.id) }) / Math.max(pvLui, 0.01) * (avecPrecision ? precisionDe(moi, lui, x) : 1)
+      : 0);
 }
 
 /** Ses dégâts attendus par tour sur `cible`, en fraction des PV restants de la cible. */
@@ -152,19 +161,23 @@ function valeurAttaqueSelon(obs: Observation, moi: PokemonAllie, lui: PokemonAdv
 function valeurAttaque(obs: Observation, moi: PokemonAllie, lui: PokemonAdverse, i: number, options: OptionsPlan, autres = 0): number {
   const pvMoi = moi.pv / Math.max(moi.pvMax, 1);
   const pvLui = lui.pvPourcent / 100;
-  const ceTour = mesDegats(moi, lui, pvLui)[i] ?? 0;
+  const ceTour = mesDegats(moi, lui, pvLui, false)[i] ?? 0;
+  const touche = precisionDe(moi, lui, moi.attaques[i]);
   const d = duel(obs, moi, pvMoi, lui, pvLui, autres);
   const scenarios = options.scenarios ? scenariosContre(obs, lui, moi, moi) : [];
   const recuDesAutres = autres / Math.max(pvMoi, 0.01);
-  const valeur = scenarios.length
-    ? combiner(scenarios.map(x => ({ proba: x.proba, valeur: valeurAttaqueSelon(obs, moi, lui, ceTour, d, x.recu + recuDesAutres, autres) })), options.prudence ?? 0)
-    : valeurAttaqueSelon(obs, moi, lui, ceTour, d, d.parTourLui, autres); // dégâts moyens
+  const selon = (infliges: number) => (scenarios.length
+    ? combiner(scenarios.map(x => ({ proba: x.proba, valeur: valeurAttaqueSelon(obs, moi, lui, infliges, d, x.recu + recuDesAutres, autres) })), options.prudence ?? 0)
+    : valeurAttaqueSelon(obs, moi, lui, infliges, d, d.parTourLui, autres)); // dégâts moyens
+  const valeur = touche * selon(ceTour) + (1 - touche) * selon(0);
   // S'il change pour X, mon attaque frappe X, et je ne reçois rien ce tour-ci.
   return avecChangement(obs, lui, moi, options, valeur, vers => {
     const x = vers ?? inconnuComme(lui);
     const pvX = x.pvPourcent / 100;
-    const surX = mesDegats(moi, x, pvX)[i] ?? 0;
-    return surX >= 1 ? 1.5 : valeurDuel(duel(obs, moi, pvMoi, x, pvX * (1 - surX), autres));
+    const surX = mesDegats(moi, x, pvX, false)[i] ?? 0;
+    const toucheX = precisionDe(moi, x, moi.attaques[i]);
+    const rate = valeurDuel(duel(obs, moi, pvMoi, x, pvX, autres));
+    return toucheX * (surX >= 1 ? 1.5 : valeurDuel(duel(obs, moi, pvMoi, x, pvX * (1 - surX), autres))) + (1 - toucheX) * rate;
   });
 }
 
@@ -197,6 +210,7 @@ function valeurChangement(obs: Observation, partant: PokemonAllie, remplacant: P
   return reste < 0 ? Math.min(v, CHANGEMENT_PERDU) : v;
 }
 
+const DEPARTAGE_DEGATS = 0.002;
 /** Valeur d'un changement vers un duel perdu : sous toute attaque (au pire −1). */
 const CHANGEMENT_PERDU = -1.2;
 
@@ -435,7 +449,10 @@ export function planifier(obs: Observation, options: OptionsPlan = {}): number[]
   }
   for (let action = 0; action < PREMIER_CHANGEMENT; action++) {
     const lui = adversaires.find(a => a.position === action % 2) ?? adversaires[0]!;
-    valeurs[action] = masque[action] ? valeurAttaque(obs, moi, lui, Math.floor(action / 2), options, degatsDesAutres(obs, lui, moi, adversaires)) : 0;
+    valeurs[action] = masque[action]
+      ? valeurAttaque(obs, moi, lui, Math.floor(action / 2), options, degatsDesAutres(obs, lui, moi, adversaires))
+        + DEPARTAGE_DEGATS * Math.min(5, mesDegats(moi, lui, lui.pvPourcent / 100)[Math.floor(action / 2)] ?? 0)
+      : 0;
   }
   for (let action = PREMIER_CHANGEMENT; action < PREMIERE_BALL; action++) {
     const remplacant = obs.equipe[action - PREMIER_CHANGEMENT];

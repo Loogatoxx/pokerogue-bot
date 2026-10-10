@@ -156,12 +156,12 @@ export function boutiqueAffichee(scene: ScenePokerogue): ArticleBoutique[] | nul
 }
 
 /** Ce que les notes d'objets savent de la partie : l'équipe, les Balls, le prochain combat important. */
-function contexte(scene: ScenePokerogue): ContexteObjets {
+function contexte(scene: ScenePokerogue, serieChampions?: number): ContexteObjets {
   return {
     equipe: scene.getPlayerParty().map(membreDe),
     balls: [0, 1, 2, 3, 4].map(b => scene.pokeballCounts[b] ?? 0),
     // Les récompenses arrivent après la vague gagnée : ce qui compte, c'est la suivante.
-    prochainCombat: prochainCombatImportant((scene.currentBattle?.waveIndex ?? 0) + 1),
+    prochainCombat: prochainCombatImportant((scene.currentBattle?.waveIndex ?? 0) + 1, serieChampions),
     typesAPreparer: typesAPreparer((scene.currentBattle?.waveIndex ?? 0) + 1),
     // Le plafond de niveau du moment (affiché par le jeu quand il monte) : au-delà, l'expérience ne sert plus.
     plafondNiveau: (scene as unknown as { getMaxExpLevel?: () => number }).getMaxExpLevel?.(),
@@ -195,17 +195,17 @@ function formesSpeciales(scene: ScenePokerogue): { mega: boolean; gigamax: boole
 }
 
 /** Les récompenses affichées, notées d'après l'état de l'équipe ; null hors de cet écran. */
-export function optionsRecompensesAffichees(scene: ScenePokerogue): OptionObjet[] | null {
+export function optionsRecompensesAffichees(scene: ScenePokerogue, serieChampions?: number): OptionObjet[] | null {
   const objets = objetsProposes(scene);
-  return objets ? evaluerObjets(objets, contexte(scene)) : null;
+  return objets ? evaluerObjets(objets, contexte(scene, serieChampions)) : null;
 }
 
 /** Les articles de la boutique, notés (prix compris) ; null hors de cet écran. */
-export function optionsBoutiqueAffichees(scene: ScenePokerogue): (OptionObjet & { rangee: number; colonne: number })[] | null {
+export function optionsBoutiqueAffichees(scene: ScenePokerogue, serieChampions?: number): (OptionObjet & { rangee: number; colonne: number })[] | null {
   const articles = boutiqueAffichee(scene);
   if (!articles) {
     return null;
   }
-  const notes = evaluerAchats(articles.map(a => a.objet), contexte(scene), scene.money);
+  const notes = evaluerAchats(articles.map(a => a.objet), contexte(scene, serieChampions), scene.money);
   return notes.map((o, i) => ({ ...o, rangee: articles[i]!.rangee, colonne: articles[i]!.colonne }));
 }

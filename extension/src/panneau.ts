@@ -591,6 +591,7 @@ function demarrer(): void {
   let messagePilote = "";
   let horsPartie = "Lance une partie pour voir ce que le cerveau pense.";
   const reglages = { auto: false, semi: false, vitesse: "normale" };
+  const capture = { actif: false, texte: "" };
   const affichage = { replie: false, ouverts: [] as string[] };
   // Mode auto : décision déjà confiée au capteur, et actions refusées par le jeu pour elle.
   let cleEnvoyee = "";
@@ -627,7 +628,9 @@ function demarrer(): void {
       : "";
     remplir(ui.outils, `
       <span class="groupe">${bouton("mode:conseil", "CONSEIL", !reglages.auto)}${bouton("mode:semi", "SEMI", reglages.auto && reglages.semi)}${bouton("mode:auto", "AUTO", reglages.auto && !reglages.semi)}</span>
-      ${vitesses}`);
+      ${vitesses}
+      <span class="groupe" title="Recharge la page et relance la Ball à un autre tour jusqu'à la capture">${bouton("capture", capture.actif ? "ARRÊTER LA CAPTURE" : "CAPTURE FORCÉE", capture.actif)}</span>
+      ${capture.texte ? `<div class="discret">${echapper(capture.texte)}</div>` : ""}`);
   }
 
   function afficherCerveau(): void {
@@ -776,6 +779,9 @@ function demarrer(): void {
       case "vitesse":
         reglages.vitesse = valeur!;
         enregistrerReglages();
+        return;
+      case "capture":
+        envoyer({ type: "capture-forcee", actif: !capture.actif, max: 100 });
     }
   });
 
@@ -819,6 +825,13 @@ function demarrer(): void {
     }
     const message: MessageCapteur = evenement.data;
     switch (message.type) {
+      case "capture":
+        if (capture.actif !== message.actif || capture.texte !== message.texte) {
+          capture.actif = message.actif;
+          capture.texte = message.texte;
+          afficherOutils();
+        }
+        return;
       case "etat":
         ui.etat.className = "etat";
         ui.etat.textContent = message.etat === "attente-jeu" ? "attente du jeu" : "hors partie";

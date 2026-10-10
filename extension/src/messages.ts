@@ -17,12 +17,14 @@ export type ContenuCapteur =
   /** Écran de choix des starters : ceux du compte, pour conseiller une équipe. */
   | { type: "starters"; candidats: CandidatStarter[] }
   | { type: "pilote"; texte: string }
+  | { type: "capture"; actif: boolean; texte: string }
   | { type: "erreur"; message: string };
 
 /** Ce que le panneau demande au capteur. */
 export type ContenuPanneau =
   | { type: "pilotage"; auto: boolean; objetsALaMain: boolean; delaiMs: number }
-  | { type: "action"; cle: string; action: number };
+  | { type: "action"; cle: string; action: number }
+  | { type: "capture-forcee"; actif: boolean; max: number };
 
 export type MessageCapteur = ContenuCapteur & { source: typeof SOURCE; origine: "capteur" };
 export type MessagePanneau = ContenuPanneau & { source: typeof SOURCE; origine: "panneau" };

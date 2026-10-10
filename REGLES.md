@@ -243,6 +243,12 @@ Une partie des tirages du jeu passe par `Math.random()` (`randInt`, `src/utils/c
 
 Dans le vrai jeu, c'est du vrai hasard. Pour qu'un banc soit apparié, le simulateur initialise `Math.random` avec la graine de la partie en mode `hasardDuJeu` (`simulateur/environnement.test.ts`).
 
+### R14. Une défaite dans l'Éleveur expert ne termine pas la partie ✅
+
+Dans la rencontre THE_EXPERT_POKEMON_BREEDER, on combat seul avec un des 3 Pokémon les moins amicaux. Si on perd, le jeu passe bien par `GameOverPhase`, mais la rencontre l'annule (`onGameOver`, `src/phases/game-over-phase.ts` l. 58-66). L'équipe est rendue, le Pokémon choisi reste K.O. et la partie continue. C'est la seule rencontre qui fait ça (`onGameOver` n'apparaît que dans `the-expert-pokemon-breeder-encounter.ts`).
+
+Jusqu'au 05/10, le simulateur arrêtait la partie dès qu'il voyait `GameOverPhase`. Corrigé : une fin de partie annulée par la rencontre n'est plus une défaite.
+
 ---
 
 ## B. Règles de Carlos (non négociables)
@@ -251,6 +257,7 @@ Dans le vrai jeu, c'est du vrai hasard. Pour qu'un banc soit apparié, le simula
 - Tout sur nos Pokémon. De l'adversaire, seulement ce qui s'affiche.
 - La connaissance publique est permise : Pokédex, règles de l'IA, équipes connues des rivaux et des champions.
 - Triche (rejouer une graine, photo de vague, objets donnés) **à l'entraînement et au diagnostic seulement**, jamais en jeu.
+- **Exception voulue par Carlos (06/10)** : la « capture forcée » de l'extension (recharger la page et relancer la Ball à un autre tour jusqu'à la capture). Déclenchée à la main par Carlos, jamais par le cerveau, **jamais en Daily Run**.
 
 **Compte et exécution**
 - Compte neuf dédié à l'IA. Jamais le compte principal.

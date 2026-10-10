@@ -28,6 +28,13 @@ from .pont import Etat, Pont
 from .statistiques_banc import comparer_apparie, est_valide, resume
 
 
+CERVEAU_DU_DEPOT = Path(__file__).resolve().parent.parent / "cerveau" / "le-plus-fort-v5.cerveau"
+
+
+def chemin_cerveau() -> Path:
+    return V5 if V5.exists() else CERVEAU_DU_DEPOT
+
+
 def trio_de(k: int) -> list[int]:
     hasard = random.Random(k)
     trio = [hasard.choice(STARTERS_COMPTE_NEUF[i::3]) for i in range(3)]
@@ -98,6 +105,12 @@ def jouer_banc(args, cerveau) -> None:
             "rencontres": info.get("rencontres"),
             "bilan": info.get("bilan"),
             "niveaux": {r["vague"]: r["equipe"] for r in recit},
+            "especes": {r["vague"]: r.get("especes") for r in recit},
+            "objetsParVague": {r["vague"]: r.get("objetsDetail") for r in recit},
+            "economie": {r["vague"]: {"argent": r.get("argent"), "balls": r.get("balls"), "achats": r.get("achats"),
+                                      "recompenses": r.get("recompenses"), "pvEquipe": r.get("pvEquipe")} for r in recit},
+            "attaquesResistees": info.get("diagnosticAttaques"),
+            "sauvages": {r["vague"]: {"especes": r.get("sauvages"), "recrues": r.get("recrues")} for r in recit if r.get("sauvages") or r.get("recrues")},
             "defaite": info.get("defaite"),
             "protocole": {"mysteres": args.mysteres, "planSeul": cerveau is None},
             **({"erreur": info["erreur"], "phase": info.get("phase")} if info.get("erreur") else {}),
@@ -132,7 +145,7 @@ def main() -> None:
         return
     cerveau = None
     if not args.plan_seul:
-        cerveau, _ = lire(V5)
+        cerveau, _ = lire(chemin_cerveau())
         cerveau.eval()
         torch.set_num_threads(1)
     jouer_banc(args, cerveau)

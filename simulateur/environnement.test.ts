@@ -104,6 +104,7 @@ type MessagePython =
       hasardDuJeu?: boolean;
       /** Objets donnés au départ (clés de modifierTypes, ex. EXP_SHARE) : diagnostic « et si… ». */
       objetsDepart?: string[];
+      observationBrute?: boolean;
     }
   /** `hasard` : changer la graine du combat juste avant cette action (la suite de la vague tire
    * d'autres nombres, depuis exactement la même situation : professeur.py, jugement d'un coup). */
@@ -214,7 +215,9 @@ function infoPartie(obs: Observation) {
 interface PokemonRecit {
   name: string;
   level: number;
+  species: { speciesId: number; legendary?: boolean; subLegendary?: boolean; mythical?: boolean };
   hp: number;
+  isBoss?(): boolean;
   getMaxHp(): number;
   isFainted(): boolean;
   getMoveset(): { getName(): string }[];
@@ -227,6 +230,8 @@ interface EtapeRecit {
   dresseur: string | null;
   /** Niveaux de l'équipe, et ses PV restants en % du total. */
   equipe: number[];
+  especes: number[];
+  objetsDetail: Record<string, number>;
   pvEquipe: number;
   adversaires: number[];
   /** Nombre d'objets portés par l'équipe (piles comprises). */
@@ -235,6 +240,23 @@ interface EtapeRecit {
    * de statut (Rugissement, Mimi-Queue…) ou offensives. */
   attaquesStatut: number;
   attaquesOffensives: number;
+  argent: number;
+  balls: number[];
+  sauvages: { espece: number; categorie: string | null; boss: boolean }[];
+  recrues: number[];
+  achats: { objet: string; argentApres: number; pvEquipe: number; ko: number }[];
+  recompenses: string[];
+}
+
+function categorieEspece(p: PokemonRecit): string | null {
+  return p.species.mythical ? "fabuleux" : p.species.legendary ? "légendaire" : p.species.subLegendary ? "semi-légendaire" : null;
+}
+
+function pvEtKo(scene: SceneRecit): { pvEquipe: number; ko: number } {
+  const equipe = scene.getPlayerParty();
+  const pv = equipe.reduce((n, p) => n + p.hp, 0);
+  const pvMax = equipe.reduce((n, p) => n + p.getMaxHp(), 0);
+  return { pvEquipe: Math.round((100 * pv) / Math.max(pvMax, 1)), ko: equipe.filter(p => p.isFainted()).length };
 }
 
 const resumer = (p: PokemonRecit) => ({
@@ -249,6 +271,8 @@ type SceneRecit = {
   getPlayerParty(): PokemonRecit[];
   getEnemyParty(): PokemonRecit[];
   modifiers: { type: { id: string }; getStackCount(): number }[];
+  money: number;
+  pokeballCounts: Record<number, number>;
 };
 
 function hasardDeLaGraine(graine: string): () => number {
@@ -479,8 +503,10 @@ async function jouerPartie(
   /** Photos du début des vagues demandées (texte de la sauvegarde du jeu). */
   const photos: Record<number, string> = {};
   let defaite: Record<string, unknown> | undefined;
+  let finAnnulee: unknown = null;
   let totalStatsDepart = 0;
   const changements = { volontaires: 0, serieMax: 0, series3: 0 };
+  const diagnosticAttaques = { jugees: 0, resistees: 0, exemples: [] as Record<string, unknown>[] };
   const serieParPlace = [0, 0];
   const compterChangement = (place: number, change: boolean) => {
     serieParPlace[place] = change ? (serieParPlace[place] ?? 0) + 1 : 0;
@@ -563,6 +589,34 @@ async function jouerPartie(
     }
   };
 
+  const noterResistee = (obs: Observation, masque: boolean[], plan: number[] | null, action: number) => {
+    const coups = decrireCoups(obs, masque);
+    const force = (c: (typeof coups)[number]) =>
+      c && c.genre === "attaque" && !c.statut && c.puissance > 0 ? c.puissance * (c.efficacite ?? 1) * (c.memeType ? 1.5 : 1) : 0;
+    const choisie = coups[action];
+    if (!choisie || choisie.genre !== "attaque" || choisie.statut || choisie.puissance <= 0) {
+      return;
+    }
+    const autres = coups.map((c, i) => ({ c, i, f: force(c) })).filter(x => x.i !== action && x.f > 0);
+    if (!autres.length) {
+      return;
+    }
+    diagnosticAttaques.jugees++;
+    const plusForte = autres.reduce((m, x) => (x.f > m.f ? x : m));
+    const meilleure = { i: plusForte.i, f: plusForte.f, c: plusForte.c as { nom: string; efficacite: number; puissance: number } };
+    if (choisie.efficacite < 1 && meilleure.c.efficacite >= 1 && meilleure.f >= 1.2 * force(choisie)) {
+      diagnosticAttaques.resistees++;
+      if (diagnosticAttaques.exemples.length < 20) {
+        diagnosticAttaques.exemples.push({
+          vague: obs.partie.vague, tour: obs.partie.tour, dresseur: !!obs.partie.dresseur, double: obs.partie.double,
+          choisie: { nom: choisie.nom, efficacite: choisie.efficacite, puissance: choisie.puissance, plan: plan?.[action] ?? null },
+          meilleure: { nom: meilleure.c.nom, efficacite: meilleure.c.efficacite, puissance: meilleure.c.puissance, plan: plan?.[meilleure.i] ?? null },
+          adversaire: obs.adversaires.filter(a => !a.ko).map(a => `${a.nom} ${a.pvPourcent} % (${a.types.map(t => t.nom).join("/")})`),
+        });
+      }
+    }
+  };
+
   const minuteur = setInterval(() => {
     if (enAttente || erreur) {
       return;
@@ -594,8 +648,10 @@ async function jouerPartie(
         const detail = texte?.split(" : ")[1];
         if (detail && fait === "achat") {
           achats[detail] = (achats[detail] ?? 0) + 1;
+          recit.at(-1)?.achats.push({ objet: detail, argentApres: sceneRecit.money, ...pvEtKo(sceneRecit) });
         } else if (detail && fait === "récompense") {
           recompenses[detail] = (recompenses[detail] ?? 0) + 1;
+          recit.at(-1)?.recompenses.push(detail);
         } else if (detail && fait === "rencontre mystère") {
           const cle = `${MysteryEncounterType[game.scene.currentBattle?.mysteryEncounter?.encounterType ?? -1] ?? "?"} : ${detail}`;
           rencontres[cle] = (rencontres[cle] ?? 0) + 1;
@@ -648,6 +704,9 @@ async function jouerPartie(
       if (demande.recit && etape && etape.adversaires.length === 0) {
         etape.adversaires = sceneRecit.getEnemyParty().map(p => p.level);
         etape.dresseur = dresseurDe(sceneRecit);
+        if (!etape.dresseur) {
+          etape.sauvages = sceneRecit.getEnemyParty().map(p => ({ espece: p.species.speciesId, categorie: categorieEspece(p), boss: !!p.isBoss?.() }));
+        }
       }
       const masque = obs.decision.masque.map((permise, i) => permise && !refusees.has(i));
       if (!masque.some(Boolean)) {
@@ -701,6 +760,7 @@ async function jouerPartie(
           recrues: compterRecrues(obs),
           // En mode récit, ce que chaque action permise ferait (pour classer les erreurs : juge ciblé).
           ...(demande.recit ? { coups: decrireCoups(obs, masque) } : {}),
+          ...(demande.observationBrute ? { observation: obs } : {}),
         },
       });
       canal.recevoir().then(message => {
@@ -709,6 +769,7 @@ async function jouerPartie(
         } else {
           if (demande.recit) {
             noterAttaque(message.action);
+            noterResistee(obs, masque, plan, message.action);
             if (entreeJournal && entreeJournal.choix === undefined) {
               entreeJournal.choix = decrire(obs, message.action);
             }
@@ -762,10 +823,15 @@ async function jouerPartie(
       const taille = game.scene.getPlayerParty().length;
       if (tailleEquipe > 0 && taille > tailleEquipe) {
         captures += taille - tailleEquipe;
+        recit.at(-1)?.recrues.push(...game.scene.getPlayerParty().slice(tailleEquipe).map(p => p.species.speciesId));
       }
       tailleEquipe = taille;
       const phase = game.scene.phaseManager.getCurrentPhase();
-      if (phase.is("GameOverPhase")) {
+      if (phase.is("GameOverPhase") && phase !== finAnnulee && !(phase as unknown as { isVictory?: boolean }).isVictory
+        && game.scene.currentBattle?.mysteryEncounter?.onGameOver) {
+        finAnnulee = phase;
+      }
+      if (phase.is("GameOverPhase") && phase !== finAnnulee) {
         victoire = !!(phase as unknown as { isVictory?: boolean }).isVictory;
         if (demande.recit && !victoire) {
           defaite = {
@@ -866,11 +932,19 @@ async function jouerPartie(
             vague,
             dresseur: null,
             equipe: equipe.map(p => p.level),
+            especes: equipe.map(p => p.species.speciesId),
+            objetsDetail: objetsPortes(sceneRecit),
             pvEquipe: Math.round((100 * pv) / Math.max(pvMax, 1)),
             adversaires: [],
             objets: Object.values(objetsPortes(sceneRecit)).reduce((a, b) => a + b, 0),
             attaquesStatut: 0,
             attaquesOffensives: 0,
+            argent: sceneRecit.money,
+            balls: [0, 1, 2, 3, 4].map(b => sceneRecit.pokeballCounts[b] ?? 0),
+            sauvages: [],
+            recrues: [],
+            achats: [],
+            recompenses: [],
           });
         }
         retirerMinuteriesVides(game.scene.time as unknown as Horloge);
@@ -941,6 +1015,7 @@ async function jouerPartie(
     offertes: etat.offertes,
     statuts,
     changements,
+    diagnosticAttaques,
     totalStatsDepart,
     // Ce qui pourrait s'accumuler d'une partie à l'autre dans ce processus (à surveiller).
     diagnostic,

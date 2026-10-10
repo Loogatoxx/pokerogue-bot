@@ -26,6 +26,7 @@ export const ECRAN = {
   RENAME_POKEMON: valeurDe(UiMode, "RENAME_POKEMON"),
   SUMMARY: valeurDe(UiMode, "SUMMARY"),
   TARGET_SELECT: valeurDe(UiMode, "TARGET_SELECT"),
+  TITRE: valeurDe(UiMode, "TITLE"),
 };
 
 export const BOUTON = {

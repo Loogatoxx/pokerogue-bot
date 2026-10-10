@@ -1116,3 +1116,229 @@ erreurs-types, elles sortent du code.
 **Objectif**
 Tester une idée de combat sur le banc avant de la garder : celle-ci fait perdre, elle sort.
 
+## 37. Équipe enregistrée à chaque vague, cerveau v5 dans le dépôt — 05/10/2026
+
+**Prompt**
+> oui ut peu faire ça Enregistrer l'équipe à chaque vague (espèces, évolutions, objets) dans le
+> banc. On saura alors ce qui différencie vraiment les gagnants du rival 2 et des champions. Coût
+> faible, aucune décision changée. 1. Mettre le cerveau v5 dans le dépôt […] 2. Ensuite seulement,
+> un nouvel essai de règle, guidé par les données du point 1.
+
+**Réponse**
+- Le banc enregistre maintenant, à chaque vague, les espèces de l'équipe (les évolutions s'y
+  lisent) et ses objets. Vérifié : 6 parties identiques avant et après, aucune décision changée.
+- Cerveau v5 : exception dans `.gitignore` pour `cerveau/le-plus-fort-v5.cerveau`. Le banc
+  l'utilise quand le Lexar est absent. Le fichier est à ajouter par Carlos depuis son Mac.
+- Banc de référence lancé pour récolter ces données.
+
+**Modifications**
+- `simulateur/environnement.test.ts` (espèces et objets par vague dans le récit),
+  `entraineur/banc_complet.py` (`especes`, `objetsParVague`, `chemin_cerveau`), `.gitignore`.
+
+**Objectif**
+Savoir ce qui distingue vraiment les parties qui passent le rival 2 et les champions avant de
+proposer la prochaine règle, et pouvoir mesurer avec le cerveau v5 ici.
+
+
+## 38. Audit : contrecoups, effets secondaires, précision, objets, captures, chromatiques — 05/10/2026
+
+**Prompt**
+> il y a aussi un point a verifier c'est que l ia mesure que la puissance mais jamais le contre
+> coup d une attaque ou les effet secondaire […] lentille pour forcer les attaque avec moins de
+> precision […] le teambuilding au long du jeu […] capturer des pokemon qui non pas de sens dans
+> l equipe et ne jamais les utiliser, et il connais pas ce que fait les shiny avec le facteur luck
+
+**Réponse (vérifié dans le code)**
+- Contrecoup, soin par drainage, baisse de ses propres stats, effets secondaires (brûlure, peur,
+  baisse de stats chez l'adversaire) : ignorés partout. Seuls la charge, la recharge et le
+  sacrifice sont comptés (`observateur/contraintes-attaques.ts`).
+- Précision : comptée contre les dresseurs (`combat-equipe.ts`), **ignorée contre les sauvages,
+  les boss sauvages et en double** (`planificateur.ts`, `mesDegats`). Corrigé, mesure en cours.
+- Objets tenus et talents : lus par l'observateur, ignorés dans la formule des dégâts
+  (`prevision.ts`, `degats`). Grosse Loupe : +5 points de précision par exemplaire, 3 au plus.
+- Captures : toute capture est « utile » tant que l'équipe a moins de 6 membres
+  (`planificateur.ts`, `captureUtile`).
+- Chromatiques : chaque chromatique en vie donne de la chance (1, jusqu'à 3 pour les variantes,
+  total plafonné à 14). Elle augmente la chance d'objets de meilleur rang. Un Pokémon K.O. ne
+  compte pas. La note d'équipe (`equipe.ts`, `evaluerArrivee`) ne connaît pas le chromatique :
+  il peut être relâché pour une capture.
+
+**Modifications**
+- `observateur/planificateur.ts` (précision et crans de précision/esquive dans les duels),
+  `observateur/combat-equipe.ts` (export de `multiplicateurPrecision`),
+  `tests/planificateur.test.ts`, `BACKLOG.md`.
+
+**Objectif**
+Corriger, une mesure à la fois, ce que le planificateur ne voit pas dans un combat.
+
+## 42. Juge des défaites du banc — 05/10/2026
+
+**Prompt**
+> Vasy je te laisse faire
+
+**Réponse**
+- Effets des attaques rejetés aussi en essais séparés (soi −1,05 ± 0,96 ; adversaire −2,61 ± 1,38).
+- Nouvel outil `entraineur/juge_banc.py` : pour chaque défaite d'un banc (plan seul, parties
+  reproductibles), photo au début de la vague fatale, vérification que la défaite se reproduit,
+  taux de victoire du bot depuis la photo sur 8 autres tirages, puis chaque décision du combat
+  jugée (tous les coups permis × 3 avenirs, mêmes tirages pour tous les coups).
+- Essai (rival 2, k=0) : 8 min, 23 décisions ; le coup habituel gagnait 2 avenirs sur 3 dès la
+  première décision : une part de la défaite est de la malchance.
+
+**Modifications**
+- `entraineur/juge_banc.py`.
+
+**Objectif**
+Trouver quelles décisions perdent vraiment (triche permise au diagnostic) avant toute nouvelle règle.
+
+## 43. Juge vérifié : erreurs de changement ; ciblage de l'IA adverse au tour d'un changement — 05/10/2026
+
+**Prompt**
+> Vasy je te laisse faire (suite)
+
+**Réponse**
+- Juge sur 36 défaites (rival 2, rival 4, champions 50-110) : depuis la photo, le bot gagne ~1/3
+  avec d'autres tirages ; 81 erreurs fortes. Revérifiées sur 16 avenirs neufs : coup du bot 28 % de
+  victoires, coup du juge 57 % (+4,6 victoires sur 16, erreur-type 0,53). Les erreurs de changement
+  sont réelles (« aurait dû changer » 24 % → 62 %, « mauvais Pokémon envoyé » 29 % → 56 %) ; les
+  attaques de statut ne le sont pas.
+- Défaut trouvé : dans le moteur d'équipe, au tour d'un changement, l'adversaire choisissait son
+  attaque contre le remplaçant. Dans le jeu (`EnemyCommandPhase`, avant `TurnStartPhase`), il la
+  choisit contre le Pokémon qui part. Corrigé, test ajouté.
+- Option de diagnostic `observationBrute` (simulateur et `pont.py`) : l'observation complète à
+  chaque décision, désactivée par défaut.
+
+**Modifications**
+- `observateur/combat-equipe.ts`, `tests/planificateur.test.ts`, `simulateur/environnement.test.ts`,
+  `entraineur/pont.py`.
+
+**Objectif**
+Corriger les changements de Pokémon, l'erreur que le juge confirme.
+
+## 44. Équipe des rivaux connue (emplacements fixés par le jeu) — 05/10/2026
+
+**Prompt**
+> Vasy je te laisse faire (suite)
+
+**Réponse**
+- Trace d'une défaite au rival 2 (k=41) : l'IA du rival retire son starter dès qu'il est menacé ;
+  la branche gagnante sacrifie Feunnec contre l'oiseau et garde Brindibou, qui évolue en plein
+  combat et bat le starter. Le moteur ne prévoit ni le retrait adverse, ni l'évolution, et joue le
+  3e Pokémon du rival comme une copie du starter (niveau 18) alors que c'est un bébé niveau 16.
+- Nouvel export `simulateur/exporter-rivaux.test.ts` → `donnees/rivaux.json` : pour chaque combat
+  de rival, la liste de chaque emplacement, son niveau fixé et les stats de base moyennes.
+- Moteur d'équipe : les Pokémon pas encore vus d'un rival sont joués avec ces niveaux et ces stats
+  (`adversairesSupposes`, testée).
+
+**Modifications**
+- `simulateur/exporter-rivaux.test.ts`, `donnees/rivaux.json`, `observateur/combat-equipe.ts`,
+  `tests/planificateur.test.ts`.
+
+**Objectif**
+Le rival 2 est la première cause de mort (86 parties sur 475) : mieux connaître son équipe, avec ce
+qui est public.
+
+## 45. Point de reprise pour la suite en local — 05/10/2026
+
+**Prompt**
+> je vois que les credit cloud sont bientot epuiser peut tu laisser les prochaine consigne bien
+> defini avec tout le savoir pour la suite quand je reviendrais en local avec claude code et ainsi
+> d actualiser le nouveau cerveau le plus performant bien sur continue jusqua epuiser le dernier
+> credit juste fait ça en checkpoint
+
+**Réponse**
+- `REPRISE.md` : état, deux changements en attente de verdict (commandes pour refaire les bancs en
+  local), mise à jour du site (reconstruire l'extension ; le moteur est dans l'extension, pas dans le
+  `.cerveau`), ce qu'on a appris, prochains chantiers, méthode.
+- Les bancs continuent dans le cloud ; les verdicts seront notés dans `REPRISE.md` s'ils finissent.
+
+**Modifications**
+- `REPRISE.md`.
+
+**Objectif**
+Pouvoir reprendre sur le Mac sans rien perdre.
+
+## 46. Capture forcée dans l'extension — 06/10/2026
+
+**Prompt**
+> ne touche plus a une amlioration du cerveau je vais te demander juste de ajouter une feature a l
+> extension, en gros ça va etre une feature qui va essayer toute les maniere possible de çapturer le
+> pokemon […] si la çapture echou l extension fais un f5 ou un truc qui marche pour recommencer la
+> partie, si il çapture le pokemon l extension devera nous laisser sur le choix de remplacement
+
+**Réponse**
+- Vérifié dans le jeu : le hasard de capture est fixé par tour (graine du combat + tour) ; un boss
+  doit avoir tous ses boucliers cassés pour une Ball normale ; sauvegarde au début de chaque vague.
+- Bouton « CAPTURE FORCÉE » : tentative n = Ball lancée après n tours d'attente sans risque ; boucliers
+  d'un boss cassés d'abord ; échec → rechargement de la page et « Continuer » ; succès → arrêt, et
+  l'écran de remplacement est laissé au joueur. Jamais en Daily Run ; 100 tentatives au plus.
+- Exception notée dans REGLES.md (voulue par Carlos).
+
+**Modifications**
+- `extension/src/capture-forcee.ts` (nouveau), `extension/src/capteur.ts`, `extension/src/messages.ts`,
+  `extension/src/panneau.ts`, `extension/manifest.json` (0.12.0), `observateur/valeurs.ts` (écran titre),
+  `tests/capture-forcee.test.ts`, `REGLES.md`, `REPRISE.md`.
+
+**Objectif**
+Capturer un Pokémon rare (Zygarde, vague 60, une seule Ball) sans tout essayer à la main.
+
+## 47. Capture forcée : envoyer le banc au lieu de recharger — 06/10/2026
+
+**Prompt**
+> petit souci quand mon zacian meurt donc mon premier pokemon la parti ce relance f5 au lieu de switch
+> sur ceux tu banc
+
+**Réponse**
+- Après un K.O., l'extension envoie le remplaçant le plus solide (PV restants × niveau) et continue la
+  tentative ; elle ne recharge que s'il ne reste plus qu'un Pokémon debout (marge de sécurité : la
+  fin de partie efface la sauvegarde). Test ajouté.
+
+**Modifications**
+- `extension/src/capture-forcee.ts`, `extension/src/capteur.ts`, `extension/manifest.json` (0.12.1),
+  `tests/capture-forcee.test.ts`, `REPRISE.md`.
+
+**Objectif**
+Utiliser toute l'équipe pendant une tentative de capture.
+
+## 48. Truc lourds : efficacités, économie, légendaires, et rapport « raison ou tort » — 09-10/10/2026
+
+**Prompt**
+> j ai recuperer mes credit j ai rien avancer autre part tu peu finalment reprendre ici … on continue
+> les truc lourd et faire mieu que la moyenne des 60 vague … le bot se trompe sur les efficaciter des
+> attauque … team build … synergie … boost d xp en late game … le plus gros souci … c'est l'economie …
+> potion pour mettre full hp … reanimer tout le monde avec des rappel alors qu on va pas rencontrer de
+> combat difficile … rang d importance de combat … ne garde pas de bonne pokeball … face a un
+> legendaire utile il çapture pas … je voudrais d ailleur que tu fasse un rapport ou on voit la
+> difference entre rater un legendaire et prendre un legendaire dans l equipe … et aussi voir la
+> moyenne de rencontre des ces type la chacun et plein de chiffre pour montrer si j ai raison ou tord
+
+**Réponse**
+- Banc instrumenté (`p16-ref`, 60,71) : argent, Balls, achats avec les PV de l'équipe, récompenses,
+  sauvages rencontrés (légendaire, fabuleux, semi-légendaire, boss), recrues, attaques résistées.
+- Cinq essais mesurés, un à la fois (détails dans RESULTATS.md) : rang d'importance des combats
+  +0,74 ± 1,44 (bruit) ; Potions seulement sous 70 % −2,88 ± 1,39 (perte réelle) ; départage des
+  attaques +1,21 ± 1,36 (bruit, gardé pour le paquet) ; capture des légendaires −0,42 puis −0,64 ±
+  0,29 (−3,64 ± 1,77 sur les 59 parties concernées : perte réelle).
+- Rapport en tableau de bord : https://claude.ai/artifact/6AaMPHekDrkjHVxd9E9Zgm
+  (rencontres par catégorie et par tranche de vagues, espèces, Balls en main, essai apparié, piège
+  des moyennes, achats, achats selon le rang du prochain combat, argent avant les gros combats,
+  objets d'EXP, tous les verdicts). Raison : le bot capture peu (6 sur 64) et achète des Potions à
+  PV presque pleins (69 %) et des Rappels avant des combats faciles (57 %). Tort : capturer le
+  légendaire fait perdre des vagues ici ; les Potions « en trop » aident ; les objets d'EXP sont pris
+  avec l'équipe ~8,5 niveaux sous le plafond.
+- Essai « paquet » (règle fixée avant tout résultat) : précision + ciblage et prix 0,05 + rang des
+  combats + départage, sur 960 parties contre `p16-ref` étendue à 960 : **+3,70 ± 1,26, gardé** ;
+  la moyenne passe de 59,5 à **63,2 vagues** (extension 0.13.1).
+- Ensuite, chacun par-dessus le paquet : IA du dresseur dans le moteur −2,85 (séries de
+  changements), Super Bonbons avant le rival +0,03, EXP au membre sous le plafond +0,74 : tous
+  annulés. Le rival 2 reste la première cause de mort (17,4 % des parties).
+
+**Modifications**
+- `simulateur/environnement.test.ts`, `entraineur/banc_complet.py`, `entraineur/pont.py`,
+  `entraineur/juge_banc.py`, `entraineur/rapport_legendaires.py`, `entraineur/analyse_economie.py`,
+  `donnees/importance-combats.json`, `donnees/rivaux.json`, `simulateur/exporter-rivaux.test.ts`,
+  RESULTATS.md, REPRISE.md (essais annulés par `git revert`).
+
+**Objectif**
+Dépasser la moyenne de 60 vagues avec des changements prouvés, et répondre chiffres à l'appui aux
+remarques sur l'économie et les légendaires.
