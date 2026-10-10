@@ -238,8 +238,8 @@ export function prevoir(obs: Observation, adversaire: PokemonAdverse, cibleImpos
  * moyenne de ses attaques (vues ou possibles) contre l'autre, résistance à ses types, et un facteur
  * de PV et de vitesse. Un dresseur s'en sert pour décider de changer de Pokémon.
  */
-function scoreDuel(
-  source: { types: readonly number[]; attaques: AttaqueCandidate[]; vitesse: number; pv: number; actif: boolean },
+export function scoreDuel(
+  source: { types: readonly number[]; attaques: readonly { type: number; categorie: number; puissance: number }[]; vitesse: number; pv: number; actif: boolean },
   adverse: { types: readonly number[]; vitesse: number; pv: number },
 ): number {
   let defense = 1 / Math.max(efficacite(adverse.types[0] ?? 0, source.types), 0.25);
@@ -265,6 +265,8 @@ function scoreDuel(
 /** Vagues où le dresseur est un « boss » (champions, Conseil 4, chefs de la Team, derniers rivaux) :
  * il change dès qu'un Pokémon fait 2 fois mieux, au lieu de 3. */
 const VAGUES_BOSS = new Set([95, 115, 145, 165, 182, 184, 186, 188, 190, 195]);
+
+export const facteurChangement = (vague: number) => (vague % 10 === 0 || VAGUES_BOSS.has(vague) ? 2 : 3);
 
 export interface ChangementPrevu {
   /** Le Pokémon qu'il fera entrer s'il est déjà vu ; null = un Pokémon encore jamais vu. */
@@ -305,7 +307,7 @@ export function scoresChangement(obs: Observation, adversaire: PokemonAdverse, c
     vers: meilleur?.b ?? null,
     meilleurVu: meilleur?.s ?? 0,
     inconnus: Math.max(0, obs.partie.dresseur.pokemonRestants - presents - banc.length),
-    facteur: obs.partie.vague % 10 === 0 || VAGUES_BOSS.has(obs.partie.vague) ? 2 : 3,
+    facteur: facteurChangement(obs.partie.vague),
   };
 }
 

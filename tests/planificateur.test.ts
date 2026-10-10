@@ -3,6 +3,7 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { adverse, allie, changementDuDresseur } from "../observateur/combat-equipe";
 import { planifier } from "../observateur/planificateur";
 import type { Observation } from "../observateur/types";
 
@@ -56,6 +57,24 @@ describe("Combat d'équipe (contre un dresseur)", () => {
     obs.equipe[0]!.stats[5] = 99;
     const valeurs = planifier(obs)!;
     expect(meilleure(valeurs, obs.decision.masque!)).toBeLessThan(8);
+  });
+});
+
+describe("IA du dresseur dans le combat d'équipe (EnemyCommandPhase)", () => {
+  const obs = situation(50);
+  const salameche = adverse(obs.adversaires[0]!);
+  const vineWhip = { id: 22, nom: "Fouet Lianes", type: { id: 11, nom: "Plante" }, categorie: { id: 0, nom: "Physique" }, puissance: 45, precision: 100 };
+  const bulbizarre = adverse({
+    ...obs.adversaires[0]!, espece: 1, nom: "Bulbizarre", types: [{ id: 11, nom: "Plante" }, { id: 3, nom: "Poison" }],
+    statsDeBase: [45, 49, 49, 65, 65, 45], attaquesVues: [vineWhip], pvPourcent: 100,
+  });
+
+  it("retire Salamèche à moitié PV face à Carapuce quand Bulbizarre fait 3 fois mieux", () => {
+    expect(changementDuDresseur([salameche, bulbizarre], 0, allie(obs.equipe[2]!, true), 3, 0)).toBe(1);
+  });
+
+  it("garde Salamèche face à un autre Salamèche", () => {
+    expect(changementDuDresseur([salameche, bulbizarre], 0, allie(obs.equipe[1]!, true), 3, 0)).toBe(-1);
   });
 });
 

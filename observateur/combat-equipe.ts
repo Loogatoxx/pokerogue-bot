@@ -19,7 +19,7 @@
  */
 import { NOMBRE_ACTIONS, PREMIER_CHANGEMENT, PREMIERE_BALL } from "./actions";
 import { combatDeLaVague } from "./combats";
-import { candidates, combattantAdverse, combattantAllie, type Combattant, degats, statsEstimees } from "./prevision";
+import { candidates, combattantAdverse, combattantAllie, type Combattant, degats, facteurChangement, scoreDuel, statsEstimees } from "./prevision";
 import { facteurAttaque } from "./contraintes-attaques";
 import { EFFETS_STATUT } from "./effets-statut";
 import { PRIORITES } from "./priorites";
@@ -119,7 +119,7 @@ function infliger(def: Acteur, dmg: number): void {
 const multiplicateurCran = (cran: number) => (cran >= 0 ? (2 + cran) / 2 : 2 / (2 - cran));
 const vitesseDe = (c: Combattant) => (c.stats[5] ?? 0) * multiplicateurCran(c.crans[4] ?? 0);
 
-function allie(p: PokemonAllie, enJeu: boolean): Acteur {
+export function allie(p: PokemonAllie, enJeu: boolean): Acteur {
   const c = combattantAllie(p);
   const crans = enJeu ? c.crans : c.crans.map(() => 0);
   const combattant = { ...c, crans };
@@ -134,7 +134,7 @@ function allie(p: PokemonAllie, enJeu: boolean): Acteur {
   };
 }
 
-function adverse(a: PokemonAdverse): Acteur {
+export function adverse(a: PokemonAdverse): Acteur {
   const c = combattantAdverse(a);
   return {
     c,
@@ -233,11 +233,41 @@ function remplacant(equipe: Acteur[], enFace: Acteur): number {
   return meilleur;
 }
 
+const scoreContre = (a: Acteur, b: Acteur, actif: boolean) =>
+  scoreDuel({ types: a.c.types, attaques: a.coups, vitesse: a.vitesse, pv: a.pv, actif }, { types: b.c.types, vitesse: b.vitesse, pv: b.pv });
+
+function remplacantAdverse(eux: Acteur[], actif: number, enFace: Acteur): number {
+  let meilleur = -1;
+  let note = -Infinity;
+  eux.forEach((a, i) => {
+    if (i === actif || a.pv <= 0) {
+      return;
+    }
+    const s = scoreContre(a, enFace, false);
+    if (s > note) {
+      note = s;
+      meilleur = i;
+    }
+  });
+  return meilleur;
+}
+
+export function changementDuDresseur(eux: Acteur[], actif: number, enFace: Acteur, facteur: number, compteur: number): number {
+  const vers = remplacantAdverse(eux, actif, enFace);
+  if (vers < 0) {
+    return -1;
+  }
+  const frein = 1 - (compteur ? Math.pow(0.1, 1 / compteur) : 0);
+  return scoreContre(eux[vers]!, enFace, false) * frein >= scoreContre(eux[actif]!, enFace, true) * facteur ? vers : -1;
+}
+
 interface Combat {
   nous: Acteur[];
   eux: Acteur[];
   actif: number;
   actifEux: number;
+  facteur: number;
+  compteur: number;
 }
 
 const copier = (c: Combat): Combat => ({ ...c, nous: c.nous.map(a => ({ ...a })), eux: c.eux.map(a => ({ ...a })) });
@@ -250,8 +280,9 @@ function simuler(depart: Combat, premier: { attaque: number } | { changement: nu
     c.actif = premier.entree;
   }
   for (let tour = 0; tour < TOURS_MAX; tour++) {
-    const lui = c.eux[c.actifEux]!;
+    let lui = c.eux[c.actifEux]!;
     let moi = c.nous[c.actif]!;
+    const change = changementDuDresseur(c.eux, c.actifEux, moi, c.facteur, c.compteur);
     let monCoup = -1;
     if (tour === 0 && "changement" in premier) {
       c.actif = premier.changement; // le changement passe avant toute attaque
@@ -262,7 +293,15 @@ function simuler(depart: Combat, premier: { attaque: number } | { changement: nu
         monCoup = -1; // aucune attaque utile : il ne fait rien ce tour-ci
       }
     }
-    const sonCoup = meilleurCoup(lui, moi);
+    let sonCoup = meilleurCoup(lui, moi);
+    if (change >= 0) {
+      c.actifEux = change;
+      c.compteur++;
+      lui = c.eux[change]!;
+      sonCoup = -1;
+    } else {
+      c.compteur = Math.max(c.compteur - 1, 0);
+    }
     const frapper = (att: Acteur, def: Acteur, i: number) => {
       if (i >= 0 && att.pv > 0) {
         infliger(def, attendus(att, def, att.coups[i]!));
@@ -284,7 +323,7 @@ function simuler(depart: Combat, premier: { attaque: number } | { changement: nu
       frapper(moi, lui, monCoup);
     }
     if (lui.pv <= 0) {
-      const suivant = c.eux.findIndex(a => a.pv > 0);
+      const suivant = remplacantAdverse(c.eux, c.actifEux, moi);
       if (suivant < 0) {
         // Gagné : la note dépend des PV qui nous restent, le porteur comptant le plus.
         const total = c.nous.reduce((t, a) => t + a.poids, 0) || 1;
@@ -342,7 +381,7 @@ export function valeursCombatEquipe(obs: Observation): number[] | null {
       : typeStarter !== undefined && !starterVu && k === (rival && !oiseauVu ? 1 : 0) ? inconnu(lui, typeStarter)
         : inconnu(lui, obs.partie.dresseur!.specialite));
   const eux = [lui, ...banc, ...inconnusJoues];
-  const depart: Combat = { nous, eux, actif, actifEux: 0 };
+  const depart: Combat = { nous, eux, actif, actifEux: 0, facteur: facteurChangement(obs.partie.vague), compteur: 0 };
   const valeurs = new Array<number>(NOMBRE_ACTIONS).fill(0);
   for (let action = 0; action < PREMIERE_BALL; action++) {
     if (!masque[action]) {
