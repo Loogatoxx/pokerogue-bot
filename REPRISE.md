@@ -27,6 +27,12 @@ est, ce qui reste à décider, comment le décider, et ce qu'on a appris. Mettre
   presque tous les bonbons proposés (niveau au rival 2 : 18,92 → 18,99).
 - EXP au membre sous le plafond : **+0,74** (bruit), annulé ; niveaux presque inchangés, et plus de
   morts contre les boss sauvages de fin de partie (vague 100 : 0 → 8).
+- **Carte et choix du biome GARDÉS** : +1,85 ± 0,76 (`p27-biomes` = **64,95**, nouvelle référence).
+  Le champion d'arène est tiré dans le biome : le bot va vers les biomes (et champions) que son
+  équipe bat ; la Carte vaut 25 (avant 5). Paquet 2 (rencontres, préparation au rival, EXP) : +0,94,
+  annulé. Extension 0.14.2 : options Bloquer les Balls, Équipe intouchable, verrous par Pokémon.
+- **En mesure** : `p28-immunites` (talents qui annulent un type dans les dégâts, `52d6a8f`) contre
+  `p27-biomes`. Sous 2 erreurs-types : `git revert 52d6a8f`.
 
 **Avant le 10/10** :
 - Branche de travail : `claude/pokerogue-bot-macro-strategy-33yi1e`, PR #9 (brouillon) vers `main`.
