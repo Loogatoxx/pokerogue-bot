@@ -119,4 +119,11 @@ describe("Planificateur et capture", () => {
     const valeurs = planifier(obs, { capture: true })!;
     expect(valeurs[14]!).toBeGreaterThan(1);
   });
+
+  it("ne met pas la Ball à égalité avec la meilleure attaque contre un boss affaibli", () => {
+    const obs = sauvage(10);
+    obs.adversaires[0] = { ...obs.adversaires[0]!, boss: true };
+    const valeurs = planifier(obs, { capture: true })!;
+    expect(valeurs[14]!).not.toBe(Math.max(...valeurs.slice(0, 8)));
+  });
 });

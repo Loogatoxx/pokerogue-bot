@@ -33,6 +33,8 @@ est, ce qui reste à décider, comment le décider, et ce qu'on a appris. Mettre
   annulé. Extension 0.14.2 : options Bloquer les Balls, Équipe intouchable, verrous par Pokémon.
 - **Immunités de talent dans les dégâts GARDÉES** (Lévitation contre Sol…) : +1,04 ± 0,52, juste
   au seuil. **Référence actuelle : `p28-immunites` = 65,96** (début de la journée : 59,5).
+- **11/10** : PR #10 fusionnée. Extension **0.14.3** : les Balls sont notées comme au banc
+  (`capture: true`), fin de l'égalité Ball / attaque qui faisait alterner contre un boss (Limonde).
 
 **Avant le 10/10** :
 - Branche de travail : `claude/pokerogue-bot-macro-strategy-33yi1e`, PR #9 (brouillon) vers `main`.
@@ -174,7 +176,7 @@ Mis à jour le 10/10, référence `p21-paquet` = 63,23 (960 parties).
      boss sauvage.
    Règle à fixer d'avance comme pour le premier paquet : 960 parties, tout garder si l'écart dépasse
    2 erreurs-types, sinon tout abandonner.
-4. **Aligner l'extension sur le banc pour les Balls** (défaite de Carlos le 10/10, Limonde boss
+4. ~~**Aligner l'extension sur le banc pour les Balls**~~ — **FAIT le 11/10 (extension 0.14.3)** (défaite de Carlos le 10/10, Limonde boss
    vague 40) : l'extension appelle `planifier(obs)` sans `capture: true`, donc contre un boss aux
    boucliers cassés la Ball vaut exactement la meilleure attaque et le cerveau alterne Ball et
    attaque pendant que le boss mange ses Baies Sitrus. Le banc mesure `plan_capture=True`. Passer
