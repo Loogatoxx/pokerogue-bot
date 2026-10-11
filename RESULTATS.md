@@ -521,3 +521,11 @@ Petites corrections sûres, trop petites pour être prouvées seules, mesurées 
 La Carte étant gardée : `p28-immunites` contre `p27-biomes`.
 
 **Résultat** : **+1,04** (erreur-type 0,52, seuil 1,04, 951 paires ; juste au-dessus en valeurs non arrondies) · mieux 122, pareil 739, pire 90. Vague moyenne 64,93 → **65,96** ; morts contre un champion d'arène 251 → 237. **Verdict : GARDER.** **Nouvelle référence : `p28-immunites` = 65,96** (code `52d6a8f`).
+
+## Extension alignée sur le banc pour les Balls (11/10) — sans mesure
+
+**Constat** (défaite de Carlos, Limonde boss vague 40) : l'extension appelait `planifier(obs)` sans `capture: true` ; une Ball permise recevait exactement la valeur de la meilleure attaque et le cerveau tranchait l'égalité, tour après tour (Ball, attaque, Ball…) pendant que le boss mangeait ses baies.
+
+**Correction** : `planifier(..., { capture: true })` dans `extension/src/panneau.ts` (2 appels), comme le banc (`banc_complet.py` : `plan_capture=True`). Sauvage boss à 10 % : avant, Ball 2,010 = attaque 2,010 ; après, Ball 1,586 < attaque 2,010.
+
+**Pas de banc** : le banc joue déjà ainsi ; toutes les références depuis `p1-plan-seul` (dont 65,96) sont mesurées avec cette notation. Extension **0.14.3**.

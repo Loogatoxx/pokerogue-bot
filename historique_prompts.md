@@ -1390,6 +1390,12 @@ Continuer à monter la moyenne (63,2 vagues) en attaquant le rival 2, première 
 **Objectif**
 Expliquer la défaite et dire si c'est rare.
 
+**Suite (11/10, après la fusion de la PR #10)** — chantier 4 de REPRISE.md fait : l'extension
+appelle `planifier(..., { capture: true })` comme le banc (`extension/src/panneau.ts`, 2 appels).
+Vérifié sur un sauvage boss à 10 % : sans l'option, Ball = meilleure attaque (2,010 et 2,010) ;
+avec, la Ball vaut 1,586 et l'attaque gagne. Test ajouté dans `tests/planificateur.test.ts`.
+Extension **0.14.3**. Pas de mesure au banc : il joue déjà ainsi depuis `p1-plan-seul`.
+
 ## 51. La Carte : le bot ne comprend pas la carte et ne la prend jamais — 10/10/2026
 
 **Prompt**
