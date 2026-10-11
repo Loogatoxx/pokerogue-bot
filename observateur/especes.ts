@@ -110,6 +110,14 @@ export function immunitesPossibles(espece: number, talentConnu: number | null): 
   return [...types];
 }
 
+export function immunitesCertaines(espece: number, talentConnu: number | null): number[] {
+  if (talentConnu !== null) {
+    return immunitesPossibles(espece, talentConnu);
+  }
+  const talents = (ESPECES[espece]?.[4] ?? []).filter(t => t > 0);
+  return immunitesPossibles(espece, null).filter(type => talents.length > 0 && talents.every(t => (TALENTS[t]?.[1] ?? []).includes(type)));
+}
+
 export function nomTalent(talent: number): string {
   return TALENTS[talent]?.[0] ?? `talent ${talent}`;
 }

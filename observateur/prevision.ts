@@ -18,7 +18,7 @@
  * moyens, nature neutre) — jamais son vrai jeu d'attaques ni ses vrais IVs.
  */
 import { facteurAttaque } from "./contraintes-attaques";
-import { attaquesPossibles } from "./especes";
+import { attaquesPossibles, immunitesCertaines, immunitesPossibles } from "./especes";
 import { EFFICACITE_TYPES } from "./noms";
 import type { Observation, PokemonAdverse, PokemonAllie } from "./types";
 
@@ -54,6 +54,7 @@ export interface Combattant {
   stats: readonly number[];
   /** Crans de combat : Att, Déf, Att. Spé., Déf. Spé., Vit, Précision, Esquive. */
   crans: readonly number[];
+  immunites?: readonly number[];
 }
 
 export interface Prevision {
@@ -99,7 +100,7 @@ export function degats(
   defenseur: Combattant,
   attaque: { type: number; categorie: number; puissance: number },
 ): number {
-  if (attaque.categorie === CATEGORIE_STATUT || attaque.puissance <= 0) {
+  if (attaque.categorie === CATEGORIE_STATUT || attaque.puissance <= 0 || defenseur.immunites?.includes(attaque.type)) {
     return 0;
   }
   const physique = attaque.categorie === CATEGORIE_PHYSIQUE;
@@ -113,11 +114,14 @@ export function degats(
 const ids = (libelles: { id: number }[]) => libelles.map(l => l.id);
 
 export function combattantAllie(p: PokemonAllie): Combattant {
-  return { niveau: p.niveau, types: ids(p.types), stats: p.stats, crans: p.modifStats };
+  return { niveau: p.niveau, types: ids(p.types), stats: p.stats, crans: p.modifStats, immunites: [...immunitesPossibles(p.espece, p.talent.id), ...(p.passif ? immunitesPossibles(p.espece, p.passif.id) : [])] };
 }
 
 export function combattantAdverse(a: PokemonAdverse): Combattant {
-  return { niveau: a.niveau, types: ids(a.types), stats: statsEstimees(a.statsDeBase, a.niveau), crans: a.modifStats };
+  return {
+    niveau: a.niveau, types: ids(a.types), stats: statsEstimees(a.statsDeBase, a.niveau), crans: a.modifStats,
+    immunites: immunitesCertaines(a.espece, a.talentRevele?.id ?? null),
+  };
 }
 
 /**

@@ -1342,3 +1342,143 @@ Utiliser toute l'équipe pendant une tentative de capture.
 **Objectif**
 Dépasser la moyenne de 60 vagues avec des changements prouvés, et répondre chiffres à l'appui aux
 remarques sur l'économie et les légendaires.
+
+## 49. Suite après la fusion de la PR #9 — 10/10/2026
+
+**Prompt**
+> c'est bon c'est fait tu peu continuer
+
+**Réponse**
+- Branche repartie de `main` (PR #9 fusionnée).
+- Juge lancé sur 12 défaites au rival 2 du banc `p21-paquet` (code du paquet), pour voir quelles
+  erreurs restent.
+- Préparation d'un « paquet 2 » de petites corrections sûres (rencontres mystères, préparation au
+  rival, EXP au plafond avant le rival 2), à mesurer d'un bloc sur 960 parties.
+
+**Modifications**
+- `historique_prompts.md` (la suite dans les entrées suivantes et RESULTATS.md).
+
+**Objectif**
+Continuer à monter la moyenne (63,2 vagues) en attaquant le rival 2, première cause de mort.
+
+## 50. Défaite vague 40 contre une Limonde boss avec Zacian dans l'équipe — 10/10/2026
+
+**Prompt**
+> j ai tester le bot et regarde j ai perdu contre une limonde alors que tout le monde etait debout
+> … la limonde se regen et le bot pas foutu de voir … ça alternait entre essayer de çapturer et
+> vouloir attaquer finalement je suis mort vague 40 alors que il y a zacian je veux juste une
+> reponse de pourquoi et est ce une anomalie ou frequent ?
+
+**Réponse** (vérifié dans le code du jeu et du bot)
+- Le soin : en Classique, un sauvage ne tient que baies, vitamines, objets de type, Œufs ; la Baie
+  Sitrus (+25 % sous 50 % de PV) et la Baie Enigma (+25 % sur un coup super efficace) soignent, et
+  un boss peut en tenir plusieurs. « boss 1/2 » à 60 % = bouclier cassé puis remonté au-dessus de
+  50 %. Chaque bouclier cassé donne aussi +1 à une stat au hasard (`handleBossSegmentCleared`). Le
+  soin à chaque tour (`ENEMY_HEAL`) n'existe qu'en mode Infini.
+- L'alternance : dans l'extension, le planificateur est appelé sans l'option capture ; contre un
+  boss aux boucliers cassés, une Ball « permise » reçoit exactement la valeur de la meilleure
+  attaque (égalité voulue) et le cerveau tranche, tour après tour ; chaque Ball ratée laisse le
+  boss frapper et manger ses baies. Le banc, lui, note les Balls avec `plan_capture=True` : il ne
+  reproduit pas ce comportement.
+- Fréquence : dans `p21-paquet`, les boss sauvages tuent 59 parties sur 953 (6,2 %), dont 5 à la
+  vague 40 (0,5 %) ; sur le site, ce cas précis est sans doute plus fréquent (comportement des
+  Balls différent du banc).
+
+**Modifications**
+- `historique_prompts.md`, `REPRISE.md` (chantier : aligner l'extension sur le banc pour les Balls).
+
+**Objectif**
+Expliquer la défaite et dire si c'est rare.
+
+## 51. La Carte : le bot ne comprend pas la carte et ne la prend jamais — 10/10/2026
+
+**Prompt**
+> autre chose remarquer l ia ne comprend pas la çarte il pourrait se servir pour aller a l endroit
+> le plus facile ou on a des pokemon avec des resistence et de le efficaciter
+> apres l ia voyais la çarte mais ne la prenais jamais a chaque fois j en ai une et il la saute
+
+**Réponse** (vérifié dans le jeu)
+- On ne choisit le prochain biome qu'avec la Carte (`MapModifier`, une seule suffit) et quand le
+  biome mène à plusieurs autres ; sinon le jeu tire au hasard. Le pilote prenait toujours la
+  première option, et la Carte était notée 5 (parmi les plus basses) : il la sautait.
+- Découverte : le champion d'arène d'une vague de champion est tiré dans les dresseurs « boss » du
+  biome (`isTrainerBoss`, `randomTrainerType`) : choisir le biome = choisir le type du champion.
+- Nouveau : `donnees/biomes.json` exporté du jeu (Pokémon par rareté, liens, champions et leur
+  type, noms français et anglais) ; `observateur/biomes.ts` note chaque biome proposé selon les
+  faiblesses et résistances de l'équipe (sauvages pondérés par leur rareté, champion × 3 s'il tombe
+  dans ces 10 vagues) ; le pilote choisit le mieux noté ; le panneau affiche les notes ; la Carte
+  vaut 25 si l'équipe n'en a pas (0 sinon).
+
+**Modifications**
+- `simulateur/exporter-biomes.test.ts`, `donnees/biomes.json`, `observateur/biomes.ts`,
+  `observateur/objets.ts`, `observateur/decisions-jeu.ts`, `observateur/observateur.ts`,
+  `pilote/pilote.ts`, `tests/biomes.test.ts`, `tests/objets.test.ts`.
+
+**Objectif**
+Se servir de la Carte pour aller vers les biomes (et les champions) que l'équipe bat le mieux.
+
+## 52. Options de l'extension : bloquer les Balls, équipe intouchable — 10/10/2026
+
+**Prompt**
+> peut tu creer a l extension un option a cocher pour bloquer la çapture, donc les pokeball et un
+> autre ou les pokeball autoriser mais pas touche a lequipe
+
+**Réponse**
+- Deux cases dans le panneau, retenues d'une fois sur l'autre :
+  - « BLOQUER LES BALLS » : les Balls sont retirées des actions permises avant que le cerveau
+    choisisse (conseil et auto) ; le capteur refuse aussi d'en lancer une par sécurité ;
+  - « ÉQUIPE INTOUCHABLE » : captures permises, mais avec l'équipe pleine le pilote répond « ne pas
+    le garder » (aucun membre relâché) ; le Pokémon compte quand même dans le Pokédex. Avec moins de
+    6 membres, le jeu l'ajoute tout seul (vérifié : `attempt-capture-phase.ts`).
+- La capture forcée reste possible (déclenchée à la main). Sans effet sur le banc (désactivées).
+
+**Modifications**
+- `extension/src/options-capture.ts` (nouveau), `extension/src/panneau.ts`, `extension/src/capteur.ts`,
+  `extension/src/messages.ts`, `pilote/pilote.ts`, `tests/options-capture.test.ts`,
+  `extension/manifest.json` (0.14.0).
+
+**Objectif**
+Laisser Carlos décider des captures quand il le veut.
+
+## 53. Verrouiller certains Pokémon de l'équipe — 10/10/2026
+
+**Prompt**
+> ajoute aussi au pas touche a l equipe les pokemon a cocher a bloquer comme ça l ia peu modifier
+> une seul partie
+
+**Réponse**
+- Une case devant chaque membre dans la liste ÉQUIPE du panneau : coché = verrouillé. Avec l'équipe
+  pleine après une capture, le pilote ne peut remplacer qu'un membre non verrouillé (sinon « ne pas
+  le garder ») ; « ÉQUIPE INTOUCHABLE » reste le verrou total. Les verrous sont retenus d'une fois
+  sur l'autre (identifiant du Pokémon dans la partie).
+
+**Modifications**
+- `extension/src/panneau.ts`, `extension/src/capteur.ts`, `extension/src/messages.ts`,
+  `pilote/pilote.ts` (`optionsSansVerrou`), `tests/options-capture.test.ts`,
+  `extension/manifest.json` (0.14.1).
+
+**Objectif**
+Laisser l'IA gérer une partie de l'équipe seulement.
+
+## 54. Mort vague 84 : Zygarde frappait un Archéodong avec une attaque Sol — 10/10/2026
+
+**Prompt**
+> encore une fois mort par un boss zygarde ne faisait rien il spammais une attaque qui ne faisais
+> aucun degat a archedong … tout le reste est mort alors que je pense il pouvais spamme une autre
+> attaque qui aurais pu eviter la mort
+
+**Réponse** (vérifié dans le code)
+- Bug : le calcul de dégâts (`prevision.ts`, `degats`) ignorait les talents qui annulent un type ;
+  seul le panneau les affichait (« Peut annuler : Sol »). Pour le bot, Force Chtonienne (Sol, même
+  type que Zygarde) était super efficace contre Archéodong (Acier) : il la répétait alors que
+  Lévitation la réduisait à zéro.
+- Correction : immunités dans le calcul (adversaire : son talent montré, sinon seulement ce que
+  tous ses talents possibles annulent ; équipe : talent et passif). Partout où le bot calcule des
+  dégâts (planificateur, moteur d'équipe, prévisions).
+
+**Modifications**
+- `observateur/especes.ts` (`immunitesCertaines`), `observateur/prevision.ts`,
+  `observateur/combat-equipe.ts`, `tests/immunites.test.ts`.
+
+**Objectif**
+Ne plus perdre un combat en répétant une attaque qui ne fait rien.

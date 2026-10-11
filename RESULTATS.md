@@ -478,3 +478,46 @@ Code mesuré : dossier de banc `bonbon` (précision `7b747dc`, équipe connue de
 **Idée** (`cd6ad5e`) : plafond dans l'observation ; au plafond, bonus transféré au meilleur membre sous le plafond, et changement gratuit accepté si un membre sous le plafond gagne son duel avec au moins la moitié de ses PV.
 
 **Résultat** (`p25-exp` contre `p21-paquet`) : **+0,74** (erreur-type 1,23, seuil 2,47, 472 paires). Rival 2 : 81 → 83 % ; niveaux à la vague 25 presque inchangés (2e membre 14,82 → 14,92) ; morts contre des boss sauvages 24 → 40 (vague 100 : 0 → 8, vague 70 : 3 → 6) : en fin de partie toute l'équipe est au plafond et la règle envoyait un membre plus faible contre le boss. **Verdict : annulé** (`git revert`). Si on y revient : exclure les boss sauvages, et ne viser que les vagues avant le rival 2.
+
+## Paquet 2 (10/10) — rejeté (règle fixée avant tout résultat)
+
+Petites corrections sûres, trop petites pour être prouvées seules, mesurées d'un bloc :
+- **TELEPORTING_HIJINKS** : option 3 en premier. Les trois options mènent à un boss ; avec 1 et 2 (payer le voyage, ou un Pokémon Acier/Électrik) il gagne +1 à toutes ses stats ; le 3 donne Aimant et Peau Métal (`teleporting-hijinks-encounter.ts`). Avant : 9 morts sur 75 rencontres.
+- **BERRIES_ABOUND** : la course (option 2) seulement si notre Pokémon le plus rapide dépasse de 20 % la vitesse estimée du boss (espèce et niveau visibles, IV moyens) ; le jeu exige plus de 1,1 fois sa vitesse, sinon c'est un boss enragé. Sinon partir. Avant : 16 morts sur 251.
+- **Préparation au rival** : `typesAPreparer` vise le type connu de son starter (vu au rival 1) et l'oiseau, au lieu des trois types de starter possibles (captures, attaques apprises, CT).
+- **EXP au membre sous le plafond** (rejetée seule à +0,74, avec des morts contre les boss sauvages de fin de partie) : seulement avant le rival 2 et jamais contre un boss.
+
+**Mesure** : `p26-paquet2` (960 parties) contre `p21-paquet` (960), mêmes graines. **Tout garder si l'écart dépasse 2 erreurs-types ; sinon tout abandonner** (pas de tri après coup).
+
+**Résultat** : **+0,94** (erreur-type 0,72, seuil 1,44, 948 paires) · mieux 181, pareil 611, pire 156. Morts en rencontre mystère 45 → 19 (Baies à foison 16 → 0, Téléportation 9 → 2) ; boss sauvages 59 → 65 ; rival 5 42 → 33 %. **Verdict : tout annulé** (`git revert`), comme fixé d'avance. Les corrections des rencontres mystères font bien ce qu'elles visent ; si on les reprend, ce sera seules et sur des graines neuves (960 à 1919), règle fixée avant.
+
+## Juge sur le rival 2 avec le code du paquet (10/10) — diagnostic
+
+12 défaites au rival 2 de `p21-paquet` (sur 166), rejouées à l'identique : toutes gagnables en changeant un seul coup ; depuis la photo, le bot gagne 32 % du temps (comme avant le paquet). Corrections du juge (64) : aurait dû changer de Pokémon 29, mauvais Pokémon envoyé 16, attaque de statut 11 (Rugissement 5 fois, Mimi-Queue, Brouillard, Jet de Sable…), autre attaque 5. Force du signal (victoires sur 3 avenirs, coup du bot → coup du juge) : 0 → 1 dans 23 cas (surtout du hasard), 1 → 3 ou 2 → 3 dans 21 cas (nets). Les erreurs restent des changements : le prix de 0,05 a supprimé les séries, mais pas les changements manqués. Fichier : `juge-p21-rival2.jsonl` (dossier du banc).
+
+## Carte et choix du biome (10/10) — GARDÉ
+
+**Constat** (remarque de Carlos) : avec la Carte, le jeu laisse choisir le prochain biome ; le pilote prenait toujours la première option et notait la Carte 5 (il la sautait). Dans le jeu, le champion d'arène est tiré parmi les dresseurs « boss » du biome : le biome choisi à la vague 10, 40, 70… (ou 20, 50, 80…) fixe le type du champion suivant. Les champions font ~27 % des morts.
+
+**Idée** : `donnees/biomes.json` (export du jeu) ; note d'un biome = moyenne, sur ses sauvages pondérés par leur rareté (356/124/26/5/1 sur 512), de log2(meilleur membre : efficacité de ses attaques × résistance à leurs types), plus 3 × la même note pour ses champions s'il y a une vague de champion dans ces 10 vagues ; Carte notée 25 si l'équipe n'en a pas.
+
+**Mesure fixée d'avance** : `p27-biomes` (960 parties) contre la référence du moment (`p26-paquet2` s'il est gardé, sinon `p21-paquet`), mêmes graines ; garder si l'écart dépasse 2 erreurs-types.
+
+| | Paquet `p21-paquet` | Carte et biomes `p27-biomes` |
+|---|---|---|
+| Vague moyenne / médiane | 63,10 / 60 | **64,95** / 66 |
+| Écart apparié | — | **+1,85** (erreur-type 0,76, seuil 1,52, 949 paires) · mieux 187, pareil 596, pire 166 |
+| Morts contre un champion d'arène | 265 | 250 |
+
+**Verdict : GARDER** (2,4 erreurs-types). **Nouvelle référence : `p27-biomes` = 64,95** (code `161df5d`).
+
+## Talents qui annulent un type dans le calcul de dégâts (10/10) — GARDÉ
+
+**Constat** (défaite de Carlos, vague 84) : `degats` ignorait les talents d'immunité (Lévitation → Sol, Torche → Feu, Absorb Eau → Eau…) ; Zygarde répétait Force Chtonienne (Sol, ×2 contre l'Acier sur le papier) contre un Archéodong à Lévitation montrée, pendant que l'équipe tombait.
+
+**Correction** : immunités dans `Combattant` : adversaire = talent montré, sinon les types annulés par tous ses talents possibles ; équipe = talent et passif. `degats` rend 0 contre une immunité.
+
+**Mesure fixée d'avance** : `p28-immunites` (960 parties) contre la référence après le verdict de la Carte (`p27-biomes` s'il est gardé, sinon `p21-paquet`), mêmes graines ; garder si l'écart dépasse 2 erreurs-types.
+La Carte étant gardée : `p28-immunites` contre `p27-biomes`.
+
+**Résultat** : **+1,04** (erreur-type 0,52, seuil 1,04, 951 paires ; juste au-dessus en valeurs non arrondies) · mieux 122, pareil 739, pire 90. Vague moyenne 64,93 → **65,96** ; morts contre un champion d'arène 251 → 237. **Verdict : GARDER.** **Nouvelle référence : `p28-immunites` = 65,96** (code `52d6a8f`).
